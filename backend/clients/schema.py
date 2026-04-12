@@ -13,10 +13,9 @@ def init_db(connect):
                     id SERIAL PRIMARY KEY,
                     name VARCHAR(100) NOT NULL,
                     phone VARCHAR(100) NOT NULL,
-                    description TEXT NOT NULL;
+                    description TEXT NOT NULL,
 
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                );''')
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);''')
         cur.execute('''
                     CREATE INDEX IF NOT EXISTS clients_phone_index
                     ON clients(phone)
