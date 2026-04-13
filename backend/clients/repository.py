@@ -1,13 +1,13 @@
 import psycopg
-from backend.database.connect import connect
 
-def get_clients():
+def get_clients(conn, user_id = str):
     '''
     Reads the clients table and returns clients list
-    Inputs: user_id
-    Outputs: 
+    Inputs: user_id, psycopg.connect object
+    Outputs: clients list
     '''
-    pass
+    with conn.cursor() as cur:
+        cur.execute()
 
 def update_clients():
     pass
