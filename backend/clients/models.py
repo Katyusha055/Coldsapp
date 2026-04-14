@@ -1,14 +1,17 @@
 from pydantic import BaseModel
 
+
 class CreateClient(BaseModel):
-    name = str
-    phone = str 
-    description = str | None = None
+    user_id: int
+    name: str
+    phone: str
+    description: str | None = None
+
 
 class ResponseClient(BaseModel):
-    name = str
-    phone = str 
-    created_at = str
-    id = int
-    description = str | None = None
-
+    id: int
+    user_id: int
+    name: str
+    phone: str
+    created_at: str
+    description: str | None = None

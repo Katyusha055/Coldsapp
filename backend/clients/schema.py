@@ -21,7 +21,7 @@ def init_db(connect):
                     user_id INTEGER,
                     name VARCHAR(100) NOT NULL,
                     phone VARCHAR(100) NOT NULL,
-                    description TEXT NOT NULL,
+                    description TEXT,
 
                     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     
