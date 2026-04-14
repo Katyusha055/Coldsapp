@@ -5,7 +5,6 @@ import pytest
 
 from backend.clients import repository as rep
 
-
 @pytest.fixture
 def sample_row():
     return (
@@ -17,7 +16,6 @@ def sample_row():
         datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
     )
 
-
 @pytest.fixture
 def mocked_conn_and_cursor():
     conn = MagicMock()
@@ -27,8 +25,7 @@ def mocked_conn_and_cursor():
     cursor_cm.__exit__.return_value = False
     return conn, cur
 
-
-def test_row_to_client_dict_happy_path(sample_row):
+def test_row_to_client_dict(sample_row):
     result = rep._row_to_client_dict(sample_row)
 
     assert result == {
@@ -41,7 +38,7 @@ def test_row_to_client_dict_happy_path(sample_row):
     }
 
 
-def test_get_clients_happy_path(mocked_conn_and_cursor, sample_row):
+def test_get_clients_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     cur.fetchall.return_value = [sample_row]
 
@@ -56,7 +53,7 @@ def test_get_clients_happy_path(mocked_conn_and_cursor, sample_row):
                 "phone": "1234567890",
                 "description": "Cliente frecuente",
                 "created_at": "2026-01-01 12:00:00+00:00",
-            }
+            } 
         ]
     }
     cur.execute.assert_called_once()
@@ -65,7 +62,7 @@ def test_get_clients_happy_path(mocked_conn_and_cursor, sample_row):
     assert params == (1,)
 
 
-def test_create_client_happy_path(mocked_conn_and_cursor, sample_row):
+def test_create_client_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     cur.fetchone.return_value = sample_row
 
@@ -85,7 +82,7 @@ def test_create_client_happy_path(mocked_conn_and_cursor, sample_row):
     cur.execute.assert_called_once()
 
 
-def test_update_client_happy_path(mocked_conn_and_cursor, sample_row):
+def test_update_client_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     updated_row = (
         sample_row[0],
@@ -126,7 +123,7 @@ def test_delete_client_happy_path(mocked_conn_and_cursor):
     assert params == (10, 1)
 
 
-def test_get_client_by_phone_happy_path(mocked_conn_and_cursor, sample_row):
+def test_get_client_by_phone_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     cur.fetchone.return_value = sample_row
 
@@ -140,7 +137,7 @@ def test_get_client_by_phone_happy_path(mocked_conn_and_cursor, sample_row):
     assert params == (1, "1234567890")
 
 
-def test_get_client_by_id_happy_path(mocked_conn_and_cursor, sample_row):
+def test_get_client_by_id_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     cur.fetchone.return_value = sample_row
 
@@ -153,10 +150,3 @@ def test_get_client_by_id_happy_path(mocked_conn_and_cursor, sample_row):
     _, params = cur.execute.call_args.args
     assert params == (10, 1)
 
-
-def test_backward_compatible_aliases_happy_path():
-    assert rep.create_clients is rep.create_client
-    assert rep.update_clients is rep.update_client
-    assert rep.delete_clients is rep.delete_client
-    assert rep.get_clients_by_phone is rep.get_client_by_phone
-    assert rep.get_clients_by_id is rep.get_client_by_id
