@@ -31,7 +31,7 @@ def get_clients(conn, data: dict) -> dict:
     return {"items": [_row_to_client_dict(row) for row in rows]}
 
 
-def create_clients(conn, data: dict) -> dict:
+def create_client(conn, data: dict) -> dict:
     """
     Creates a client row.
 
@@ -63,15 +63,15 @@ def create_clients(conn, data: dict) -> dict:
     return _row_to_client_dict(row)
 
 
-def update_clients(conn, user_id, client_id, data: dict) -> dict:
+def update_client(conn, user_id, client_id, data: dict) -> dict:
     """
     Updates one client for one user.
 
-    Input dict: {"id": int, "user_id": int, "name": str, "phone": str, "description": str | None}
+    Input dict: {"name": str, "phone": str, "description": str | None}
     Output dict: ResponseClient-compatible dict (empty dict when not found)
     """
     with conn.cursor() as cur:
-        allowed_fields = ['name', 'phone', 'description']
+        allowed_fields = ["name", "phone", "description"]
 
         filtered_data = {
             key: value
@@ -80,40 +80,35 @@ def update_clients(conn, user_id, client_id, data: dict) -> dict:
         }
 
         if not filtered_data:
-            raise ValueError('No valid fields provided for update')
-        
+            raise ValueError("No valid fields provided for update")
+
         set_parts = []
         values = []
 
-        for field, value, in filtered_data.items():
-            set_parts.append(f'{field} = %s')
+        for field, value in filtered_data.items():
+            set_parts.append(f"{field} = %s")
             values.append(value)
 
-        set_clause = ', '.join(set_parts)
-        #print(set_clause)
+        set_clause = ", ".join(set_parts)
         values.extend([client_id, user_id])
-        #print(values)
 
-        query = f'''
-        UPDATE clients 
+        query = f"""
+        UPDATE clients
         SET {set_clause}
         WHERE id = %s AND user_id = %s
         RETURNING id, user_id, name, phone, description, created_at
-        '''
-    
-        #print(type(query))
-        response = {}
+        """
+
         cur.execute(query, values)
         row = cur.fetchone()
-        response = _row_to_client_dict(row)
 
         if row is None:
-            return None
-        
-        return response
-        
+            return {}
 
-def delete_clients(conn, data: dict) -> dict:
+        return _row_to_client_dict(row)
+
+
+def delete_client(conn, data: dict) -> dict:
     """
     Deletes one client by id and user.
 
@@ -133,7 +128,7 @@ def delete_clients(conn, data: dict) -> dict:
     return {"deleted": deleted_row is not None, "id": data["id"]}
 
 
-def get_clients_by_phone(conn, data: dict) -> dict:
+def get_client_by_phone(conn, data: dict) -> dict:
     """
     Gets one client by phone and user.
 
@@ -156,7 +151,7 @@ def get_clients_by_phone(conn, data: dict) -> dict:
     return _row_to_client_dict(row)
 
 
-def get_clients_by_id(conn, data: dict) -> dict:
+def get_client_by_id(conn, data: dict) -> dict:
     """
     Gets one client by id and user.
 
@@ -176,3 +171,11 @@ def get_clients_by_id(conn, data: dict) -> dict:
     if row is None:
         return {}
     return _row_to_client_dict(row)
+
+
+# Backward-compatible aliases
+create_clients = create_client
+update_clients = update_client
+delete_clients = delete_client
+get_clients_by_phone = get_client_by_phone
+get_clients_by_id = get_client_by_id
