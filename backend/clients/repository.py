@@ -90,9 +90,9 @@ def update_clients(conn, user_id, client_id, data: dict) -> dict:
             values.append(value)
 
         set_clause = ', '.join(set_parts)
-        print(set_clause)
+        #print(set_clause)
         values.extend([client_id, user_id])
-        print(values)
+        #print(values)
 
         query = f'''
         UPDATE clients 
@@ -101,7 +101,7 @@ def update_clients(conn, user_id, client_id, data: dict) -> dict:
         RETURNING id, user_id, name, phone, description, created_at
         '''
     
-        print(type(query))
+        #print(type(query))
         response = {}
         cur.execute(query, values)
         row = cur.fetchone()
