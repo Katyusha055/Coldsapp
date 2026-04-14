@@ -1,7 +1,4 @@
-from collections.abc import Sequence
-
-
-def _row_to_client_dict(row: Sequence) -> dict:
+def _row_to_client_dict(row: dict) -> dict:
     return {
         "id": row[0],
         "user_id": row[1],
@@ -63,11 +60,10 @@ def create_clients(conn, data: dict) -> dict:
             ),
         )
         row = cur.fetchone()
-    conn.commit()
     return _row_to_client_dict(row)
 
 
-def update_clients(conn, data: dict) -> dict:
+def update_clients(conn, user_id, client_id, data: dict) -> dict:
     """
     Updates one client for one user.
 
@@ -75,29 +71,47 @@ def update_clients(conn, data: dict) -> dict:
     Output dict: ResponseClient-compatible dict (empty dict when not found)
     """
     with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE clients
-            SET name = %s,
-                phone = %s,
-                description = %s
-            WHERE id = %s AND user_id = %s
-            RETURNING id, user_id, name, phone, description, created_at
-            """,
-            (
-                data["name"],
-                data["phone"],
-                data.get("description"),
-                data["id"],
-                data["user_id"],
-            ),
-        )
-        row = cur.fetchone()
-    conn.commit()
-    if row is None:
-        return {}
-    return _row_to_client_dict(row)
+        allowed_fields = ['name', 'phone', 'description']
 
+        filtered_data = {
+            key: value
+            for key, value in data.items()
+            if key in allowed_fields and value is not None
+        }
+
+        if not filtered_data:
+            raise ValueError('No valid fields provided for update')
+        
+        set_parts = []
+        values = []
+
+        for field, value, in filtered_data.items():
+            set_parts.append(f'{field} = %s')
+            values.append(value)
+
+        set_clause = ', '.join(set_parts)
+        print(set_clause)
+        values.extend([client_id, user_id])
+        print(values)
+
+        query = f'''
+        UPDATE clients 
+        SET {set_clause}
+        WHERE id = %s AND user_id = %s
+        RETURNING id, user_id, name, phone, description, created_at
+        '''
+    
+        print(type(query))
+        response = {}
+        cur.execute(query, values)
+        row = cur.fetchone()
+        response = _row_to_client_dict(row)
+
+        if row is None:
+            return None
+        
+        return response
+        
 
 def delete_clients(conn, data: dict) -> dict:
     """
@@ -116,7 +130,6 @@ def delete_clients(conn, data: dict) -> dict:
             (data["id"], data["user_id"]),
         )
         deleted_row = cur.fetchone()
-    conn.commit()
     return {"deleted": deleted_row is not None, "id": data["id"]}
 
 
@@ -133,7 +146,6 @@ def get_clients_by_phone(conn, data: dict) -> dict:
             SELECT id, user_id, name, phone, description, created_at
             FROM clients
             WHERE user_id = %s AND phone = %s
-            ORDER BY id ASC
             LIMIT 1
             """,
             (data["user_id"], data["phone"]),
