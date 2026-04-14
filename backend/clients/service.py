@@ -12,7 +12,7 @@ def create_test():
     with connect() as conn:    
         response = []
         for client in clients_data:
-            response.append(rep.create_clients(conn, client))
+            response.append(rep.create_client(conn, client))
             response.append(f'Cliente {client['name']} creado con exito')
 
         print(response)
@@ -26,24 +26,24 @@ def get_clients_test():
 def update_client_test():
     with connect() as conn:
         data = {'name': 'Juanita', 'description': 'now its the wife'}
-        response = rep.update_clients(conn, '1', '2', data)
+        response = rep.update_client(conn, '1', '2', data)
         print(response)
 
 def delete_client_test():
     with connect() as conn:
         data = {'id': '2', 'user_id': '1'}
-        response = rep.delete_clients(conn, data)
+        response = rep.delete_client(conn, data)
         print(response)
 
 def get_client_by_phone_test():
     with connect() as conn:
         data = {'user_id': '1', 'phone': '1234567890'}
-        response = rep.get_clients_by_phone(conn, data)
+        response = rep.get_client_by_phone(conn, data)
         print(response)
 
 def get_client_by_id_test():
     with connect() as conn:
         data = {'id': '3', 'user_id': '1'}
-        response = rep.get_clients_by_id(conn, data)
+        response = rep.get_client_by_id(conn, data)
         print(response)
         '''
