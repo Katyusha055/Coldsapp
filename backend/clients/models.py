@@ -15,3 +15,9 @@ class ResponseClient(BaseModel):
     phone: str
     created_at: str
     description: str | None = None
+
+class UpdateClient(BaseModel):
+    user_id: int
+    name: str | None = None
+    phone: str | None = None 
+    description: str | None = None
