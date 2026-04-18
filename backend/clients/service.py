@@ -1,4 +1,7 @@
 import backend.clients.repository as rep
+from backend.database.connect import connect
 
-user_id = 1 #Temporal user_id for testing, soon to be replaced for token or something like that
 
+def get_clients_service(user_id):
+    with connect() as conn:
+        return rep.get_clients(conn, user_id)

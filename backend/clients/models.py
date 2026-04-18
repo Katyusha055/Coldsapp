@@ -8,7 +8,6 @@ class CreateClient(BaseModel):
 
 
 class ResponseClient(BaseModel):
-    id: int
     name: str
     phone: str
     created_at: str

@@ -28,7 +28,7 @@ def get_clients(conn, data: dict) -> dict:
             (user_id,),
         )
         rows = cur.fetchall()
-    return {"items": [_row_to_client_dict(row) for row in rows]}
+    return [_row_to_client_dict(row) for row in rows]
 
 
 def create_client(conn, data: dict) -> dict:
