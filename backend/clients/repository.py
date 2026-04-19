@@ -1,11 +1,10 @@
 def _row_to_client_dict(row: dict) -> dict:
     return {
         "id": row[0],
-        "user_id": row[1],
-        "name": row[2],
-        "phone": row[3],
-        "description": row[4],
-        "created_at": str(row[5]),
+        "name": row[1],
+        "phone": row[2],
+        "description": row[3],
+        "created_at": str(row[4]),
     }
 
 
@@ -20,7 +19,7 @@ def get_clients(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, user_id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at
             FROM clients
             WHERE user_id = %s
             ORDER BY id ASC
@@ -50,7 +49,7 @@ def create_client(conn, data: dict) -> dict:
             """
             INSERT INTO clients (user_id, name, phone, description)
             VALUES (%s, %s, %s, %s)
-            RETURNING id, user_id, name, phone, description, created_at
+            RETURNING id, name, phone, description, created_at
             """,
             (
                 payload["user_id"],
