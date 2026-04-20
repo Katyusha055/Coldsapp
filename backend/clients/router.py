@@ -21,3 +21,10 @@ def create_client_endpoint(payload: mdl.CreateClient):
         "user_id": get_user_id()
     }
     return ser.create_client_service(client_data)
+
+
+@router.patch('/{client_id}', response_model=mdl.ResponseClient)
+def update_client_endpoint(client_id: int, payload: mdl.UpdateClient):
+    current_user_id = get_user_id()  # mock auth for testing purposes
+    update_data = payload.model_dump(exclude_none=True)
+    return ser.update_client_service(current_user_id, client_id, update_data)
