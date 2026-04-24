@@ -30,3 +30,21 @@ def update_client_endpoint(client_id: int, payload: mdl.UpdateClient):
     current_user_id = get_user_id()  # mock auth for testing purposes
     update_data = payload.model_dump(exclude_none=True)
     return ser.update_client_service(current_user_id, client_id, update_data)
+
+
+@router.delete('/{client_id}')
+def delete_client_endpoint(client_id: int):
+    current_user_id = get_user_id()  # mock auth for testing purposes
+    return ser.delete_client_service(current_user_id, client_id)
+
+
+@router.get('/client_by_name/{client_id}', response_model=mdl.ResponseClient)
+def get_client_by_name_endpoint(client_id: int):
+    current_user_id = get_user_id()  # mock auth for testing purposes
+    return ser.get_client_by_name_service(current_user_id, client_id)
+
+
+@router.get('/client_by_phone/{phone}', response_model=mdl.ResponseClient)
+def get_client_by_phone_endpoint(phone: str):
+    current_user_id = get_user_id()  # mock auth for testing purposes
+    return ser.get_client_by_phone_service(current_user_id, phone)
