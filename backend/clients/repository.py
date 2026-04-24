@@ -137,7 +137,7 @@ def get_client_by_phone(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, user_id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at
             FROM clients
             WHERE user_id = %s AND phone = %s
             LIMIT 1
@@ -160,7 +160,7 @@ def get_client_by_id(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, user_id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at
             FROM clients
             WHERE id = %s AND user_id = %s
             """,
