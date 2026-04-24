@@ -95,7 +95,7 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
         UPDATE clients
         SET {set_clause}
         WHERE id = %s AND user_id = %s
-        RETURNING id, user_id, name, phone, description, created_at
+        RETURNING id, name, phone, description, created_at
         """
 
         cur.execute(query, values)
