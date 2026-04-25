@@ -67,7 +67,6 @@ def test_create_client_1(mocked_conn_and_cursor, sample_row):
     cur.fetchone.return_value = sample_row
 
     payload = {
-        "user_id": 1,
         "name": "Juan",
         "phone": "1234567890",
         "description": "Cliente frecuente",
