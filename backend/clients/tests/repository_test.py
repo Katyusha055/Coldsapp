@@ -9,7 +9,6 @@ from backend.clients import repository as rep
 def sample_row():
     return (
         10,
-        1,
         "Juan",
         "1234567890",
         "Cliente frecuente",
@@ -30,7 +29,6 @@ def test_row_to_client_dict(sample_row):
 
     assert result == {
         "id": 10,
-        "user_id": 1,
         "name": "Juan",
         "phone": "1234567890",
         "description": "Cliente frecuente",
@@ -44,18 +42,16 @@ def test_get_clients_1(mocked_conn_and_cursor, sample_row):
 
     result = rep.get_clients(conn, {"user_id": 1})
 
-    assert result == {
-        "items": [
+    assert result == [
             {
                 "id": 10,
-                "user_id": 1,
                 "name": "Juan",
                 "phone": "1234567890",
                 "description": "Cliente frecuente",
                 "created_at": "2026-01-01 12:00:00+00:00",
             } 
         ]
-    }
+    
     cur.execute.assert_called_once()
     query, params = cur.execute.call_args.args
     assert "FROM clients" in query
@@ -67,6 +63,7 @@ def test_create_client_1(mocked_conn_and_cursor, sample_row):
     cur.fetchone.return_value = sample_row
 
     payload = {
+        "user_id": 1,
         "name": "Juan",
         "phone": "1234567890",
         "description": "Cliente frecuente",
@@ -74,7 +71,6 @@ def test_create_client_1(mocked_conn_and_cursor, sample_row):
     result = rep.create_client(conn, payload)
 
     assert result["id"] == 10
-    assert result["user_id"] == 1
     assert result["name"] == "Juan"
     assert result["phone"] == "1234567890"
     assert result["description"] == "Cliente frecuente"
@@ -85,11 +81,10 @@ def test_update_client_1(mocked_conn_and_cursor, sample_row):
     conn, cur = mocked_conn_and_cursor
     updated_row = (
         sample_row[0],
-        sample_row[1],
         "Juanita",
-        sample_row[3],
+        sample_row[2],
         "Actualizada",
-        sample_row[5],
+        sample_row[4],
     )
     cur.fetchone.return_value = updated_row
 
@@ -97,7 +92,6 @@ def test_update_client_1(mocked_conn_and_cursor, sample_row):
     result = rep.update_client(conn, 1, 10, data)
 
     assert result["id"] == 10
-    assert result["user_id"] == 1
     assert result["name"] == "Juanita"
     assert result["description"] == "Actualizada"
 
@@ -129,7 +123,6 @@ def test_get_client_by_phone_1(mocked_conn_and_cursor, sample_row):
     result = rep.get_client_by_phone(conn, {"user_id": 1, "phone": "1234567890"})
 
     assert result["id"] == 10
-    assert result["user_id"] == 1
     assert result["phone"] == "1234567890"
     cur.execute.assert_called_once()
     _, params = cur.execute.call_args.args
@@ -143,7 +136,6 @@ def test_get_client_by_id_1(mocked_conn_and_cursor, sample_row):
     result = rep.get_client_by_id(conn, {"id": 10, "user_id": 1})
 
     assert result["id"] == 10
-    assert result["user_id"] == 1
     assert result["name"] == "Juan"
     cur.execute.assert_called_once()
     _, params = cur.execute.call_args.args
