@@ -23,7 +23,7 @@ def delete_client_service(user_id, client_id):
         return rep.delete_client(conn, payload)
 
 
-def get_client_by_name_service(user_id, client_id):
+def get_client_by_id_service(user_id, client_id):
     payload = {"id": client_id, "user_id": user_id}
     with connect() as conn:
         return rep.get_client_by_id(conn, payload)

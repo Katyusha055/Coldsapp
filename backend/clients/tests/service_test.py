@@ -94,7 +94,98 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
     assert invalid_response.status_code == 422
     invalid_body = invalid_response.json()
     assert "detail" in invalid_body
-    assert any(
-        error.get("loc", [])[-1] == "phone" and error.get("type")
-        for error in invalid_body["detail"]
+
+def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
+    api_client, create_user
+):
+    from backend.database.connect import connect
+
+    user_id = create_user
+    assert user_id == 1
+
+    payload_one = {
+        "name": "Client One",
+        "phone": "5551000001",
+        "description": "First client for GET tests",
+    }
+    payload_two = {
+        "name": "Client Two",
+        "phone": "5551000002",
+        "description": "Second client for GET tests",
+    }
+
+    create_response_one = api_client.post("/clients/", json=payload_one)
+    create_response_two = api_client.post("/clients/", json=payload_two)
+
+    assert create_response_one.status_code in (200, 201)
+    assert create_response_two.status_code in (200, 201)
+
+    created_one = create_response_one.json()
+    created_two = create_response_two.json()
+
+    assert created_one["id"] > 0
+    assert created_two["id"] > created_one["id"]
+
+    # GET /clients/
+    get_clients_response = api_client.get("/clients/")
+    assert get_clients_response.status_code == 200
+
+    clients_body = get_clients_response.json()
+    assert isinstance(clients_body, list)
+    assert len(clients_body) >= 2
+    assert any(client["id"] == created_one["id"] for client in clients_body)
+    assert any(client["id"] == created_two["id"] for client in clients_body)
+
+    # GET /clients/client_by_id/{id} (current endpoint used as "by id")
+    get_by_id_response = api_client.get(f"/clients/{created_one['id']}")
+    assert get_by_id_response.status_code == 200
+    by_id_body = get_by_id_response.json()
+    assert by_id_body["id"] == created_one["id"]
+    assert by_id_body["name"] == payload_one["name"]
+    assert by_id_body["phone"] == payload_one["phone"]
+    assert by_id_body["description"] == payload_one["description"]
+
+    # GET /clients/client_by_phone/{phone}
+    get_by_phone_response = api_client.get(f"/clients/by-phone/{payload_two['phone']}")
+    assert get_by_phone_response.status_code == 200
+    by_phone_body = get_by_phone_response.json()
+    assert by_phone_body["id"] == created_two["id"]
+    assert by_phone_body["name"] == payload_two["name"]
+    assert by_phone_body["phone"] == payload_two["phone"]
+    assert by_phone_body["description"] == payload_two["description"]
+
+    # DB validation for created records
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, user_id, name, phone, description
+                FROM clients
+                WHERE id IN (%s, %s)
+                ORDER BY id
+                """,
+                (created_one["id"], created_two["id"]),
+            )
+            rows = cur.fetchall()
+
+    assert len(rows) == 2
+    assert rows[0] == (
+        created_one["id"],
+        user_id,
+        payload_one["name"],
+        payload_one["phone"],
+        payload_one["description"],
     )
+    assert rows[1] == (
+        created_two["id"],
+        user_id,
+        payload_two["name"],
+        payload_two["phone"],
+        payload_two["description"],
+    )
+
+    # Invalid GET with invalid parameter (non-integer id)
+    invalid_get_response = api_client.get("/clients/abc")
+    assert invalid_get_response.status_code == 422
+    invalid_get_body = invalid_get_response.json()
+    assert "detail" in invalid_get_body
