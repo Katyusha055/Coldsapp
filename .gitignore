@@ -6,4 +6,4 @@ logs/
 logs
 app.log
 .env
-
+.env.tests
