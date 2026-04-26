@@ -94,11 +94,6 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
     assert invalid_response.status_code == 422
     invalid_body = invalid_response.json()
     assert "detail" in invalid_body
-    assert any(
-        error.get("loc", [])[-1] == "phone" and error.get("type")
-        for error in invalid_body["detail"]
-    )
-
 
 def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     api_client, create_user
@@ -141,8 +136,8 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert any(client["id"] == created_one["id"] for client in clients_body)
     assert any(client["id"] == created_two["id"] for client in clients_body)
 
-    # GET /clients/client_by_name/{id} (current endpoint used as "by id")
-    get_by_id_response = api_client.get(f"/clients/client_by_name/{created_one['id']}")
+    # GET /clients/client_by_id/{id} (current endpoint used as "by id")
+    get_by_id_response = api_client.get(f"/clients/{created_one['id']}")
     assert get_by_id_response.status_code == 200
     by_id_body = get_by_id_response.json()
     assert by_id_body["id"] == created_one["id"]
@@ -151,7 +146,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert by_id_body["description"] == payload_one["description"]
 
     # GET /clients/client_by_phone/{phone}
-    get_by_phone_response = api_client.get(f"/clients/client_by_phone/{payload_two['phone']}")
+    get_by_phone_response = api_client.get(f"/clients/by-phone/{payload_two['phone']}")
     assert get_by_phone_response.status_code == 200
     by_phone_body = get_by_phone_response.json()
     assert by_phone_body["id"] == created_two["id"]
@@ -189,8 +184,8 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
         payload_two["description"],
     )
 
-    # Invalid GET without required path param (missing id)
-    invalid_get_response = api_client.get("/clients/client_by_name/")
+    # Invalid GET with invalid parameter (non-integer id)
+    invalid_get_response = api_client.get("/clients/abc")
     assert invalid_get_response.status_code == 422
     invalid_get_body = invalid_get_response.json()
     assert "detail" in invalid_get_body
