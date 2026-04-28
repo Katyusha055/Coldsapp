@@ -189,3 +189,74 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert invalid_get_response.status_code == 422
     invalid_get_body = invalid_get_response.json()
     assert "detail" in invalid_get_body
+
+
+def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_payload(
+    api_client, create_user
+):
+    from backend.database.connect import connect
+
+    user_id = create_user
+    assert user_id == 1
+
+    create_payload = {
+        "name": "Client Patch Target",
+        "phone": "5552223333",
+        "description": "Original description",
+    }
+    create_response = api_client.post("/clients/", json=create_payload)
+
+    assert create_response.status_code in (200, 201)
+    created_body = create_response.json()
+    assert created_body["id"] > 0
+    assert created_body["name"] == create_payload["name"]
+    assert created_body["phone"] == create_payload["phone"]
+    assert created_body["description"] == create_payload["description"]
+
+    client_id = created_body["id"]
+    patch_payload = {
+        "name": "Client Patch Updated",
+        "phone": "5559998888",
+        "description": "Updated from PATCH test",
+    }
+    patch_response = api_client.patch(f"/clients/{client_id}", json=patch_payload)
+
+    assert patch_response.status_code == 200
+    patched_body = patch_response.json()
+    assert patched_body["id"] == client_id
+    assert patched_body["name"] == patch_payload["name"]
+    assert patched_body["phone"] == patch_payload["phone"]
+    assert patched_body["description"] == patch_payload["description"]
+    assert "created_at" in patched_body
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, user_id, name, phone, description
+                FROM clients
+                WHERE id = %s
+                """,
+                (client_id,),
+            )
+            row = cur.fetchone()
+
+    assert row is not None
+    assert row[0] == client_id
+    assert row[1] == user_id
+    assert row[2] == patch_payload["name"]
+    assert row[3] == patch_payload["phone"]
+    assert row[4] == patch_payload["description"]
+
+    invalid_patch_payload = {
+        "undefined_field": "not allowed",
+        "phone": ["invalid-phone-list-type"],
+    }
+    invalid_patch_response = api_client.patch(
+        f"/clients/{client_id}",
+        json=invalid_patch_payload,
+    )
+
+    assert invalid_patch_response.status_code == 422
+    invalid_patch_body = invalid_patch_response.json()
+    assert "detail" in invalid_patch_body
