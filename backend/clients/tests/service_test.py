@@ -260,3 +260,56 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
     assert invalid_patch_response.status_code == 422
     invalid_patch_body = invalid_patch_response.json()
     assert "detail" in invalid_patch_body
+
+
+def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid_payload(
+    api_client, create_user
+):
+    from backend.database.connect import connect
+
+    user_id = create_user
+    assert user_id == 1
+
+    create_payload = {
+        "name": "Client Delete Target",
+        "phone": "5557776666",
+        "description": "Created for DELETE test",
+    }
+    create_response = api_client.post("/clients/", json=create_payload)
+
+    assert create_response.status_code in (200, 201)
+    created_body = create_response.json()
+    assert created_body["id"] > 0
+    assert created_body["name"] == create_payload["name"]
+    assert created_body["phone"] == create_payload["phone"]
+    assert created_body["description"] == create_payload["description"]
+
+    client_id = created_body["id"]
+
+    delete_response = api_client.delete(f"/clients/{client_id}")
+    assert delete_response.status_code == 200
+
+    deleted_body = delete_response.json()
+    assert deleted_body["deleted"] is True
+    assert deleted_body["id"] == client_id
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, user_id, name, phone, description
+                FROM clients
+                WHERE id = %s
+                """,
+                (client_id,),
+            )
+            row = cur.fetchone()
+
+    assert row is None
+
+    invalid_delete_response = api_client.delete(
+        "/clients/not-an-int",
+        params={"undefined_field": "not-allowed"},
+    )
+    assert invalid_delete_response.status_code == 422
+    assert "detail" in invalid_delete_response.json()
