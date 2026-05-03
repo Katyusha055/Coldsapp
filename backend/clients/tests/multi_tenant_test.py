@@ -133,7 +133,7 @@ def test_tenant_one_cannot_access_or_modify_tenant_two_clients(api_client, creat
 
     # DELETE /clients/{id} should not delete tenant 2 client.
     delete_response = api_client.delete(f'/clients/{tenant_two_client_two_id}')
-    assert delete_response.status_code == 404 or delete_response.json() == {}
+    assert delete_response.json()['deleted'] == False
 
     # Note for future coverage:
     # Add a multi-tenant POST-focused test once authentication/authorization is implemented.
