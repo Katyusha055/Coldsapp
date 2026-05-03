@@ -157,25 +157,8 @@ Notes:
 - PATCH with no valid updatable fields after filtering raises `ValueError`.
 - CRUD queries always scoped by `user_id` for ownership isolation.
 
-## SQL Contracts by Operation
-- **List:** `SELECT ... FROM clients WHERE user_id=%s ORDER BY id ASC`.
-- **Create:** `INSERT INTO clients (...) RETURNING id,name,phone,description,created_at`.
-- **Update:** dynamic `SET` over allowed fields, filtered by `id` + `user_id`.
-- **Delete:** `DELETE ... WHERE id=%s AND user_id=%s RETURNING id`.
-- **Find by phone:** `SELECT ... WHERE user_id=%s AND phone=%s LIMIT 1`.
-- **Find by id:** `SELECT ... WHERE id=%s AND user_id=%s`.
-
-## Observed Test Coverage
-Integration and unit tests currently exercise:
-- Create happy path + DB persistence + invalid payload rejection.
-- List and point reads (by id, by phone).
-- Update happy path + DB persistence + invalid payload rejection.
-- Repository mapping and SQL call semantics.
-
-No test file currently defines schema-only assertions in `schema_test.py`.
-
 ---
-\ THE PROBLEM
+### THE PROBLEM
 
 So this project is born because of one specific problem i have seen in Latin America: repairing shops and technicians 
 usually don't have an automatic system to manage whatsapp and clients, and since they tend to have many clients with 
@@ -184,9 +167,9 @@ pending jobs and all communicate through whatsapp, it gets messy really quickly.
 This app is meant to solve that problem by giving an easy-to-use interface and a efficient system to handle the bussiness-client 
 relationship.
 
-\ The structure
+### The structure
 
 For now it will be divided in two main parts:
 
 -An API built in Fastapi to handle all the backend 
--A Frontend built in JavaScript and another framework yet to be decided to consume that API
+-A Frontend built in JavaScript and another framework yet to be decided to consume that API (spoiler: it will probably be vue.js)
