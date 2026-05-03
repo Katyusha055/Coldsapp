@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 import backend.clients.repository as rep
 from backend.database.connect import connect
 
@@ -14,7 +15,10 @@ def create_client_service(data):
 
 def update_client_service(user_id, client_id, data):
     with connect() as conn:
-        return rep.update_client(conn, user_id, client_id, data)
+        response = rep.update_client(conn, user_id, client_id, data)
+        if response is None:
+            raise HTTPException(status_code=404, detail="Client not found")
+        return response
 
 
 def delete_client_service(user_id, client_id):
@@ -26,10 +30,16 @@ def delete_client_service(user_id, client_id):
 def get_client_by_id_service(user_id, client_id):
     payload = {"id": client_id, "user_id": user_id}
     with connect() as conn:
-        return rep.get_client_by_id(conn, payload)
+        response = rep.get_client_by_id(conn, payload)
+        if response is None:
+            raise HTTPException(status_code=404, detail="Client not found")
+        return response
 
 
 def get_client_by_phone_service(user_id, phone):
     payload = {"user_id": user_id, "phone": phone}
     with connect() as conn:
-        return rep.get_client_by_phone(conn, payload)
+        response = rep.get_client_by_phone(conn, payload)
+        if response is None:
+            raise HTTPException(status_code=404, detail="Client not found")
+        return response

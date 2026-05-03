@@ -102,7 +102,7 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
         row = cur.fetchone()
 
         if row is None:
-            return {}
+            return None
 
         return _row_to_client_dict(row)
 
@@ -146,7 +146,7 @@ def get_client_by_phone(conn, data: dict) -> dict:
         )
         row = cur.fetchone()
     if row is None:
-        return {}
+        return None
     return _row_to_client_dict(row)
 
 
@@ -168,7 +168,7 @@ def get_client_by_id(conn, data: dict) -> dict:
         )
         row = cur.fetchone()
     if row is None:
-        return {}
+        return None
     return _row_to_client_dict(row)
 
 
