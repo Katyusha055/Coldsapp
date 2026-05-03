@@ -117,6 +117,7 @@ Notes:
   - `422 Unprocessable Entity` when payload types are invalid.
   - `422 Unprocessable Entity` when `client_id` is not an integer.
   - Potential unhandled service/repository exception when no valid updatable fields are provided.
+  - `404 Not found` when the client could not be found.
 
 ### 4) Delete client
 - **Method/Path:** `DELETE /clients/{client_id}`
@@ -138,13 +139,14 @@ Notes:
 - **Response:** `200 OK` with `ResponseClient` when found.
 - **Failure modes:**
   - `422 Unprocessable Entity` if `client_id` is not integer.
-- **Current behavior detail:** repository returns empty object `{}` when not found.
+  - `404 Not found` when the client could not be found.
 
 ### 6) Get client by phone
 - **Method/Path:** `GET /clients/by-phone/{phone}`
 - **Path param:** `phone: str`.
 - **Response:** `200 OK` with `ResponseClient` when found.
-- **Current behavior detail:** repository returns empty object `{}` when not found.
+- **Failure modes:**
+  - `404 Not found` when the client could not be found.
 
 ## Validation Matrix
 
