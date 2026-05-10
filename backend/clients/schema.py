@@ -24,7 +24,8 @@ def init_db(connect):
                     description TEXT,
 
                     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    
+                    deleted_at TIMESTAMPTZ DEFAULT NULL,
+
                     CONSTRAINT fk_clients_user
                         FOREIGN KEY (user_id)
                         REFERENCES users(id)
