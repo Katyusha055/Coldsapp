@@ -16,7 +16,7 @@ def init_db(connect):
                     title VARCHAR(200) NOT NULL,
                     description TEXT,
                     status VARCHAR(20) NOT NULL DEFAULT 'pending'
-                        CHECK (status IN ('pending', 'in progress', 'ready', 'delivered', 'cancelled')),
+                        CHECK (status IN ('pending', 'in_progress', 'ready', 'delivered', 'cancelled')),
 
                     received_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                     ready_at TIMESTAMPTZ DEFAULT NULL,
