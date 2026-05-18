@@ -20,7 +20,6 @@ class TicketStatusUpdate(BaseModel):
 
 class TicketResponse(BaseModel):
     id: int
-    user_id: int
     client_id: int
     title: str
     description: str | None
@@ -31,5 +30,3 @@ class TicketResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True

@@ -114,20 +114,11 @@ def update_ticket(conn, user_id, ticket_id, data: dict) -> dict:
     Input dict: {"title": str | None, "description": str | None}
     Output dict: ResponseTicket-compatible dict, or None if not found
     """
-    allowed_fields = ["title", "description"]
-    filtered_data = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields and value is not None
-    }
-
-    if not filtered_data:
-        raise ValueError("No valid fields provided for update")
-
+    
     set_parts = []
     values = []
 
-    for field, value in filtered_data.items():
+    for field, value in data.items():
         set_parts.append(f"{field} = %s")
         values.append(value)
 

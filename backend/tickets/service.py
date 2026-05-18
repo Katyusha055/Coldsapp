@@ -20,13 +20,13 @@ def create_ticket(user_id, data: dict) -> TicketResponse:
         if client is None:
             raise HTTPException(status_code=404, detail="Client not found")
         ticket = rep.create_ticket(conn, {**data, "user_id": user_id})
-    return TicketResponse(**ticket)
+    return ticket
 
 
 def get_tickets(user_id) -> list[TicketResponse]:
     with connect() as conn:
         tickets = rep.get_tickets(conn, {"user_id": user_id})
-    return [TicketResponse(**t) for t in tickets]
+    return tickets
 
 
 def get_ticket_by_id(user_id, ticket_id) -> TicketResponse:
@@ -34,7 +34,7 @@ def get_ticket_by_id(user_id, ticket_id) -> TicketResponse:
         ticket = rep.get_ticket_by_id(conn, {"id": ticket_id, "user_id": user_id})
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    return TicketResponse(**ticket)
+    return ticket
 
 
 def delete_ticket(user_id, ticket_id) -> None:
@@ -47,16 +47,27 @@ def delete_ticket(user_id, ticket_id) -> None:
 def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
     if all(v is None for v in data.values()):
         raise HTTPException(status_code=400, detail="No fields to update")
+    
+    allowed_fields = ["title", "description"]
+    filtered_data = {
+        key: value
+        for key, value in data.items()
+        if key in allowed_fields and value is not None
+    }
+
+    if not filtered_data:
+        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+
     with connect() as conn:
         ticket = rep.update_ticket(conn, user_id, ticket_id, data)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    return TicketResponse(**ticket)
+    return ticket
 
 
 def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
     current_ticket = get_ticket_by_id(user_id, ticket_id)
-    current_status = current_ticket.status
+    current_status = current_ticket["status"]
 
     if new_status not in VALID_TRANSITIONS[current_status]:
         raise HTTPException(
@@ -76,4 +87,4 @@ def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
         ticket = rep.update_ticket_status(conn, user_id, ticket_id, new_status, ready_at, delivered_at)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    return TicketResponse(**ticket)
+    return ticket
