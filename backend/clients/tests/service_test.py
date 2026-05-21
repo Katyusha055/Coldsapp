@@ -1,8 +1,5 @@
 import pytest
 
-from backend.conftest import load_test_env, api_client, clean_db, create_user
-
-
 def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_payload(
     api_client, create_user
 ):
