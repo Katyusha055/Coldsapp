@@ -150,7 +150,7 @@ Creates a client owned by the current user. `user_id` is injected server-side fr
 Only fields explicitly provided with a non-null value are updated. Omitted fields or `null` values are ignored (the router applies `exclude_none=True` before passing to the service).
 
 - `404` when the client does not exist or belongs to a different user.
-- If all provided fields are `null` or missing, the repository raises an unhandled `ValueError` (results in `500`). Sending at least one non-null field avoids this.
+- If all provided fields are `null` or missing, the service raises an `422` error. Sending at least one non-null field avoids this.
 
 ---
 

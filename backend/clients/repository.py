@@ -70,21 +70,10 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
     Output dict: ResponseClient-compatible dict (empty dict when not found)
     """
     with conn.cursor() as cur:
-        allowed_fields = ["name", "phone", "description"]
-
-        filtered_data = {
-            key: value
-            for key, value in data.items()
-            if key in allowed_fields and value is not None
-        }
-
-        if not filtered_data:
-            raise ValueError("No valid fields provided for update")
-
         set_parts = []
         values = []
 
-        for field, value in filtered_data.items():
+        for field, value in data.items():
             set_parts.append(f"{field} = %s")
             values.append(value)
 

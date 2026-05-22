@@ -15,6 +15,16 @@ def create_client_service(data):
 
 def update_client_service(user_id, client_id, data):
     with connect() as conn:
+        allowed_fields = ["name", "phone", "description"]
+
+        filtered_data = {
+            key: value
+            for key, value in data.items()
+            if key in allowed_fields and value is not None
+        }
+
+        if not filtered_data:
+            raise HTTPException(status_code=422, detail="No valid fields provided for update")
         response = rep.update_client(conn, user_id, client_id, data)
         if response is None:
             raise HTTPException(status_code=404, detail="Client not found")
