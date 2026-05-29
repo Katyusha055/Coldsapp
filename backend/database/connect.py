@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(override=False)
 def connect():
     '''
     Connects to database with enviroment variables (.env file)
@@ -23,5 +23,6 @@ def connect():
         conn = psycopg.connect(dbname=dbname, user=user, password=password, host=host, port=port)
         logger.info(f'Connected with SQL database {dbname} succesfully')
     except Exception as e:
-        raise ConnectionError('Connection failed') from e
+        logger.error(f"Database connection failed: {str(e)}")
+        raise ConnectionError(f"Connection failed: {str(e)}") from e
     return conn
