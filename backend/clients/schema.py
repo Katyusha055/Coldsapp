@@ -12,7 +12,7 @@ def init_db(connect):
         cur.execute('''CREATE TABLE IF NOT EXISTS users(
                     id SERIAL PRIMARY KEY,
                     name VARCHAR(100) NOT NULL,
-                    phone VARCHAR(100) NOT NULL,
+                    phone VARCHAR(20) NOT NULL UNIQUE,
                     password_hash VARCHAR(100) NOT NULL,
                     
                     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);''')
