@@ -1,12 +1,15 @@
+from typing_extensions import Annotated
 from dotenv import load_dotenv
 import os
 import jwt
 from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from backend.auth.models import TokenData
+from backend.database.connect import connect
+from backend.auth import repository
 
 load_dotenv()
 
@@ -47,3 +50,14 @@ def decode_token(token: str) -> TokenData:
     except InvalidTokenError:
         raise credentials_exception
 
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+    token_data = decode_token(token)
+    with connect() as conn:
+        user = repository.get_user_by_id(conn, token_data.user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return user
