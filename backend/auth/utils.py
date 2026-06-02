@@ -61,3 +61,5 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
                 headers={"WWW-Authenticate": "Bearer"}
             )
         return user
+
+CurrentUser = Annotated[dict, Depends(get_current_user)]
