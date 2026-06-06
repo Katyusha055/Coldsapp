@@ -40,17 +40,26 @@ def clean_db():
 
 
 @pytest.fixture()
-def create_user():
-    from backend.database.connect import connect
+def create_user(api_client):
+    def _create(phone: str, password: str = "testpassword", name: str = "Test User"):
+        response = api_client.post(
+            "/auth/register",
+            json={"name": name, "phone": phone, "password": password},
+        )
+        return response.json()
 
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO users (name, phone, password_hash)
-                VALUES ('Test User', '1234567890', 'hashed_password')
-                RETURNING id;
-                """
-            )
-            user_id = cur.fetchone()[0]
-    return user_id
+    return _create
+
+
+@pytest.fixture()
+def auth_headers(create_user, api_client):
+    def _auth(phone: str = "0999999999", password: str = "testpassword", name: str = "Test User"):
+        create_user(phone=phone, password=password, name=name)
+        token_response = api_client.post(
+            "/auth/token",
+            data={"username": phone, "password": password},
+        )
+        token = token_response.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return _auth
