@@ -1,19 +1,19 @@
 import pytest
 
 def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_payload(
-    api_client, create_user
+    api_client, auth_headers
 ):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
+    user_id = 1
 
     valid_payload = {
         "name": "Client Test",
         "phone": "5551234567",
         "description": "Created from service_test",
     }
-    response = api_client.post("/clients/", json=valid_payload)
+    response = api_client.post("/clients/", json=valid_payload, headers=headers)
 
     assert response.status_code in (200, 201)
     body = response.json()
@@ -46,19 +46,19 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
         "name": "Client Without Phone",
         "description": "Missing required phone",
     }
-    invalid_response = api_client.post("/clients/", json=invalid_payload)
+    invalid_response = api_client.post("/clients/", json=invalid_payload, headers=headers)
 
     assert invalid_response.status_code == 422
     invalid_body = invalid_response.json()
     assert "detail" in invalid_body
 
 def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
-    api_client, create_user
+    api_client, auth_headers
 ):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
+    user_id = 1
 
     payload_one = {
         "name": "Client One",
@@ -71,8 +71,8 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
         "description": "Second client for GET tests",
     }
 
-    create_response_one = api_client.post("/clients/", json=payload_one)
-    create_response_two = api_client.post("/clients/", json=payload_two)
+    create_response_one = api_client.post("/clients/", json=payload_one, headers=headers)
+    create_response_two = api_client.post("/clients/", json=payload_two, headers=headers)
 
     assert create_response_one.status_code in (200, 201)
     assert create_response_two.status_code in (200, 201)
@@ -84,7 +84,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert created_two["id"] > created_one["id"]
 
     # GET /clients/
-    get_clients_response = api_client.get("/clients/")
+    get_clients_response = api_client.get("/clients/", headers=headers)
     assert get_clients_response.status_code == 200
 
     clients_body = get_clients_response.json()
@@ -94,7 +94,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert any(client["id"] == created_two["id"] for client in clients_body)
 
     # GET /clients/client_by_id/{id} (current endpoint used as "by id")
-    get_by_id_response = api_client.get(f"/clients/{created_one['id']}")
+    get_by_id_response = api_client.get(f"/clients/{created_one['id']}", headers=headers)
     assert get_by_id_response.status_code == 200
     by_id_body = get_by_id_response.json()
     assert by_id_body["id"] == created_one["id"]
@@ -103,7 +103,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert by_id_body["description"] == payload_one["description"]
 
     # GET /clients/client_by_phone/{phone}
-    get_by_phone_response = api_client.get(f"/clients/by-phone/{payload_two['phone']}")
+    get_by_phone_response = api_client.get(f"/clients/by-phone/{payload_two['phone']}", headers=headers)
     assert get_by_phone_response.status_code == 200
     by_phone_body = get_by_phone_response.json()
     assert by_phone_body["id"] == created_two["id"]
@@ -142,26 +142,26 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     )
 
     # Invalid GET with invalid parameter (non-integer id)
-    invalid_get_response = api_client.get("/clients/abc")
+    invalid_get_response = api_client.get("/clients/abc", headers=headers)
     assert invalid_get_response.status_code == 422
     invalid_get_body = invalid_get_response.json()
     assert "detail" in invalid_get_body
 
 
 def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_payload(
-    api_client, create_user
+    api_client, auth_headers
 ):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
+    user_id = 1
 
     create_payload = {
         "name": "Client Patch Target",
         "phone": "5552223333",
         "description": "Original description",
     }
-    create_response = api_client.post("/clients/", json=create_payload)
+    create_response = api_client.post("/clients/", json=create_payload, headers=headers)
 
     assert create_response.status_code in (200, 201)
     created_body = create_response.json()
@@ -176,7 +176,7 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
         "phone": "5559998888",
         "description": "Updated from PATCH test",
     }
-    patch_response = api_client.patch(f"/clients/{client_id}", json=patch_payload)
+    patch_response = api_client.patch(f"/clients/{client_id}", json=patch_payload, headers=headers)
 
     assert patch_response.status_code == 200
     patched_body = patch_response.json()
@@ -212,6 +212,7 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
     invalid_patch_response = api_client.patch(
         f"/clients/{client_id}",
         json=invalid_patch_payload,
+        headers=headers,
     )
 
     assert invalid_patch_response.status_code == 422
@@ -220,19 +221,19 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
 
 
 def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid_payload(
-    api_client, create_user
+    api_client, auth_headers
 ):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
+    user_id = 1
 
     create_payload = {
         "name": "Client Delete Target",
         "phone": "5557776666",
         "description": "Created for DELETE test",
     }
-    create_response = api_client.post("/clients/", json=create_payload)
+    create_response = api_client.post("/clients/", json=create_payload, headers=headers)
 
     assert create_response.status_code in (200, 201)
     created_body = create_response.json()
@@ -243,7 +244,7 @@ def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid
 
     client_id = created_body["id"]
 
-    delete_response = api_client.delete(f"/clients/{client_id}")
+    delete_response = api_client.delete(f"/clients/{client_id}", headers=headers)
     assert delete_response.status_code == 200
 
     deleted_body = delete_response.json()
@@ -267,6 +268,7 @@ def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid
     invalid_delete_response = api_client.delete(
         "/clients/not-an-int",
         params={"undefined_field": "not-allowed"},
+        headers=headers,
     )
     assert invalid_delete_response.status_code == 422
     assert "detail" in invalid_delete_response.json()
