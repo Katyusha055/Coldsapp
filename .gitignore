@@ -8,3 +8,6 @@ app.log
 .env
 .env.tests
 .claude
+setup.cfg
+mutants/
+mutants

@@ -2,16 +2,17 @@ import pytest
 
 
 def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_payload(
-    api_client, create_user
+    api_client, auth_headers
 ):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
+    user_id = 1
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "Test Client", "phone": "5550000001", "description": "For ticket tests"},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
@@ -21,7 +22,7 @@ def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_p
         "title": "Screen is broken",
         "description": "The display goes black after 10 seconds",
     }
-    response = api_client.post("/tickets/", json=valid_payload)
+    response = api_client.post("/tickets/", json=valid_payload, headers=headers)
 
     assert response.status_code in (200, 201)
     body = response.json()
@@ -51,34 +52,34 @@ def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_p
     assert row[5] == "pending"
 
     not_found_payload = {"client_id": 999, "title": "Orphan ticket", "description": None}
-    not_found_response = api_client.post("/tickets/", json=not_found_payload)
+    not_found_response = api_client.post("/tickets/", json=not_found_payload, headers=headers)
     assert not_found_response.status_code == 404
     assert not_found_response.json()["detail"] == "Client not found"
 
     invalid_payload = {"description": "Missing required client_id and title"}
-    invalid_response = api_client.post("/tickets/", json=invalid_payload)
+    invalid_response = api_client.post("/tickets/", json=invalid_payload, headers=headers)
     assert invalid_response.status_code == 422
     assert "detail" in invalid_response.json()
 
 
-def test_get_tickets_endpoint_returns_list(api_client, create_user):
-    user_id = create_user
-    assert user_id == 1
+def test_get_tickets_endpoint_returns_list(api_client, auth_headers):
+    headers = auth_headers()
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "List Test Client", "phone": "5550000002", "description": None},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
 
-    ticket_one = api_client.post("/tickets/", json={"client_id": client_id, "title": "Ticket One"})
-    ticket_two = api_client.post("/tickets/", json={"client_id": client_id, "title": "Ticket Two"})
+    ticket_one = api_client.post("/tickets/", json={"client_id": client_id, "title": "Ticket One"}, headers=headers)
+    ticket_two = api_client.post("/tickets/", json={"client_id": client_id, "title": "Ticket Two"}, headers=headers)
 
     assert ticket_one.status_code in (200, 201)
     assert ticket_two.status_code in (200, 201)
 
-    response = api_client.get("/tickets/")
+    response = api_client.get("/tickets/", headers=headers)
     assert response.status_code == 200
 
     body = response.json()
@@ -90,13 +91,13 @@ def test_get_tickets_endpoint_returns_list(api_client, create_user):
     assert ticket_two.json()["id"] in ids
 
 
-def test_get_ticket_by_id_endpoint_retrieves_ticket_and_rejects_invalid(api_client, create_user):
-    user_id = create_user
-    assert user_id == 1
+def test_get_ticket_by_id_endpoint_retrieves_ticket_and_rejects_invalid(api_client, auth_headers):
+    headers = auth_headers()
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "By-ID Client", "phone": "5550000003", "description": None},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
@@ -104,11 +105,12 @@ def test_get_ticket_by_id_endpoint_retrieves_ticket_and_rejects_invalid(api_clie
     create_ticket_response = api_client.post(
         "/tickets/",
         json={"client_id": client_id, "title": "Get by ID ticket", "description": "Some details"},
+        headers=headers,
     )
     assert create_ticket_response.status_code in (200, 201)
     ticket_id = create_ticket_response.json()["id"]
 
-    response = api_client.get(f"/tickets/{ticket_id}")
+    response = api_client.get(f"/tickets/{ticket_id}", headers=headers)
     assert response.status_code == 200
     body = response.json()
     assert body["id"] == ticket_id
@@ -117,24 +119,24 @@ def test_get_ticket_by_id_endpoint_retrieves_ticket_and_rejects_invalid(api_clie
     assert body["description"] == "Some details"
     assert body["status"] == "pending"
 
-    not_found_response = api_client.get("/tickets/999999")
+    not_found_response = api_client.get("/tickets/999999", headers=headers)
     assert not_found_response.status_code == 404
     assert not_found_response.json()["detail"] == "Ticket not found"
 
-    invalid_response = api_client.get("/tickets/not-an-int")
+    invalid_response = api_client.get("/tickets/not-an-int", headers=headers)
     assert invalid_response.status_code == 422
     assert "detail" in invalid_response.json()
 
 
-def test_delete_ticket_endpoint_deletes_ticket_and_returns_404_when_missing(api_client, create_user):
+def test_delete_ticket_endpoint_deletes_ticket_and_returns_404_when_missing(api_client, auth_headers):
     from backend.database.connect import connect
 
-    user_id = create_user
-    assert user_id == 1
+    headers = auth_headers()
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "Delete Client", "phone": "5550000004", "description": None},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
@@ -142,11 +144,12 @@ def test_delete_ticket_endpoint_deletes_ticket_and_returns_404_when_missing(api_
     create_ticket_response = api_client.post(
         "/tickets/",
         json={"client_id": client_id, "title": "Ticket to delete", "description": None},
+        headers=headers,
     )
     assert create_ticket_response.status_code in (200, 201)
     ticket_id = create_ticket_response.json()["id"]
 
-    delete_response = api_client.delete(f"/tickets/{ticket_id}")
+    delete_response = api_client.delete(f"/tickets/{ticket_id}", headers=headers)
     assert delete_response.status_code == 204
 
     with connect() as conn:
@@ -158,22 +161,22 @@ def test_delete_ticket_endpoint_deletes_ticket_and_returns_404_when_missing(api_
             row = cur.fetchone()
     assert row is None
 
-    second_delete_response = api_client.delete(f"/tickets/{ticket_id}")
+    second_delete_response = api_client.delete(f"/tickets/{ticket_id}", headers=headers)
     assert second_delete_response.status_code == 404
     assert second_delete_response.json()["detail"] == "Ticket not found"
 
-    invalid_delete_response = api_client.delete("/tickets/not-an-int")
+    invalid_delete_response = api_client.delete("/tickets/not-an-int", headers=headers)
     assert invalid_delete_response.status_code == 422
     assert "detail" in invalid_delete_response.json()
 
 
-def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(api_client, create_user):
-    user_id = create_user
-    assert user_id == 1
+def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(api_client, auth_headers):
+    headers = auth_headers()
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "Status Client", "phone": "5550000005", "description": None},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
@@ -181,6 +184,7 @@ def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(ap
     create_ticket_response = api_client.post(
         "/tickets/",
         json={"client_id": client_id, "title": "Status transition ticket"},
+        headers=headers,
     )
     assert create_ticket_response.status_code in (200, 201)
     ticket_id = create_ticket_response.json()["id"]
@@ -189,6 +193,7 @@ def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(ap
     valid_transition_response = api_client.patch(
         f"/tickets/{ticket_id}/status",
         json={"status": "in_progress"},
+        headers=headers,
     )
     assert valid_transition_response.status_code == 200
     assert valid_transition_response.json()["status"] == "in_progress"
@@ -196,6 +201,7 @@ def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(ap
     invalid_transition_response = api_client.patch(
         f"/tickets/{ticket_id}/status",
         json={"status": "pending"},
+        headers=headers,
     )
     assert invalid_transition_response.status_code == 400
     assert "Cannot transition" in invalid_transition_response.json()["detail"]
@@ -203,6 +209,7 @@ def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(ap
     not_found_response = api_client.patch(
         "/tickets/999999/status",
         json={"status": "in_progress"},
+        headers=headers,
     )
     assert not_found_response.status_code == 404
     assert not_found_response.json()["detail"] == "Ticket not found"
@@ -210,18 +217,19 @@ def test_update_ticket_status_endpoint_transitions_status_and_rejects_invalid(ap
     invalid_status_response = api_client.patch(
         f"/tickets/{ticket_id}/status",
         json={"status": "flying"},
+        headers=headers,
     )
     assert invalid_status_response.status_code == 422
     assert "detail" in invalid_status_response.json()
 
 
-def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, create_user):
-    user_id = create_user
-    assert user_id == 1
+def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, auth_headers):
+    headers = auth_headers()
 
     create_client_response = api_client.post(
         "/clients/",
         json={"name": "Update Client", "phone": "5550000006", "description": None},
+        headers=headers,
     )
     assert create_client_response.status_code in (200, 201)
     client_id = create_client_response.json()["id"]
@@ -229,6 +237,7 @@ def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, c
     create_ticket_response = api_client.post(
         "/tickets/",
         json={"client_id": client_id, "title": "Original title", "description": "Original description"},
+        headers=headers,
     )
     assert create_ticket_response.status_code in (200, 201)
     ticket_id = create_ticket_response.json()["id"]
@@ -236,6 +245,7 @@ def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, c
     patch_response = api_client.patch(
         f"/tickets/{ticket_id}",
         json={"title": "Updated title", "description": "Updated description"},
+        headers=headers,
     )
     assert patch_response.status_code == 200
     patched_body = patch_response.json()
@@ -243,13 +253,14 @@ def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, c
     assert patched_body["title"] == "Updated title"
     assert patched_body["description"] == "Updated description"
 
-    no_fields_response = api_client.patch(f"/tickets/{ticket_id}", json={})
+    no_fields_response = api_client.patch(f"/tickets/{ticket_id}", json={}, headers=headers)
     assert no_fields_response.status_code == 400
     assert no_fields_response.json()["detail"] == "No fields to update"
 
     not_found_response = api_client.patch(
         "/tickets/999999",
         json={"title": "Wont work"},
+        headers=headers,
     )
     assert not_found_response.status_code == 404
     assert not_found_response.json()["detail"] == "Ticket not found"
@@ -257,6 +268,7 @@ def test_update_ticket_endpoint_updates_fields_and_rejects_invalid(api_client, c
     invalid_type_response = api_client.patch(
         f"/tickets/{ticket_id}",
         json={"title": ["not", "a", "string"]},
+        headers=headers,
     )
     assert invalid_type_response.status_code == 422
     assert "detail" in invalid_type_response.json()
