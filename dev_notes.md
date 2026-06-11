@@ -213,7 +213,7 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 Backend (clients, tickets, auth) deployed on Railway via Docker. Frontend built with Sakai + PrimeVue connected to the API. Goal: a working demo to present to repair shops.
 
 ### Phase 1 — Validation with first customers
-Target: 3–5 shops using the system actively. Onboarding is assisted by Steffano. WhatsApp integration via Evolution API developed in parallel with real user feedback.
+Target: 3–5 shops using the system actively. Onboarding is assisted by creator. WhatsApp integration via Evolution API developed in parallel with real user feedback.
 
 ### Phase 2 (tentative) — Scale
 Scope defined by phase 1 learnings. Candidate items: RBAC, self-service onboarding, WhatsApp via Meta Cloud API, BI module, geographic expansion to Colombia or Peru.
