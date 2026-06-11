@@ -11,3 +11,4 @@ app.log
 setup.cfg
 mutants/
 mutants
+node_modules/
