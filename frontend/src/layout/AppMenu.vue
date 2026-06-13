@@ -162,83 +162,83 @@ const model = ref([
             }
         ]
     },
-    {
-        label: 'Hierarchy',
-        icon: 'pi pi-fw pi-align-left',
-        path: '/hierarchy',
-        items: [
-            {
-                label: 'Submenu 1',
-                icon: 'pi pi-fw pi-align-left',
-                path: '/submenu_1',
-                items: [
-                    {
-                        label: 'Submenu 1.1',
-                        icon: 'pi pi-fw pi-align-left',
-                        path: '/submenu_1_1',
-                        items: [
-                            {
-                                label: 'Submenu 1.1.1',
-                                icon: 'pi pi-fw pi-align-left'
-                            },
-                            {
-                                label: 'Submenu 1.1.2',
-                                icon: 'pi pi-fw pi-align-left'
-                            },
-                            {
-                                label: 'Submenu 1.1.3',
-                                icon: 'pi pi-fw pi-align-left'
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Submenu 1.2',
-                        icon: 'pi pi-fw pi-align-left',
-                        path: '/submenu_1_2',
-                        items: [
-                            {
-                                label: 'Submenu 1.2.1',
-                                icon: 'pi pi-fw pi-align-left'
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                label: 'Submenu 2',
-                icon: 'pi pi-fw pi-align-left',
-                path: '/submenu_2',
-                items: [
-                    {
-                        label: 'Submenu 2.1',
-                        icon: 'pi pi-fw pi-align-left',
-                        path: '/submenu_2_1',
-                        items: [
-                            {
-                                label: 'Submenu 2.1.1',
-                                icon: 'pi pi-fw pi-align-left'
-                            },
-                            {
-                                label: 'Submenu 2.1.2',
-                                icon: 'pi pi-fw pi-align-left'
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Submenu 2.2',
-                        icon: 'pi pi-fw pi-align-left',
-                        path: '/submenu_2_2',
-                        items: [
-                            {
-                                label: 'Submenu 2.2.1',
-                                icon: 'pi pi-fw pi-align-left'
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    },
+    // {
+    //     label: 'Hierarchy',
+    //     icon: 'pi pi-fw pi-align-left',
+    //     path: '/hierarchy',
+    //     items: [
+    //         {
+    //             label: 'Submenu 1',
+    //             icon: 'pi pi-fw pi-align-left',
+    //             path: '/submenu_1',
+    //             items: [
+    //                 {
+    //                     label: 'Submenu 1.1',
+    //                     icon: 'pi pi-fw pi-align-left',
+    //                     path: '/submenu_1_1',
+    //                     items: [
+    //                         {
+    //                             label: 'Submenu 1.1.1',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         },
+    //                         {
+    //                             label: 'Submenu 1.1.2',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         },
+    //                         {
+    //                             label: 'Submenu 1.1.3',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         }
+    //                     ]
+    //                 },
+    //                 {
+    //                     label: 'Submenu 1.2',
+    //                     icon: 'pi pi-fw pi-align-left',
+    //                     path: '/submenu_1_2',
+    //                     items: [
+    //                         {
+    //                             label: 'Submenu 1.2.1',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         }
+    //                     ]
+    //                 }
+    //             ]
+    //         },
+    //         {
+    //             label: 'Submenu 2',
+    //             icon: 'pi pi-fw pi-align-left',
+    //             path: '/submenu_2',
+    //             items: [
+    //                 {
+    //                     label: 'Submenu 2.1',
+    //                     icon: 'pi pi-fw pi-align-left',
+    //                     path: '/submenu_2_1',
+    //                     items: [
+    //                         {
+    //                             label: 'Submenu 2.1.1',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         },
+    //                         {
+    //                             label: 'Submenu 2.1.2',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         }
+    //                     ]
+    //                 },
+    //                 {
+    //                     label: 'Submenu 2.2',
+    //                     icon: 'pi pi-fw pi-align-left',
+    //                     path: '/submenu_2_2',
+    //                     items: [
+    //                         {
+    //                             label: 'Submenu 2.2.1',
+    //                             icon: 'pi pi-fw pi-align-left'
+    //                         }
+    //                     ]
+    //                 }
+    //             ]
+    //         }
+    //     ]
+    // },
     // {
     //     label: 'Get Started',
     //     path: '/start',
