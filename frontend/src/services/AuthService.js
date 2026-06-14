@@ -15,7 +15,7 @@ export async function register(name, phone, password) {
 
 export async function login(phone, password) {
     const body = new URLSearchParams({ username: phone, password });
-    const response = await fetch(`${BASE_URL}/token`, {
+    const response = await fetch(`${BASE_URL}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString()
