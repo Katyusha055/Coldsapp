@@ -18,7 +18,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
+        "http://localhost:5173",
         "https://coldsapp.vercel.app" #TODO: change to actual domain when deployed
     ],
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
