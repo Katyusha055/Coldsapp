@@ -1,5 +1,6 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { register as registerUser } from '@/services/AuthService.js';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -26,8 +27,8 @@ async function register() {
     if (!validate()) return;
 
     try {
-        // TODO: call AuthService.register(name, phone, password)
-        router.push('/');
+        await registerUser(name.value, phone.value, password.value);
+        router.push('/auth/login');
     } catch (err) {
         apiError.value = err?.message ?? 'Registration failed.';
     }
@@ -81,6 +82,11 @@ async function register() {
                         <small v-if="apiError" class="text-red-500 block mb-4">{{ apiError }}</small>
 
                         <Button label="Register" class="w-full mt-4" @click="register" />
+
+                        <div class="text-center mt-6">
+                            <span class="text-muted-color">Already have an account? </span>
+                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/login')">Sign in</a>
+                        </div>
                     </div>
                 </div>
             </div>
