@@ -1,10 +1,25 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { login, saveToken } from '@/services/AuthService.js';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-const email = ref('');
+const router = useRouter();
+
+const phone = ref('');
 const password = ref('');
-const checked = ref(false);
+const apiError = ref('');
+
+async function submit() {
+    apiError.value = '';
+    try {
+        const data = await login(phone.value, password.value);
+        saveToken(data.access_token);
+        router.push('/');
+    } catch (err) {
+        apiError.value = err?.message ?? 'Login failed.';
+    }
+}
 </script>
 
 <template>
@@ -36,8 +51,8 @@ const checked = ref(false);
                     </div>
 
                     <div>
-                        <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                        <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" v-model="email" />
+                        <label for="phone1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Phone</label>
+                        <InputText id="phone1" type="text" placeholder="Phone number" class="w-full md:w-[30rem] mb-8" v-model="phone" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
@@ -50,7 +65,14 @@ const checked = ref(false);
                             <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary"></span> 
                             <!-- <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span> -->
                         </div>
-                        <Button label="Sign In" class="w-full" as="router-link" to="/"></Button>
+                        <small v-if="apiError" class="text-red-500 block mb-4">{{ apiError }}</small>
+
+                        <Button label="Sign In" class="w-full" @click="submit" />
+
+                        <div class="text-center mt-6">
+                            <span class="text-muted-color">Don't have an account? </span>
+                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/register')">Sign up</a>
+                        </div>
                     </div>
                 </div>
             </div>
