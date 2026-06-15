@@ -1,4 +1,5 @@
 import AppLayout from '@/layout/AppLayout.vue';
+import { getToken } from '@/services/AuthService.js';
 import { createRouter, createWebHistory } from 'vue-router';
 
 const router = createRouter({
@@ -7,6 +8,7 @@ const router = createRouter({
         {
             path: '/',
             component: AppLayout,
+            meta: { requiresAuth: true },
             children: [
                 {
                     path: '/',
@@ -146,6 +148,16 @@ const router = createRouter({
             component: () => import('@/views/pages/auth/Error.vue')
         }
     ]
+});
+
+router.beforeEach((to) => {
+    const token = getToken();
+    if (to.meta.requiresAuth && !token) {
+        return { path: '/auth/login' };
+    }
+    if (!to.meta.requiresAuth && token) {
+        return { path: '/' };
+    }
 });
 
 export default router;
