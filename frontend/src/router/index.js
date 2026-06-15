@@ -109,6 +109,11 @@ const router = createRouter({
                     name: 'crud',
                     component: () => import('@/views/pages/Crud.vue')
                 },
+                { 
+                    path: '/:pathMatch(.*)*',
+                    name: 'notfound',
+                    component: () => import('@/views/pages/NotFound.vue')
+                }
                 // {
                 //     path: '/start/documentation',
                 //     name: 'documentation',
@@ -121,12 +126,6 @@ const router = createRouter({
         //     name: 'landing',
         //     component: () => import('@/views/pages/Landing.vue')
         // },
-        {
-            path: '/pages/notfound',
-            name: 'notfound',
-            component: () => import('@/views/pages/NotFound.vue')
-        },
-
         {
             path: '/auth/login',
             name: 'login',

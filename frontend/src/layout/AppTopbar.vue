@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
 import AppConfigurator from './AppConfigurator.vue';
 import { useRouter } from 'vue-router';
@@ -7,8 +8,11 @@ import { removeToken } from '@/services/AuthService.js';
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
 const router = useRouter();
 
-function logout() {
+const showLogoutDialog = ref(false);
+
+function confirmLogout() {
     removeToken();
+    showLogoutDialog.value = false;
     router.push('/auth/login');
 }
 </script>
@@ -76,7 +80,7 @@ function logout() {
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
                     </button> -->
-                    <button type="button" class="layout-topbar-action" @click="logout">
+                    <button type="button" class="layout-topbar-action" @click="showLogoutDialog = true">
                         <i class="pi pi-sign-out"></i>
                         <span>Logout</span>
                     </button>
@@ -84,4 +88,15 @@ function logout() {
             </div>
         </div>
     </div>
+
+    <Dialog header="Confirmation" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
+        <div class="flex items-center justify-center">
+            <i class="pi pi-exclamation-triangle mr-4" style="font-size: 2rem" />
+            <span>Are you sure you want to logout?</span>
+        </div>
+        <template #footer>
+            <Button label="No" icon="pi pi-times" @click="showLogoutDialog = false" text severity="secondary" />
+            <Button label="Yes" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
+        </template>
+    </Dialog>
 </template>
