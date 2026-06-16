@@ -192,6 +192,7 @@ async function onStatusChange(t, newStatus) {
                 </template>
 
                 <Column field="title" header="Title" sortable style="min-width: 16rem"></Column>
+                <Column field="description" header="Description" style="min-width: 20rem"></Column>
                 <Column header="Status" style="min-width: 14rem">
                     <template #body="slotProps">
                         <span v-if="VALID_TRANSITIONS[slotProps.data.status].length === 0" class="text-surface-400">
@@ -244,7 +245,14 @@ async function onStatusChange(t, newStatus) {
                         filter
                         :invalid="submitted && !ticket.client_id"
                         fluid
-                    />
+                    >
+                        <template #option="slotProps">
+                            <div class="flex flex-col">
+                                <span>{{ slotProps.option.name }}</span>
+                                <small class="text-surface-400">{{ tickets.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
+                            </div>
+                        </template>
+                    </Select>
                     <small v-if="submitted && !ticket.client_id" class="text-red-500">Client is required.</small>
                 </div>
                 <div>
