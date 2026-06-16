@@ -4,11 +4,14 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { removeToken } from '@/services/AuthService.js';
 import { getClients, createClient, updateClient, deleteClient } from '@/services/ClientService.js';
+import { getTickets } from '@/services/TicketService.js';
 
 const router = useRouter();
 const toast = useToast();
 
 const clients = ref([]);
+const tickets = ref([]);
+const expandedRows = ref({});
 const clientDialog = ref(false);
 const deleteClientDialog = ref(false);
 const client = ref({});
@@ -38,7 +41,9 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        clients.value = await getClients();
+        const [clientsData, ticketsData] = await Promise.all([getClients(), getTickets()]);
+        clients.value = clientsData;
+        tickets.value = ticketsData;
     } catch (err) {
         if (err.status === 401) {
             handleError(err);
@@ -47,6 +52,10 @@ onMounted(async () => {
         }
     }
 });
+
+function clientTickets(clientId) {
+    return tickets.value.filter((t) => t.client_id === clientId);
+}
 
 function openNew() {
     client.value = {};
@@ -127,13 +136,14 @@ async function doDeleteClient() {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :value="clients" dataKey="id">
+            <DataTable :value="clients" dataKey="id" v-model:expandedRows="expandedRows">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Clients</h4>
                     </div>
                 </template>
 
+                <Column expander style="width: 3rem" />
                 <Column field="name" header="Name" sortable style="min-width: 16rem"></Column>
                 <Column field="phone" header="Phone" sortable style="min-width: 12rem"></Column>
                 <Column field="description" header="Description" style="min-width: 20rem"></Column>
@@ -148,6 +158,26 @@ async function doDeleteClient() {
                         <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteClient(slotProps.data)" />
                     </template>
                 </Column>
+
+                <template #expansion="slotProps">
+                    <div class="p-4">
+                        <DataTable
+                            :value="clientTickets(slotProps.data.id)"
+                            dataKey="id"
+                            emptyMessage="No tickets found."
+                            :rowClass="() => 'cursor-pointer'"
+                            @row-click="() => router.push('/tickets')"
+                        >
+                            <Column field="title" header="Title" style="min-width: 16rem"></Column>
+                            <Column field="status" header="Status" style="min-width: 10rem"></Column>
+                            <Column field="created_at" header="Created At" style="min-width: 14rem">
+                                <template #body="ticketSlot">
+                                    {{ formatDate(ticketSlot.data.created_at) }}
+                                </template>
+                            </Column>
+                        </DataTable>
+                    </div>
+                </template>
             </DataTable>
         </div>
 
