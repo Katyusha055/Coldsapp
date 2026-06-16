@@ -214,6 +214,11 @@ async function onStatusChange(t, newStatus) {
                         {{ formatDate(slotProps.data.created_at) }}
                     </template>
                 </Column>
+                <Column field="updated_at" header="Last Updated" sortable style="min-width: 14rem">
+                    <template #body="slotProps">
+                        {{ formatDate(slotProps.data.updated_at) }}
+                    </template>
+                </Column>
                 <Column :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
                         <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editTicket(slotProps.data)" />
