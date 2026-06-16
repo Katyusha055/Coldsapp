@@ -57,6 +57,16 @@ function clientTickets(clientId) {
     return tickets.value.filter((t) => t.client_id === clientId);
 }
 
+function toggleRow(row) {
+    if (row.id in expandedRows.value) {
+        const updated = { ...expandedRows.value };
+        delete updated[row.id];
+        expandedRows.value = updated;
+    } else {
+        expandedRows.value = { ...expandedRows.value, [row.id]: row };
+    }
+}
+
 function openNew() {
     client.value = {};
     submitted.value = false;
@@ -143,7 +153,18 @@ async function doDeleteClient() {
                     </div>
                 </template>
 
-                <Column expander style="width: 3rem" />
+                <Column style="width: 3rem">
+                    <template #body="slotProps">
+                        <Button
+                            :icon="slotProps.data.id in expandedRows ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                            text
+                            rounded
+                            size="small"
+                            v-tooltip.top="'View tickets'"
+                            @click="toggleRow(slotProps.data)"
+                        />
+                    </template>
+                </Column>
                 <Column field="name" header="Name" sortable style="min-width: 16rem"></Column>
                 <Column field="phone" header="Phone" sortable style="min-width: 12rem"></Column>
                 <Column field="description" header="Description" style="min-width: 20rem"></Column>
