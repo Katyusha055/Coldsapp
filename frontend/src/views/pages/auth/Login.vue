@@ -2,13 +2,15 @@
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import { login, saveToken } from '@/services/AuthService.js';
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 
 const phone = ref('');
 const password = ref('');
 const apiError = ref('');
+const sessionExpired = route.query.expired === 'true';
 
 async function submit() {
     apiError.value = '';
@@ -57,6 +59,7 @@ async function submit() {
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
+                        <small v-if="sessionExpired" class="text-yellow-500 block mb-4 mt-2">Your session has expired. Please log in again.</small>
                         <small v-if="apiError" class="text-red-500 block mb-4 mt-2">{{ apiError }}</small>
 
                         <Button label="Sign In" class="w-full" @click="submit" />

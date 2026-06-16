@@ -30,8 +30,7 @@ function formatDate(value) {
 function handleError(err) {
     if (err.status === 401) {
         removeToken();
-        toast.add({ severity: 'warn', summary: 'Session Expired', detail: 'Please log in again.', life: 4000 });
-        router.push('/auth/login');
+        router.push('/auth/login?expired=true');
         return;
     }
     errorMessage.value = err.message ?? 'An unexpected error occurred.';
