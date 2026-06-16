@@ -167,7 +167,11 @@ async function doDeleteClient() {
                 </Column>
                 <Column field="name" header="Name" sortable style="min-width: 16rem"></Column>
                 <Column field="phone" header="Phone" sortable style="min-width: 12rem"></Column>
-                <Column field="description" header="Description" style="min-width: 20rem"></Column>
+                <Column field="description" header="Description" style="min-width: 20rem; max-width: 20rem">
+                    <template #body="slotProps">
+                        <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
+                    </template>
+                </Column>
                 <Column field="created_at" header="Created At" sortable style="min-width: 14rem">
                     <template #body="slotProps">
                         {{ formatDate(slotProps.data.created_at) }}
