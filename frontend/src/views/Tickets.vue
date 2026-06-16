@@ -1,0 +1,273 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
+import { removeToken } from '@/services/AuthService.js';
+import { getTickets, createTicket, updateTicket, updateTicketStatus, deleteTicket } from '@/services/TicketService.js';
+import { getClients } from '@/services/ClientService.js';
+
+const VALID_TRANSITIONS = {
+    pending:     ['in_progress', 'cancelled'],
+    in_progress: ['ready', 'cancelled'],
+    ready:       ['delivered', 'cancelled'],
+    delivered:   [],
+    cancelled:   []
+};
+
+const router = useRouter();
+const toast = useToast();
+
+const tickets = ref([]);
+const clients = ref([]);
+const ticketDialog = ref(false);
+const deleteTicketDialog = ref(false);
+const ticket = ref({});
+const submitted = ref(false);
+const errorMessage = ref('');
+const loadError = ref('');
+const filterStatus = ref('all');
+
+const filterStatusOptions = [
+    { label: 'All', value: 'all' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'In Progress', value: 'in_progress' },
+    { label: 'Ready', value: 'ready' },
+    { label: 'Delivered', value: 'delivered' },
+    { label: 'Cancelled', value: 'cancelled' }
+];
+
+const filteredTickets = computed(() => {
+    if (filterStatus.value === 'all') return tickets.value;
+    return tickets.value.filter((t) => t.status === filterStatus.value);
+});
+
+function formatDate(value) {
+    if (!value) return '';
+    return new Date(value).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function statusLabel(status) {
+    const labels = {
+        pending: 'Pending',
+        in_progress: 'In Progress',
+        ready: 'Ready',
+        delivered: 'Delivered',
+        cancelled: 'Cancelled'
+    };
+    return labels[status] ?? status;
+}
+
+function getTransitionOptions(status) {
+    return (VALID_TRANSITIONS[status] ?? []).map((s) => ({ label: statusLabel(s), value: s }));
+}
+
+function handleError(err) {
+    if (err.status === 401) {
+        removeToken();
+        router.push('/auth/login?expired=true');
+        return;
+    }
+    errorMessage.value = err.message ?? 'An unexpected error occurred.';
+}
+
+onMounted(async () => {
+    try {
+        const [ticketsData, clientsData] = await Promise.all([getTickets(), getClients()]);
+        tickets.value = ticketsData;
+        clients.value = clientsData;
+    } catch (err) {
+        if (err.status === 401) {
+            removeToken();
+            router.push('/auth/login?expired=true');
+        } else {
+            loadError.value = err.message ?? 'Failed to load data.';
+        }
+    }
+});
+
+function openNew() {
+    ticket.value = {};
+    submitted.value = false;
+    errorMessage.value = '';
+    ticketDialog.value = true;
+}
+
+function editTicket(t) {
+    ticket.value = { ...t };
+    submitted.value = false;
+    errorMessage.value = '';
+    ticketDialog.value = true;
+}
+
+function hideDialog() {
+    ticketDialog.value = false;
+    submitted.value = false;
+    errorMessage.value = '';
+}
+
+async function saveTicket() {
+    submitted.value = true;
+    errorMessage.value = '';
+
+    if (!ticket.value.title?.trim()) return;
+    if (!ticket.value.id && !ticket.value.client_id) return;
+
+    try {
+        if (ticket.value.id) {
+            const updated = await updateTicket(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
+            const idx = tickets.value.findIndex((t) => t.id === ticket.value.id);
+            if (idx !== -1) tickets.value[idx] = updated;
+            toast.add({ severity: 'success', summary: 'Updated', detail: 'Ticket updated successfully.', life: 3000 });
+        } else {
+            const created = await createTicket(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
+            tickets.value.push(created);
+            toast.add({ severity: 'success', summary: 'Created', detail: 'Ticket created successfully.', life: 3000 });
+        }
+        ticketDialog.value = false;
+        ticket.value = {};
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+function confirmDeleteTicket(t) {
+    ticket.value = t;
+    errorMessage.value = '';
+    deleteTicketDialog.value = true;
+}
+
+async function doDeleteTicket() {
+    try {
+        await deleteTicket(ticket.value.id);
+        tickets.value = tickets.value.filter((t) => t.id !== ticket.value.id);
+        deleteTicketDialog.value = false;
+        ticket.value = {};
+        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Ticket deleted successfully.', life: 3000 });
+    } catch (err) {
+        deleteTicketDialog.value = false;
+        handleError(err);
+    }
+}
+
+async function onStatusChange(t, newStatus) {
+    try {
+        const updated = await updateTicketStatus(t.id, newStatus);
+        const idx = tickets.value.findIndex((tk) => tk.id === t.id);
+        if (idx !== -1) tickets.value[idx] = updated;
+        toast.add({ severity: 'success', summary: 'Status Updated', detail: `Ticket moved to ${statusLabel(newStatus)}.`, life: 3000 });
+    } catch (err) {
+        if (err.status === 401) {
+            removeToken();
+            router.push('/auth/login?expired=true');
+            return;
+        }
+        toast.add({ severity: 'error', summary: 'Error', detail: err.message ?? 'Failed to update status.', life: 3000 });
+    }
+}
+</script>
+
+<template>
+    <div>
+        <div class="card">
+            <Toolbar class="mb-6">
+                <template #start>
+                    <Button label="New Ticket" icon="pi pi-plus" severity="secondary" @click="openNew" />
+                </template>
+            </Toolbar>
+
+            <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
+
+            <DataTable :value="filteredTickets" dataKey="id">
+                <template #header>
+                    <div class="flex items-center justify-between">
+                        <h4 class="m-0">Tickets</h4>
+                        <Select v-model="filterStatus" :options="filterStatusOptions" optionLabel="label" optionValue="value" />
+                    </div>
+                </template>
+
+                <Column field="title" header="Title" sortable style="min-width: 16rem"></Column>
+                <Column header="Status" style="min-width: 14rem">
+                    <template #body="slotProps">
+                        <span v-if="VALID_TRANSITIONS[slotProps.data.status].length === 0" class="text-surface-400">
+                            {{ statusLabel(slotProps.data.status) }}
+                        </span>
+                        <Select
+                            v-else
+                            :modelValue="null"
+                            :options="getTransitionOptions(slotProps.data.status)"
+                            optionLabel="label"
+                            optionValue="value"
+                            :placeholder="statusLabel(slotProps.data.status)"
+                            @change="(e) => onStatusChange(slotProps.data, e.value)"
+                            fluid
+                        />
+                    </template>
+                </Column>
+                <Column field="created_at" header="Created At" sortable style="min-width: 14rem">
+                    <template #body="slotProps">
+                        {{ formatDate(slotProps.data.created_at) }}
+                    </template>
+                </Column>
+                <Column :exportable="false" style="min-width: 8rem">
+                    <template #body="slotProps">
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editTicket(slotProps.data)" />
+                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteTicket(slotProps.data)" />
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <Toast />
+
+        <Dialog v-model:visible="ticketDialog" :style="{ width: '450px' }" :header="ticket.id ? 'Edit Ticket' : 'New Ticket'" :modal="true">
+            <div class="flex flex-col gap-6">
+                <div v-if="!ticket.id">
+                    <label for="ticket-client" class="block font-bold mb-3">Client</label>
+                    <Select
+                        id="ticket-client"
+                        v-model="ticket.client_id"
+                        :options="clients"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="Select a client"
+                        filter
+                        :invalid="submitted && !ticket.client_id"
+                        fluid
+                    />
+                    <small v-if="submitted && !ticket.client_id" class="text-red-500">Client is required.</small>
+                </div>
+                <div>
+                    <label for="ticket-title" class="block font-bold mb-3">Title</label>
+                    <InputText id="ticket-title" v-model.trim="ticket.title" autofocus :invalid="submitted && !ticket.title" fluid />
+                    <small v-if="submitted && !ticket.title" class="text-red-500">Title is required.</small>
+                </div>
+                <div>
+                    <label for="ticket-description" class="block font-bold mb-3">Description</label>
+                    <Textarea id="ticket-description" v-model="ticket.description" rows="3" fluid />
+                </div>
+                <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
+            </div>
+            <template #footer>
+                <Button label="Cancel" icon="pi pi-times" text @click="hideDialog" />
+                <Button label="Save" icon="pi pi-check" @click="saveTicket" />
+            </template>
+        </Dialog>
+
+        <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
+            <div class="flex items-center gap-4">
+                <i class="pi pi-exclamation-triangle text-3xl!" />
+                <span v-if="ticket">Are you sure you want to delete <b>{{ ticket.title }}</b>?</span>
+            </div>
+            <template #footer>
+                <Button label="No" icon="pi pi-times" text @click="deleteTicketDialog = false" />
+                <Button label="Yes" icon="pi pi-check" severity="danger" @click="doDeleteTicket" />
+            </template>
+        </Dialog>
+    </div>
+</template>
