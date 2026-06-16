@@ -20,6 +20,11 @@ const model = ref([
                 label: 'Clients',
                 icon: 'pi pi-fw pi-users',
                 to: '/clients'
+            },
+            {
+                label: 'Tickets',
+                icon: 'pi pi-fw pi-ticket',
+                to: '/tickets'
             }
         ]
     },
