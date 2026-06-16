@@ -75,19 +75,17 @@ async function saveClient() {
 
     if (!client.value.name?.trim() || !client.value.phone?.trim()) return;
 
-    const payload = {
-        name: client.value.name.trim(),
-        phone: client.value.phone.trim(),
-        description: client.value.description ?? ''
-    };
-
     try {
         if (client.value.id) {
+            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
+            if (client.value.description) payload.description = client.value.description;
             const updated = await updateClient(client.value.id, payload);
             const idx = clients.value.findIndex((c) => c.id === client.value.id);
             if (idx !== -1) clients.value[idx] = updated;
             toast.add({ severity: 'success', summary: 'Updated', detail: 'Client updated successfully.', life: 3000 });
         } else {
+            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
+            if (client.value.description) payload.description = client.value.description;
             const created = await createClient(payload);
             clients.value.push(created);
             toast.add({ severity: 'success', summary: 'Created', detail: 'Client created successfully.', life: 3000 });
