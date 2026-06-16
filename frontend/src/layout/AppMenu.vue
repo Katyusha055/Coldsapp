@@ -14,6 +14,16 @@ const model = ref([
         ]
     },
     {
+        label: 'Management',
+        items: [
+            {
+                label: 'Clients',
+                icon: 'pi pi-fw pi-users',
+                to: '/clients'
+            }
+        ]
+    },
+    {
         label: 'UI Components',
         path: '/uikit',
         items: [
