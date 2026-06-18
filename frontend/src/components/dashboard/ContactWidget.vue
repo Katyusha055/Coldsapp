@@ -1,0 +1,24 @@
+<script setup>
+</script>
+
+<template>
+    <Card>
+        <template #title>Contact Support</template>
+        <template #content>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-phone text-primary" />
+                    <span class="text-lg font-medium">+593 000 000 000</span>
+                </div>
+                <div>
+                    <Button
+                        label="Open WhatsApp"
+                        icon="pi pi-whatsapp"
+                        :disabled="true"
+                        v-tooltip.right="'Coming soon'"
+                    />
+                </div>
+            </div>
+        </template>
+    </Card>
+</template>

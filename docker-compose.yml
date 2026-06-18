@@ -24,6 +24,18 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - coldsapp_net
+  
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - coldsapp_net
 
 volumes:
   postgres_data:
