@@ -19,7 +19,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://coldsapp.vercel.app" #TODO: change to actual domain when deployed
+        "https://coldsapp.up.railway.app/" 
     ],
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
