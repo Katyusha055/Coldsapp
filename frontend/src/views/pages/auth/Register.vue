@@ -15,12 +15,12 @@ const apiError = ref('');
 
 function validate() {
     const e = {};
-    if (!name.value.trim()) e.name = 'Name is required.';
-    if (!phone.value.trim()) e.phone = 'Phone is required.';
-    if (!password.value) e.password = 'Password is required.';
-    if (!confirmPassword.value) e.confirmPassword = 'Please confirm your password.';
-    else if (confirmPassword.value !== password.value) e.confirmPassword = 'Passwords do not match.';
-    if (phone.value && !/^\d{10}$/.test(phone.value)) e.phone = 'Please enter a valid 10-digit phone number.';
+    if (!name.value.trim()) e.name = 'El nombre es requerido.';
+    if (!phone.value.trim()) e.phone = 'El teléfono es requerido.';
+    if (!password.value) e.password = 'La contraseña es requerida.';
+    if (!confirmPassword.value) e.confirmPassword = 'Por favor confirma tu contraseña.';
+    else if (confirmPassword.value !== password.value) e.confirmPassword = 'Las contraseñas no coinciden.';
+    if (phone.value && !/^\d{10}$/.test(phone.value)) e.phone = 'Por favor ingresa un número de teléfono válido de 10 dígitos.';
     errors.value = e;
     return Object.keys(e).length === 0;
 }
@@ -62,38 +62,38 @@ async function register() {
                                 />
                             </g>
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Create an account</div>
-                        <span class="text-muted-color font-medium">Fill in your details to register</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Crear una cuenta</div>
+                        <span class="text-muted-color font-medium">Completa tus datos para registrarte</span>
                     </div>
 
                     <div>
-                        <label for="name" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Name</label>
-                        <InputText id="name" type="text" placeholder="Full name" class="w-full md:w-[30rem] mb-1" v-model="name" :invalid="!!errors.name" />
+                        <label for="name" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Nombre</label>
+                        <InputText id="name" type="text" placeholder="Nombre completo" class="w-full md:w-[30rem] mb-1" v-model="name" :invalid="!!errors.name" />
                         <small v-if="errors.name" class="text-red-500 block mb-6">{{ errors.name }}</small>
                         <div v-else class="mb-6" />
 
-                        <label for="phone" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Phone</label>
-                        <InputText id="phone" type="text" placeholder="Phone number" class="w-full md:w-[30rem] mb-1" v-model="phone" :invalid="!!errors.phone" />
+                        <label for="phone" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Teléfono</label>
+                        <InputText id="phone" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-1" v-model="phone" :invalid="!!errors.phone" />
                         <small v-if="errors.phone" class="text-red-500 block mb-6">{{ errors.phone }}</small>
                         <div v-else class="mb-6" />
 
-                        <label for="password" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Password</label>
-                        <Password id="password" v-model="password" placeholder="Password" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.password" />
+                        <label for="password" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Contraseña</label>
+                        <Password id="password" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.password" />
                         <small v-if="errors.password" class="text-red-500 block mb-6">{{ errors.password }}</small>
                         <div v-else class="mb-6" />
 
-                        <label for="confirmPassword" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Confirm Password</label>
-                        <Password id="confirmPassword" v-model="confirmPassword" placeholder="Repeat password" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.confirmPassword" />
+                        <label for="confirmPassword" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Confirmar contraseña</label>
+                        <Password id="confirmPassword" v-model="confirmPassword" placeholder="Repetir contraseña" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.confirmPassword" />
                         <small v-if="errors.confirmPassword" class="text-red-500 block mb-4">{{ errors.confirmPassword }}</small>
                         <div v-else class="mb-4" />
 
                         <small v-if="apiError" class="text-red-500 block mb-4">{{ apiError }}</small>
 
-                        <Button label="Register" class="w-full mt-4" @click="register" />
+                        <Button label="Registrarse" class="w-full mt-4" @click="register" />
 
                         <div class="text-center mt-6">
-                            <span class="text-muted-color">Already have an account? </span>
-                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/login')">Sign in</a>
+                            <span class="text-muted-color">¿Ya tienes una cuenta? </span>
+                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/login')">Iniciar sesión</a>
                         </div>
                     </div>
                 </div>
