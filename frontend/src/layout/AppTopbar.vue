@@ -63,21 +63,21 @@ function confirmLogout() {
                 <div class="layout-topbar-menu-content">
                     <button type="button" class="layout-topbar-action" @click="showLogoutDialog = true">
                         <i class="pi pi-sign-out"></i>
-                        <span>Logout</span>
+                        <span>Cerrar sesión</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <Dialog header="Confirmation" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
+    <Dialog header="Confirmación" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
         <div class="flex items-center justify-center">
             <i class="pi pi-exclamation-triangle mr-4" style="font-size: 2rem" />
-            <span>Are you sure you want to logout?</span>
+            <span>¿Estás seguro de que deseas cerrar sesión?</span>
         </div>
         <template #footer>
             <Button label="No" icon="pi pi-times" @click="showLogoutDialog = false" text severity="secondary" />
-            <Button label="Yes" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
+            <Button label="Sí" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
         </template>
     </Dialog>
 </template>
