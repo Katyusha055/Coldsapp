@@ -9,6 +9,7 @@ const router = useRouter();
 const name = ref('');
 const phone = ref('');
 const password = ref('');
+const confirmPassword = ref('');
 const errors = ref({});
 const apiError = ref('');
 
@@ -17,6 +18,8 @@ function validate() {
     if (!name.value.trim()) e.name = 'Name is required.';
     if (!phone.value.trim()) e.phone = 'Phone is required.';
     if (!password.value) e.password = 'Password is required.';
+    if (!confirmPassword.value) e.confirmPassword = 'Please confirm your password.';
+    else if (confirmPassword.value !== password.value) e.confirmPassword = 'Passwords do not match.';
     if (phone.value && !/^\d{10}$/.test(phone.value)) e.phone = 'Please enter a valid 10-digit phone number.';
     errors.value = e;
     return Object.keys(e).length === 0;
@@ -76,7 +79,12 @@ async function register() {
 
                         <label for="password" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Password</label>
                         <Password id="password" v-model="password" placeholder="Password" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.password" />
-                        <small v-if="errors.password" class="text-red-500 block mb-4">{{ errors.password }}</small>
+                        <small v-if="errors.password" class="text-red-500 block mb-6">{{ errors.password }}</small>
+                        <div v-else class="mb-6" />
+
+                        <label for="confirmPassword" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Confirm Password</label>
+                        <Password id="confirmPassword" v-model="confirmPassword" placeholder="Repeat password" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.confirmPassword" />
+                        <small v-if="errors.confirmPassword" class="text-red-500 block mb-4">{{ errors.confirmPassword }}</small>
                         <div v-else class="mb-4" />
 
                         <small v-if="apiError" class="text-red-500 block mb-4">{{ apiError }}</small>
