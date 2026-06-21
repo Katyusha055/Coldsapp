@@ -27,13 +27,13 @@ onMounted(async () => {
 
 <template>
     <Card>
-        <template #title>New Pending Tickets</template>
+        <template #title>Tickets Pendientes Nuevos</template>
         <template #content>
             <div v-if="loading" class="flex justify-center py-4">
                 <ProgressSpinner style="width: 40px; height: 40px" />
             </div>
             <div v-else-if="pendingTickets.length === 0" class="text-muted-color text-center py-4">
-                No pending tickets
+                Sin tickets pendientes
             </div>
             <div v-else class="flex flex-col gap-2">
                 <div

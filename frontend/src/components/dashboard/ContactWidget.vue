@@ -3,7 +3,7 @@
 
 <template>
     <Card>
-        <template #title>Contact Support</template>
+        <template #title>Contacto de Soporte</template>
         <template #content>
             <div class="flex flex-col gap-4">
                 <div class="flex items-center gap-2">
@@ -12,10 +12,10 @@
                 </div>
                 <div>
                     <Button
-                        label="Open WhatsApp"
+                        label="Abrir WhatsApp"
                         icon="pi pi-whatsapp"
                         :disabled="true"
-                        v-tooltip.right="'Coming soon'"
+                        v-tooltip.right="'Próximamente'"
                     />
                 </div>
             </div>
