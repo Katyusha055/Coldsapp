@@ -233,3 +233,37 @@ Based on audit findings, implement middlewares for:
 - Request logging for anomaly detection
 
 HUman note again: So just to clarify, and i know some might ask, no i did not ask the AI to write the auth module, i did a fair amount of research about that into the FastAPI docs and did use claude to assist, but did the majority myself
+
+---
+
+## Frontend
+
+### Service layer separation
+**Decision:** `api.js` only builds headers and base URL. `AuthService.js` handles token lifecycle. Each entity has its own service file. Native fetch is used throughout — no Axios. Fetch covers all use cases and avoids an unnecessary dependency.
+**Trade-offs accepted:** More files than a single monolithic API module. The separation keeps responsibilities clear and makes each service independently testable.
+**Future ideas:** No change planned.
+
+### ORM-agnostic auth flow
+**Decision:** The frontend makes no business logic decisions about auth beyond storing and reading the token. Token validation, permissions, and data access control live entirely in FastAPI. Any logic placed in the frontend is bypassable by the user.
+**Trade-offs accepted:** The frontend cannot enforce permissions locally — it depends entirely on the API to reject unauthorized requests. This is the correct model: client-side enforcement is never a security boundary.
+**Future ideas:** No change planned.
+
+### JWT in localStorage vs HttpOnly cookies
+**Decision:** JWTs are stored in localStorage for the beta. The XSS risk is known and accepted. HttpOnly cookies require additional FastAPI configuration, different CORS handling, and CSRF protection — complexity not justified for a beta with known, assisted users.
+**Trade-offs accepted:** localStorage is accessible to JavaScript; a successful XSS attack can exfiltrate the token. Acceptable during validation phase given the controlled user base.
+**Future ideas:** Migrate to HttpOnly cookies in phase 2 as part of the post-phase-1 OWASP audit.
+
+### Sakai as base template
+**Decision:** The frontend is built on the Sakai template, which provides a complete design system: grid, typography, dark mode, responsive layout, and complex PrimeVue components like DataTable with sorting, filtering, and row expansion. Building this from scratch would take weeks.
+**Trade-offs accepted:** The project is coupled to Sakai's CSS variables and internal structure. Deviating from template conventions requires understanding its internals. Acceptable for a product in validation phase.
+**Future ideas:** Evaluate decoupling from Sakai if the product reaches a stage where a custom design system is warranted.
+
+### Frontend filtering vs specific endpoints
+**Decision:** Tickets displayed in the client row expansion are filtered in the frontend from already-loaded data, rather than calling `GET /clients/{id}/tickets` per expanded client. With low ticket volume, one HTTP call plus in-memory filtering is more efficient than multiple round trips.
+**Trade-offs accepted:** All tickets are loaded upfront regardless of how many clients are expanded. At high ticket volume this becomes inefficient in both payload size and memory. The tradeoff is deliberate and time-bounded.
+**Future ideas:** Migrate to a dedicated endpoint in phase 2 when data volume makes the current approach a measurable bottleneck.
+
+### SPA routing and Nginx
+**Decision:** The Nginx configuration includes `try_files $uri $uri/ /index.html`. Vue Router handles client-side routing — in production, all routes resolve to `index.html` and JavaScript takes over navigation. Without this directive, reloading any route other than `/` returns a 404 because Nginx looks for a physical file that does not exist.
+**Trade-offs accepted:** Nginx serves `index.html` for every unmatched path, including truly missing routes. A proper 404 response must come from Vue Router, not from Nginx.
+**Future ideas:** No change planned.
