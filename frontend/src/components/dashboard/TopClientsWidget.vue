@@ -33,13 +33,13 @@ onMounted(async () => {
 
 <template>
     <Card>
-        <template #title>Top Active Clients</template>
+        <template #title>Clientes Más Activos</template>
         <template #content>
             <div v-if="loading" class="flex justify-center py-4">
                 <ProgressSpinner style="width: 40px; height: 40px" />
             </div>
             <div v-else-if="topClients.length === 0" class="text-muted-color text-center py-4">
-                No data available
+                Sin datos disponibles
             </div>
             <div v-else class="flex flex-col gap-2">
                 <div

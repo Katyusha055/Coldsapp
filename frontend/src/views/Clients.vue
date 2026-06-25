@@ -100,13 +100,13 @@ async function saveClient() {
             const updated = await updateClient(client.value.id, payload);
             const idx = clients.value.findIndex((c) => c.id === client.value.id);
             if (idx !== -1) clients.value[idx] = updated;
-            toast.add({ severity: 'success', summary: 'Updated', detail: 'Client updated successfully.', life: 3000 });
+            toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Cliente actualizado correctamente.', life: 3000 });
         } else {
             const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
             if (client.value.description) payload.description = client.value.description;
             const created = await createClient(payload);
             clients.value.push(created);
-            toast.add({ severity: 'success', summary: 'Created', detail: 'Client created successfully.', life: 3000 });
+            toast.add({ severity: 'success', summary: 'Creado', detail: 'Cliente creado correctamente.', life: 3000 });
         }
         clientDialog.value = false;
         client.value = {};
@@ -127,7 +127,7 @@ async function doDeleteClient() {
         clients.value = clients.value.filter((c) => c.id !== client.value.id);
         deleteClientDialog.value = false;
         client.value = {};
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Client deleted successfully.', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Cliente eliminado correctamente.', life: 3000 });
     } catch (err) {
         deleteClientDialog.value = false;
         handleError(err);
@@ -140,7 +140,7 @@ async function doDeleteClient() {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="New Client" icon="pi pi-plus" severity="secondary" @click="openNew" />
+                    <Button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" @click="openNew" />
                 </template>
             </Toolbar>
 
@@ -149,7 +149,7 @@ async function doDeleteClient() {
             <DataTable :value="clients" dataKey="id" v-model:expandedRows="expandedRows">
                 <template #header>
                     <div class="flex items-center justify-between">
-                        <h4 class="m-0">Clients</h4>
+                        <h4 class="m-0">Clientes</h4>
                     </div>
                 </template>
 
@@ -160,19 +160,19 @@ async function doDeleteClient() {
                             text
                             rounded
                             size="small"
-                            v-tooltip.top="'View tickets'"
+                            v-tooltip.top="'Ver tickets'"
                             @click="toggleRow(slotProps.data)"
                         />
                     </template>
                 </Column>
-                <Column field="name" header="Name" sortable style="min-width: 16rem"></Column>
-                <Column field="phone" header="Phone" sortable style="min-width: 12rem"></Column>
-                <Column field="description" header="Description" style="min-width: 20rem; max-width: 20rem">
+                <Column field="name" header="Nombre" sortable style="min-width: 16rem"></Column>
+                <Column field="phone" header="Teléfono" sortable style="min-width: 12rem"></Column>
+                <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
                         <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
                     </template>
                 </Column>
-                <Column field="created_at" header="Created At" sortable style="min-width: 14rem">
+                <Column field="created_at" header="Fecha de Creación" sortable style="min-width: 14rem">
                     <template #body="slotProps">
                         {{ formatDate(slotProps.data.created_at) }}
                     </template>
@@ -189,13 +189,13 @@ async function doDeleteClient() {
                         <DataTable
                             :value="clientTickets(slotProps.data.id)"
                             dataKey="id"
-                            emptyMessage="No tickets found."
+                            emptyMessage="No se encontraron tickets."
                             :rowClass="() => 'cursor-pointer'"
                             @row-click="() => router.push('/tickets')"
                         >
-                            <Column field="title" header="Title" style="min-width: 16rem"></Column>
-                            <Column field="status" header="Status" style="min-width: 10rem"></Column>
-                            <Column field="created_at" header="Created At" style="min-width: 14rem">
+                            <Column field="title" header="Título" style="min-width: 16rem"></Column>
+                            <Column field="status" header="Estado" style="min-width: 10rem"></Column>
+                            <Column field="created_at" header="Fecha de Creación" style="min-width: 14rem">
                                 <template #body="ticketSlot">
                                     {{ formatDate(ticketSlot.data.created_at) }}
                                 </template>
@@ -209,39 +209,39 @@ async function doDeleteClient() {
         <Toast />
 
         <!-- Create / Edit Dialog -->
-        <Dialog v-model:visible="clientDialog" :style="{ width: '450px' }" :header="client.id ? 'Edit Client' : 'New Client'" :modal="true">
+        <Dialog v-model:visible="clientDialog" :style="{ width: '450px' }" :header="client.id ? 'Editar Cliente' : 'Nuevo Cliente'" :modal="true">
             <div class="flex flex-col gap-6">
                 <div>
-                    <label for="client-name" class="block font-bold mb-3">Name</label>
+                    <label for="client-name" class="block font-bold mb-3">Nombre</label>
                     <InputText id="client-name" v-model.trim="client.name" autofocus :invalid="submitted && !client.name" fluid />
-                    <small v-if="submitted && !client.name" class="text-red-500">Name is required.</small>
+                    <small v-if="submitted && !client.name" class="text-red-500">El nombre es requerido.</small>
                 </div>
                 <div>
-                    <label for="client-phone" class="block font-bold mb-3">Phone</label>
+                    <label for="client-phone" class="block font-bold mb-3">Teléfono</label>
                     <InputText id="client-phone" v-model.trim="client.phone" :invalid="submitted && !client.phone" fluid />
-                    <small v-if="submitted && !client.phone" class="text-red-500">Phone is required.</small>
+                    <small v-if="submitted && !client.phone" class="text-red-500">El teléfono es requerido.</small>
                 </div>
                 <div>
-                    <label for="client-description" class="block font-bold mb-3">Description</label>
+                    <label for="client-description" class="block font-bold mb-3">Descripción</label>
                     <Textarea id="client-description" v-model="client.description" rows="3" fluid />
                 </div>
                 <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
             </div>
             <template #footer>
-                <Button label="Cancel" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Save" icon="pi pi-check" @click="saveClient" />
+                <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
+                <Button label="Guardar" icon="pi pi-check" @click="saveClient" />
             </template>
         </Dialog>
 
         <!-- Delete Confirmation Dialog -->
-        <Dialog v-model:visible="deleteClientDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
+        <Dialog v-model:visible="deleteClientDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="client">Are you sure you want to delete <b>{{ client.name }}</b>?</span>
+                <span v-if="client">¿Estás seguro de que deseas eliminar a <b>{{ client.name }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteClientDialog = false" />
-                <Button label="Yes" icon="pi pi-check" severity="danger" @click="doDeleteClient" />
+                <Button label="Sí" icon="pi pi-check" severity="danger" @click="doDeleteClient" />
             </template>
         </Dialog>
     </div>

@@ -42,8 +42,8 @@ onMounted(async () => {
                 <!-- Content -->
                 <div class="relative z-10 flex flex-col gap-6 text-white w-full">
                     <div>
-                        <p class="text-2xl font-semibold">Welcome back!</p>
-                        <p class="text-base" style="opacity: 0.7">Here's a quick overview of your workspace.</p>
+                        <p class="text-2xl font-semibold">¡Bienvenido de vuelta!</p>
+                        <p class="text-base" style="opacity: 0.7">Aquí tienes un resumen rápido de tu espacio de trabajo.</p>
                     </div>
 
                     <div class="flex items-center gap-12">
@@ -51,7 +51,7 @@ onMounted(async () => {
                             <span class="text-4xl font-bold tracking-tight">
                                 {{ totalClients ?? '—' }}
                             </span>
-                            <span class="text-sm font-medium" style="opacity: 0.75">Total Clients</span>
+                            <span class="text-sm font-medium" style="opacity: 0.75">Total de Clientes</span>
                         </div>
 
                         <div class="self-stretch w-px" style="background: rgba(255,255,255,0.25)"></div>
@@ -60,7 +60,7 @@ onMounted(async () => {
                             <span class="text-4xl font-bold tracking-tight">
                                 {{ totalTickets ?? '—' }}
                             </span>
-                            <span class="text-sm font-medium" style="opacity: 0.75">Total Tickets</span>
+                            <span class="text-sm font-medium" style="opacity: 0.75">Total de Tickets</span>
                         </div>
                     </div>
                 </div>

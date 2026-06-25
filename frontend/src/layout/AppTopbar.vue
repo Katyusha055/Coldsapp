@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
-import AppConfigurator from './AppConfigurator.vue';
 import { useRouter } from 'vue-router';
 import { removeToken } from '@/services/AuthService.js';
 
@@ -42,7 +41,7 @@ function confirmLogout() {
                     </g>
                 </svg>
 
-                <span>SAKAI</span>
+                <span>COLDSAPP</span>
             </router-link>
         </div>
 
@@ -51,16 +50,6 @@ function confirmLogout() {
                 <button type="button" class="layout-topbar-action" @click="toggleDarkMode">
                     <i :class="['pi', { 'pi-moon': isDarkTheme, 'pi-sun': !isDarkTheme }]"></i>
                 </button>
-                <!-- <div class="relative">
-                    <button
-                        v-styleclass="{ selector: '@next', enterFromClass: 'hidden', enterActiveClass: 'p-anchored-overlay-enter-active', leaveToClass: 'hidden', leaveActiveClass: 'p-anchored-overlay-leave-active', hideOnOutsideClick: true }"
-                        type="button"
-                        class="layout-topbar-action layout-topbar-action-highlight"
-                    >
-                        <i class="pi pi-palette"></i>
-                    </button>
-                    <AppConfigurator />
-                </div> -->
             </div>
 
             <button
@@ -72,31 +61,23 @@ function confirmLogout() {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <!-- <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-calendar"></i>
-                        <span>Calendar</span>
-                    </button> -->
-                    <!-- <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-inbox"></i>
-                        <span>Messages</span>
-                    </button> -->
                     <button type="button" class="layout-topbar-action" @click="showLogoutDialog = true">
                         <i class="pi pi-sign-out"></i>
-                        <span>Logout</span>
+                        <span>Cerrar sesión</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <Dialog header="Confirmation" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
+    <Dialog header="Confirmación" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
         <div class="flex items-center justify-center">
             <i class="pi pi-exclamation-triangle mr-4" style="font-size: 2rem" />
-            <span>Are you sure you want to logout?</span>
+            <span>¿Estás seguro de que deseas cerrar sesión?</span>
         </div>
         <template #footer>
             <Button label="No" icon="pi pi-times" @click="showLogoutDialog = false" text severity="secondary" />
-            <Button label="Yes" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
+            <Button label="Sí" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
         </template>
     </Dialog>
 </template>

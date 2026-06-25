@@ -28,12 +28,12 @@ const loadError = ref('');
 const filterStatus = ref('all');
 
 const filterStatusOptions = [
-    { label: 'All', value: 'all' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'In Progress', value: 'in_progress' },
-    { label: 'Ready', value: 'ready' },
-    { label: 'Delivered', value: 'delivered' },
-    { label: 'Cancelled', value: 'cancelled' }
+    { label: 'Todos', value: 'all' },
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'En progreso', value: 'in_progress' },
+    { label: 'Listo', value: 'ready' },
+    { label: 'Entregado', value: 'delivered' },
+    { label: 'Cancelado', value: 'cancelled' }
 ];
 
 const filteredTickets = computed(() => {
@@ -54,11 +54,11 @@ function formatDate(value) {
 
 function statusLabel(status) {
     const labels = {
-        pending: 'Pending',
-        in_progress: 'In Progress',
-        ready: 'Ready',
-        delivered: 'Delivered',
-        cancelled: 'Cancelled'
+        pending: 'Pendiente',
+        in_progress: 'En progreso',
+        ready: 'Listo',
+        delivered: 'Entregado',
+        cancelled: 'Cancelado'
     };
     return labels[status] ?? status;
 }
@@ -123,11 +123,11 @@ async function saveTicket() {
             const updated = await updateTicket(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
             const idx = tickets.value.findIndex((t) => t.id === ticket.value.id);
             if (idx !== -1) tickets.value[idx] = updated;
-            toast.add({ severity: 'success', summary: 'Updated', detail: 'Ticket updated successfully.', life: 3000 });
+            toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Ticket actualizado correctamente.', life: 3000 });
         } else {
             const created = await createTicket(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
             tickets.value.push(created);
-            toast.add({ severity: 'success', summary: 'Created', detail: 'Ticket created successfully.', life: 3000 });
+            toast.add({ severity: 'success', summary: 'Creado', detail: 'Ticket creado correctamente.', life: 3000 });
         }
         ticketDialog.value = false;
         ticket.value = {};
@@ -148,7 +148,7 @@ async function doDeleteTicket() {
         tickets.value = tickets.value.filter((t) => t.id !== ticket.value.id);
         deleteTicketDialog.value = false;
         ticket.value = {};
-        toast.add({ severity: 'success', summary: 'Deleted', detail: 'Ticket deleted successfully.', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Ticket eliminado correctamente.', life: 3000 });
     } catch (err) {
         deleteTicketDialog.value = false;
         handleError(err);
@@ -160,7 +160,7 @@ async function onStatusChange(t, newStatus) {
         const updated = await updateTicketStatus(t.id, newStatus);
         const idx = tickets.value.findIndex((tk) => tk.id === t.id);
         if (idx !== -1) tickets.value[idx] = updated;
-        toast.add({ severity: 'success', summary: 'Status Updated', detail: `Ticket moved to ${statusLabel(newStatus)}.`, life: 3000 });
+        toast.add({ severity: 'success', summary: 'Estado actualizado', detail: `Ticket movido a ${statusLabel(newStatus)}.`, life: 3000 });
     } catch (err) {
         if (err.status === 401) {
             removeToken();
@@ -177,7 +177,7 @@ async function onStatusChange(t, newStatus) {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="New Ticket" icon="pi pi-plus" severity="secondary" @click="openNew" />
+                    <Button label="Nuevo Ticket" icon="pi pi-plus" severity="secondary" @click="openNew" />
                 </template>
             </Toolbar>
 
@@ -191,13 +191,13 @@ async function onStatusChange(t, newStatus) {
                     </div>
                 </template>
 
-                <Column field="title" header="Title" sortable style="min-width: 16rem"></Column>
-                <Column field="description" header="Description" style="min-width: 20rem; max-width: 20rem">
+                <Column field="title" header="Título" sortable style="min-width: 16rem"></Column>
+                <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
                         <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
                     </template>
                 </Column>
-                <Column header="Status" style="min-width: 14rem">
+                <Column header="Estado" style="min-width: 14rem">
                     <template #body="slotProps">
                         <span v-if="VALID_TRANSITIONS[slotProps.data.status].length === 0" class="text-surface-400">
                             {{ statusLabel(slotProps.data.status) }}
@@ -214,12 +214,12 @@ async function onStatusChange(t, newStatus) {
                         />
                     </template>
                 </Column>
-                <Column field="created_at" header="Created At" sortable style="min-width: 14rem">
+                <Column field="created_at" header="Fecha de Creación" sortable style="min-width: 14rem">
                     <template #body="slotProps">
                         {{ formatDate(slotProps.data.created_at) }}
                     </template>
                 </Column>
-                <Column field="updated_at" header="Last Updated" sortable style="min-width: 14rem">
+                <Column field="updated_at" header="Última Actualización" sortable style="min-width: 14rem">
                     <template #body="slotProps">
                         {{ formatDate(slotProps.data.updated_at) }}
                     </template>
@@ -235,17 +235,17 @@ async function onStatusChange(t, newStatus) {
 
         <Toast />
 
-        <Dialog v-model:visible="ticketDialog" :style="{ width: '450px' }" :header="ticket.id ? 'Edit Ticket' : 'New Ticket'" :modal="true">
+        <Dialog v-model:visible="ticketDialog" :style="{ width: '450px' }" :header="ticket.id ? 'Editar Ticket' : 'Nuevo Ticket'" :modal="true">
             <div class="flex flex-col gap-6">
                 <div v-if="!ticket.id">
-                    <label for="ticket-client" class="block font-bold mb-3">Client</label>
+                    <label for="ticket-client" class="block font-bold mb-3">Cliente</label>
                     <Select
                         id="ticket-client"
                         v-model="ticket.client_id"
                         :options="clients"
                         optionLabel="name"
                         optionValue="id"
-                        placeholder="Select a client"
+                        placeholder="Seleccionar un cliente"
                         filter
                         :invalid="submitted && !ticket.client_id"
                         fluid
@@ -257,33 +257,33 @@ async function onStatusChange(t, newStatus) {
                             </div>
                         </template>
                     </Select>
-                    <small v-if="submitted && !ticket.client_id" class="text-red-500">Client is required.</small>
+                    <small v-if="submitted && !ticket.client_id" class="text-red-500">El cliente es requerido.</small>
                 </div>
                 <div>
-                    <label for="ticket-title" class="block font-bold mb-3">Title</label>
+                    <label for="ticket-title" class="block font-bold mb-3">Título</label>
                     <InputText id="ticket-title" v-model.trim="ticket.title" autofocus :invalid="submitted && !ticket.title" fluid />
-                    <small v-if="submitted && !ticket.title" class="text-red-500">Title is required.</small>
+                    <small v-if="submitted && !ticket.title" class="text-red-500">El título es requerido.</small>
                 </div>
                 <div>
-                    <label for="ticket-description" class="block font-bold mb-3">Description</label>
+                    <label for="ticket-description" class="block font-bold mb-3">Descripción</label>
                     <Textarea id="ticket-description" v-model="ticket.description" rows="3" fluid />
                 </div>
                 <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
             </div>
             <template #footer>
-                <Button label="Cancel" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Save" icon="pi pi-check" @click="saveTicket" />
+                <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
+                <Button label="Guardar" icon="pi pi-check" @click="saveTicket" />
             </template>
         </Dialog>
 
-        <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
+        <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="ticket">Are you sure you want to delete <b>{{ ticket.title }}</b>?</span>
+                <span v-if="ticket">¿Estás seguro de que deseas eliminar <b>{{ ticket.title }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteTicketDialog = false" />
-                <Button label="Yes" icon="pi pi-check" severity="danger" @click="doDeleteTicket" />
+                <Button label="Sí" icon="pi pi-check" severity="danger" @click="doDeleteTicket" />
             </template>
         </Dialog>
     </div>

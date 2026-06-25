@@ -48,25 +48,25 @@ async function submit() {
                                 />
                             </g>
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Welcome to PrimeLand!</div>
-                        <span class="text-muted-color font-medium">Sign in to continue</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">¡Bienvenido a Coldsapp!</div>
+                        <span class="text-muted-color font-medium">Inicia sesión para continuar</span>
                     </div>
 
                     <div>
-                        <label for="phone1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Phone</label>
-                        <InputText id="phone1" type="text" placeholder="Phone number" class="w-full md:w-[30rem] mb-8" v-model="phone" />
+                        <label for="phone1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Teléfono</label>
+                        <InputText id="phone1" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-8" v-model="phone" />
 
-                        <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
-                        <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
+                        <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
+                        <Password id="password1" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
-                        <small v-if="sessionExpired" class="text-yellow-500 block mb-4 mt-2">Your session has expired. Please log in again.</small>
+                        <small v-if="sessionExpired" class="text-yellow-500 block mb-4 mt-2">Tu sesión ha expirado. Por favor, inicia sesión de nuevo.</small>
                         <small v-if="apiError" class="text-red-500 block mb-4 mt-2">{{ apiError }}</small>
 
-                        <Button label="Sign In" class="w-full" @click="submit" />
+                        <Button label="Iniciar sesión" class="w-full" @click="submit" />
 
                         <div class="text-center mt-6">
-                            <span class="text-muted-color">Don't have an account? </span>
-                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/register')">Sign up</a>
+                            <span class="text-muted-color">¿No tienes una cuenta? </span>
+                            <a class="font-medium text-primary cursor-pointer" @click="router.push('/auth/register')">Regístrate</a>
                         </div>
                     </div>
                 </div>
