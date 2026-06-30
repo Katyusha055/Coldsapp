@@ -12,3 +12,4 @@ setup.cfg
 mutants/
 mutants
 node_modules/
+.env.evo
