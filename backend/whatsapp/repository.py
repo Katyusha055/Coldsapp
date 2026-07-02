@@ -1,8 +1,9 @@
 import os
 import httpx
 from psycopg.types.json import Jsonb
+from dotenv import load_dotenv
 
-
+load_dotenv()
 EVO_API_URL = os.getenv("EVO_API_URL")
 EVO_API_TOKEN = os.getenv("EVO_API_TOKEN")
 
@@ -107,7 +108,7 @@ async def create_evolution_instance(instance_name):
     """
     Calls the Evolution API to create a new whatsapp instance.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             f"{EVO_API_URL}/instance/create",
             headers={"apikey": EVO_API_TOKEN},
@@ -121,21 +122,21 @@ async def get_evolution_qr(instance_name):
     """
     Calls the Evolution API to fetch a base64 QR code for an instance.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         response = await client.get(
             f"{EVO_API_URL}/instance/connect/{instance_name}",
             headers={"apikey": EVO_API_TOKEN},
         )
         response.raise_for_status()
         data = response.json()
-        return data.get("base64") or data.get("qrcode")
+        return data.get("base64") 
 
 
 async def get_evolution_instance_status(instance_name):
     """
     Calls the Evolution API to fetch the connection state for an instance.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         response = await client.get(
             f"{EVO_API_URL}/instance/connectionState/{instance_name}",
             headers={"apikey": EVO_API_TOKEN},
