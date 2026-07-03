@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 EVO_API_URL = os.getenv("EVO_API_URL")
 EVO_API_TOKEN = os.getenv("EVO_API_TOKEN")
+WHATSAPP_WEBHOOK_URL = os.getenv("WHATSAPP_WEBHOOK_URL")
 
 
 def _row_to_instance_dict(row) -> dict:
@@ -112,7 +113,16 @@ async def create_evolution_instance(instance_name):
         response = await client.post(
             f"{EVO_API_URL}/instance/create",
             headers={"apikey": EVO_API_TOKEN},
-            json={"instanceName": instance_name, "qrcode": True, "integration": "WHATSAPP-BAILEYS"},
+            json={
+                "instanceName": instance_name,
+                "qrcode": True,
+                "integration": "WHATSAPP-BAILEYS",
+                "webhook": {
+                    "enabled": True,
+                    "url": WHATSAPP_WEBHOOK_URL,
+                    "events": ["MESSAGES_UPSERT", 'CONNECTION_UPDATE', "QRCODE_UPDATED"],
+                },
+            },
         )
         response.raise_for_status()
         return response.json()
