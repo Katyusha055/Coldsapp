@@ -27,5 +27,8 @@ logger = logging.getLogger('uvicorn')
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
     payload = await request.json()
-    logger.info(payload)
-    return {"status": "ok"}
+    result = await ser.process_webhook(payload)
+    if result is None:
+        return {"status": "discarded"}
+    logger.info(f"Webhook processed: {result}")
+    return {"status": "ok", "event": result}
