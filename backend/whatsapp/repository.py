@@ -139,6 +139,26 @@ def _row_to_pending_dict(row) -> dict:
     }
 
 
+def get_pending_contacts(conn, instance_id):
+    """
+    Gets all pending contacts for an instance with status 'pending', excluding soft-deleted rows.
+
+    Output: list of wa_pending_contacts row dicts
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            FROM wa_pending_contacts
+            WHERE instance_id = %s AND status = 'pending' AND deleted_at IS NULL
+            ORDER BY id ASC
+            """,
+            (instance_id,),
+        )
+        rows = cur.fetchall()
+    return [_row_to_pending_dict(row) for row in rows]
+
+
 def get_pending_by_id(conn, pending_id):
     """
     Gets one pending contact by id, excluding soft-deleted rows.

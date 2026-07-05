@@ -111,9 +111,6 @@ async def process_webhook(payload):
 
 
 def set_pending_status(user_id, pending_id, status):
-    if status not in ("converted", "discarded"):
-        raise HTTPException(status_code=422, detail="status must be 'converted' or 'discarded'")
-
     with connect() as conn:
         pending = rep.get_pending_by_id(conn, pending_id)
         if pending is None:
@@ -125,3 +122,24 @@ def set_pending_status(user_id, pending_id, status):
 
         updated = rep.update_pending_status(conn, pending_id, status)
     return updated
+
+
+def list_pending_contacts(user_id):
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None:
+            return []
+        return rep.get_pending_contacts(conn, instance["id"])
+
+
+def delete_pending(user_id, pending_id):
+    with connect() as conn:
+        pending = rep.get_pending_by_id(conn, pending_id)
+        if pending is None:
+            raise HTTPException(status_code=404, detail="Pending contact not found")
+
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None or instance["id"] != pending["instance_id"]:
+            raise HTTPException(status_code=404, detail="Pending contact not found")
+
+        return rep.soft_delete_pending(conn, pending_id)
