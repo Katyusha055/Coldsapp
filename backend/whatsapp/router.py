@@ -22,8 +22,6 @@ async def get_qr_endpoint(user: CurrentUser):
 async def get_status_endpoint(user: CurrentUser):
     return await ser.instance_status(user['id'])
 
-import logging
-logger = logging.getLogger('uvicorn')
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
     payload = await request.json()
@@ -32,3 +30,8 @@ async def whatsapp_webhook(request: Request):
         return {"status": "discarded"}
     logger.info(f"Webhook processed: {result}")
     return {"status": "ok", "event": result}
+
+
+@router.patch('/pending/{pending_id}/status')
+async def update_pending_status_endpoint(pending_id: int, payload: mdl.PendingStatusUpdate, user: CurrentUser):
+    return ser.set_pending_status(user['id'], pending_id, payload.status)
