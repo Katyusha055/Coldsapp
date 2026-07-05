@@ -35,3 +35,29 @@ def init_db(connect):
                         REFERENCES whatsapp_instances(id)
                         ON DELETE CASCADE);''')
         logger.info('Initialized whatsapp tables successfully')
+
+
+def create_wa_pending_contacts_table(conn):
+    '''
+    Initializing the database by creating the wa_pending_contacts table if not created yet
+
+    Inputs a psycopg.Connect object
+    '''
+    with conn.cursor() as cur:
+        cur.execute('''CREATE TABLE IF NOT EXISTS wa_pending_contacts (
+                    id SERIAL PRIMARY KEY,
+                    instance_id INTEGER NOT NULL,
+                    phone VARCHAR NOT NULL,
+                    name VARCHAR,
+                    last_message TEXT,
+                    last_message_at TIMESTAMPTZ,
+                    status VARCHAR NOT NULL DEFAULT 'pending',
+                    deleted_at TIMESTAMPTZ,
+
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+                    CONSTRAINT fk_wa_pending_contacts_instance
+                        FOREIGN KEY (instance_id)
+                        REFERENCES whatsapp_instances(id)
+                        ON DELETE CASCADE);''')
+        logger.info('Initialized wa_pending_contacts table successfully')
