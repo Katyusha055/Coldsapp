@@ -105,6 +105,166 @@ def save_event(conn, instance_id, event_type, event_data):
     }
 
 
+def get_instance_by_name(conn, instance_name):
+    """
+    Gets one whatsapp instance by instance_name.
+
+    Output dict: WhatsAppInstance-compatible dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, user_id, instance_name, status, created_at, connected_at
+            FROM whatsapp_instances
+            WHERE instance_name = %s
+            """,
+            (instance_name,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_instance_dict(row)
+
+
+def _row_to_pending_dict(row) -> dict:
+    return {
+        "id": row[0],
+        "instance_id": row[1],
+        "phone": row[2],
+        "name": row[3],
+        "last_message": row[4],
+        "last_message_at": row[5],
+        "status": row[6],
+        "created_at": row[7],
+    }
+
+
+def get_pending_by_phone(conn, phone, instance_id):
+    """
+    Gets one pending contact by phone and instance_id, excluding soft-deleted rows.
+
+    Output dict: wa_pending_contacts row dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            FROM wa_pending_contacts
+            WHERE phone = %s AND instance_id = %s AND deleted_at IS NULL
+            """,
+            (phone, instance_id),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_pending_dict(row)
+
+
+def create_pending(conn, instance_id, phone, name, last_message):
+    """
+    Creates a pending contact row.
+
+    Output dict: wa_pending_contacts row dict
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO wa_pending_contacts (instance_id, phone, name, last_message, last_message_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            """,
+            (instance_id, phone, name, last_message),
+        )
+        row = cur.fetchone()
+    return _row_to_pending_dict(row)
+
+
+def update_pending_message(conn, pending_id, last_message):
+    """
+    Updates the last message (and timestamp) of a pending contact.
+
+    Output dict: wa_pending_contacts row dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE wa_pending_contacts
+            SET last_message = %s, last_message_at = NOW()
+            WHERE id = %s
+            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            """,
+            (last_message, pending_id),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_pending_dict(row)
+
+
+def update_pending_status(conn, pending_id, status):
+    """
+    Updates the status of a pending contact.
+
+    Output dict: wa_pending_contacts row dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE wa_pending_contacts
+            SET status = %s
+            WHERE id = %s
+            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            """,
+            (status, pending_id),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_pending_dict(row)
+
+
+def soft_delete_pending(conn, pending_id):
+    """
+    Soft deletes a pending contact.
+
+    Output dict: {"deleted": bool, "id": int}
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE wa_pending_contacts
+            SET deleted_at = NOW()
+            WHERE id = %s
+            RETURNING id
+            """,
+            (pending_id,),
+        )
+        row = cur.fetchone()
+    return {"deleted": row is not None, "id": pending_id}
+
+
+def get_client_by_phone(conn, phone, user_id):
+    """
+    Gets one client by phone and user.
+
+    Output dict: {"id": int, "name": str, "phone": str} (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, name, phone
+            FROM clients
+            WHERE phone = %s AND user_id = %s
+            LIMIT 1
+            """,
+            (phone, user_id),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return {"id": row[0], "name": row[1], "phone": row[2]}
+
+
 async def create_evolution_instance(instance_name):
     """
     Calls the Evolution API to create a new whatsapp instance.
