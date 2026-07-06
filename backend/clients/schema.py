@@ -27,7 +27,7 @@ def init_db(connect):
                     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     deleted_at TIMESTAMPTZ DEFAULT NULL,
 
-                    UNIQUE(whatsapp_id),
+                    UNIQUE(user_id, whatsapp_id),
                     CONSTRAINT fk_clients_user
                         FOREIGN KEY (user_id)
                         REFERENCES users(id)
