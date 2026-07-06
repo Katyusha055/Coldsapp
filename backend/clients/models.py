@@ -29,7 +29,6 @@ class UpdateClient(BaseModel):
     name: str | None = None
     phone: str | None = None
     description: str | None = None
-    whatsapp_id: str | None = None
 
     @field_validator('phone')
     @classmethod
