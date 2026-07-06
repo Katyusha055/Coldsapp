@@ -107,7 +107,7 @@ async function doDeletePending() {
 
 function openConvertDialog(row) {
     pending.value = row;
-    convertForm.value = { name: row.name ?? '', phone: row.phone, description: '' };
+    convertForm.value = { name: row.name ?? '', phone: '', description: '' };
     convertSubmitted.value = false;
     errorMessage.value = '';
     convertDialog.value = true;
@@ -124,9 +124,14 @@ async function convertToClient() {
     errorMessage.value = '';
 
     if (!convertForm.value.name?.trim()) return;
+    if (!convertForm.value.phone?.trim()) return;
 
     try {
-        const payload = { name: convertForm.value.name.trim(), phone: convertForm.value.phone };
+        const payload = { 
+            name: convertForm.value.name.trim(), 
+            phone: convertForm.value.phone.trim(),
+            whatsapp_id: pending.value.remote_jid
+        };
         if (convertForm.value.description) payload.description = convertForm.value.description;
         await createClient(payload);
     } catch (err) {
@@ -165,11 +170,10 @@ async function convertToClient() {
             <DataTable :value="pendingContacts" dataKey="id">
                 <template #header>
                     <div class="flex items-center justify-between">
-                        <h4 class="m-0">Contactos Pendientes</h4>
+                        <h4 class="m-0">Posibles Clientes Nuevos</h4>
                     </div>
                 </template>
 
-                <Column field="phone" header="Número" sortable style="min-width: 12rem"></Column>
                 <Column field="name" header="Nombre" sortable style="min-width: 14rem"></Column>
                 <Column field="last_message" header="Último Mensaje" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
@@ -210,7 +214,8 @@ async function convertToClient() {
                 </div>
                 <div>
                     <label for="convert-phone" class="block font-bold mb-3">Teléfono</label>
-                    <InputText id="convert-phone" v-model="convertForm.phone" readonly disabled fluid />
+                    <InputText id="convert-phone" v-model="convertForm.phone" :invalid="convertSubmitted && !convertForm.phone" fluid />
+                    <small v-if="convertSubmitted && !convertForm.phone" class="text-red-500">El teléfono es requerido.</small>
                 </div>
                 <div>
                     <label for="convert-description" class="block font-bold mb-3">Descripción</label>
