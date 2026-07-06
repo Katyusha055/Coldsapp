@@ -196,7 +196,7 @@ async function convertToClient() {
         <!-- QR Dialog -->
         <Dialog v-model:visible="qrDialog" :style="{ width: '350px' }" header="Código QR" :modal="true">
             <div class="flex flex-col items-center gap-4">
-                <img v-if="qr" :src="`data:image/png;base64,${qr}`" alt="QR" style="max-width: 100%" />
+                <img v-if="qr" :src="qr" alt="QR" style="max-width: 100%" />
             </div>
         </Dialog>
 
