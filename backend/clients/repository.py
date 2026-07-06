@@ -114,8 +114,11 @@ def delete_client(conn, data: dict) -> dict:
             WHERE remote_jid = (
                 SELECT whatsapp_id FROM clients WHERE id = %s AND user_id = %s
             )
+            AND instance_id = (
+                SELECT id FROM whatsapp_instances WHERE user_id = %s
+            )
             """,
-            (data["id"], data["user_id"]),
+            (data["id"], data["user_id"], data["user_id"]),
         )
         cur.execute(
             """
