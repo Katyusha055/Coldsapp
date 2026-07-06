@@ -5,6 +5,7 @@ class CreateClient(BaseModel):
     name: str
     phone: str
     description: str | None = None
+    whatsapp_id: str | None = None
 
     @field_validator('phone')
     @classmethod
@@ -20,11 +21,13 @@ class ResponseClient(BaseModel):
     phone: str
     created_at: str
     description: str | None = None
+    whatsapp_id: str | None = None
 
 class UpdateClient(BaseModel):
     name: str | None = None
     phone: str | None = None
     description: str | None = None
+    whatsapp_id: str | None = None
 
     @field_validator('phone')
     @classmethod
