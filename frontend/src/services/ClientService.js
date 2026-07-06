@@ -25,7 +25,7 @@ export async function createClient(data) {
     const response = await fetch(`${BASE_URL}/clients/`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ name: data.name, phone: data.phone, description: data.description })
+        body: JSON.stringify(data)
     });
     return handleResponse(response);
 }

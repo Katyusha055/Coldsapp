@@ -135,4 +135,4 @@ def delete_pending(user_id, pending_id):
         if instance is None or instance["id"] != pending["instance_id"]:
             raise HTTPException(status_code=404, detail="Pending contact not found")
 
-        return rep.soft_delete_pending(conn, pending_id)
+        return rep.delete_pending(conn, pending_id)

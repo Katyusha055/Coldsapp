@@ -3,13 +3,15 @@ from pydantic import BaseModel, field_validator
 
 class CreateClient(BaseModel):
     name: str
-    phone: str
+    phone: str | None = None
     description: str | None = None
     whatsapp_id: str | None = None
 
     @field_validator('phone')
     @classmethod
     def validate_phone(cls, v):
+        if v is None:
+            return v
         if not v.isdigit() or len(v) != 10:
             raise ValueError('Phone must be exactly 10 digits')
         return v
@@ -18,7 +20,7 @@ class CreateClient(BaseModel):
 class ResponseClient(BaseModel):
     id: int
     name: str
-    phone: str
+    phone: str | None = None
     created_at: str
     description: str | None = None
     whatsapp_id: str | None = None

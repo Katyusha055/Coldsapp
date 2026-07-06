@@ -141,7 +141,7 @@ def _row_to_pending_dict(row) -> dict:
 
 def get_pending_contacts(conn, instance_id):
     """
-    Gets all pending contacts for an instance with status 'pending', excluding soft-deleted rows.
+    Gets all pending contacts for an instance with status 'pending'
 
     Output: list of wa_pending_contacts row dicts
     """
@@ -150,7 +150,7 @@ def get_pending_contacts(conn, instance_id):
             """
             SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
-            WHERE instance_id = %s AND status = 'pending' AND deleted_at IS NULL
+            WHERE instance_id = %s AND status = 'pending' 
             ORDER BY id ASC
             """,
             (instance_id,),
@@ -161,7 +161,7 @@ def get_pending_contacts(conn, instance_id):
 
 def get_pending_by_id(conn, pending_id):
     """
-    Gets one pending contact by id, excluding soft-deleted rows.
+    Gets one pending contact by id
 
     Output dict: wa_pending_contacts row dict (None when not found)
     """
@@ -170,7 +170,7 @@ def get_pending_by_id(conn, pending_id):
             """
             SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
-            WHERE id = %s AND deleted_at IS NULL
+            WHERE id = %s 
             """,
             (pending_id,),
         )
@@ -182,7 +182,7 @@ def get_pending_by_id(conn, pending_id):
 
 def get_pending_by_remote_jid(conn, remote_jid, instance_id):
     """
-    Gets one pending contact by remote_jid and instance_id, excluding soft-deleted rows.
+    Gets one pending contact by remote_jid and instance_id
 
     Output dict: wa_pending_contacts row dict (None when not found)
     """
@@ -191,7 +191,7 @@ def get_pending_by_remote_jid(conn, remote_jid, instance_id):
             """
             SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
-            WHERE remote_jid = %s AND instance_id = %s AND deleted_at IS NULL
+            WHERE remote_jid = %s AND instance_id = %s 
             """,
             (remote_jid, instance_id),
         )
@@ -264,21 +264,11 @@ def update_pending_status(conn, pending_id, status):
     return _row_to_pending_dict(row)
 
 
-def soft_delete_pending(conn, pending_id):
-    """
-    Soft deletes a pending contact.
-
-    Output dict: {"deleted": bool, "id": int}
-    """
+def delete_pending(conn, pending_id):
     with conn.cursor() as cur:
         cur.execute(
-            """
-            UPDATE wa_pending_contacts
-            SET deleted_at = NOW()
-            WHERE id = %s
-            RETURNING id
-            """,
-            (pending_id,),
+            "DELETE FROM wa_pending_contacts WHERE id = %s RETURNING id",
+            (pending_id,)
         )
         row = cur.fetchone()
     return {"deleted": row is not None, "id": pending_id}

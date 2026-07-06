@@ -124,14 +124,13 @@ async function convertToClient() {
     errorMessage.value = '';
 
     if (!convertForm.value.name?.trim()) return;
-    if (!convertForm.value.phone?.trim()) return;
 
     try {
         const payload = { 
             name: convertForm.value.name.trim(), 
-            phone: convertForm.value.phone.trim(),
             whatsapp_id: pending.value.remote_jid
         };
+        if (convertForm.value.phone?.trim()) payload.phone = convertForm.value.phone.trim();
         if (convertForm.value.description) payload.description = convertForm.value.description;
         await createClient(payload);
     } catch (err) {
@@ -214,8 +213,7 @@ async function convertToClient() {
                 </div>
                 <div>
                     <label for="convert-phone" class="block font-bold mb-3">Teléfono</label>
-                    <InputText id="convert-phone" v-model="convertForm.phone" :invalid="convertSubmitted && !convertForm.phone" fluid />
-                    <small v-if="convertSubmitted && !convertForm.phone" class="text-red-500">El teléfono es requerido.</small>
+                    <InputText id="convert-phone" v-model="convertForm.phone" fluid />
                 </div>
                 <div>
                     <label for="convert-description" class="block font-bold mb-3">Descripción</label>

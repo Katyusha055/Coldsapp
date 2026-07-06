@@ -52,10 +52,10 @@ def create_wa_pending_contacts_table(conn):
                     last_message TEXT,
                     last_message_at TIMESTAMPTZ,
                     status VARCHAR NOT NULL DEFAULT 'pending',
-                    deleted_at TIMESTAMPTZ,
 
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
+                    UNIQUE(remote_jid, instance_id),
                     CONSTRAINT fk_wa_pending_contacts_instance
                         FOREIGN KEY (instance_id)
                         REFERENCES whatsapp_instances(id)

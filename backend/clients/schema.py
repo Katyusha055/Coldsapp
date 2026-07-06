@@ -20,13 +20,14 @@ def init_db(connect):
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER,
                     name VARCHAR(100) NOT NULL,
-                    phone VARCHAR(100) NOT NULL,
+                    phone VARCHAR(100),
                     description TEXT,
                     whatsapp_id VARCHAR,
 
                     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     deleted_at TIMESTAMPTZ DEFAULT NULL,
 
+                    UNIQUE(whatsapp_id),
                     CONSTRAINT fk_clients_user
                         FOREIGN KEY (user_id)
                         REFERENCES users(id)
