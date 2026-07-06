@@ -47,7 +47,7 @@ def create_wa_pending_contacts_table(conn):
         cur.execute('''CREATE TABLE IF NOT EXISTS wa_pending_contacts (
                     id SERIAL PRIMARY KEY,
                     instance_id INTEGER NOT NULL,
-                    phone VARCHAR NOT NULL,
+                    remote_jid VARCHAR NOT NULL,
                     name VARCHAR,
                     last_message TEXT,
                     last_message_at TIMESTAMPTZ,
