@@ -90,10 +90,15 @@ async def process_webhook(payload):
 
             pending = rep.get_pending_by_remote_jid(conn, remote_jid, instance["id"])
             if pending is None:
-                rep.create_pending(conn, instance["id"], remote_jid, name, message)
-                return {"type": "new_pending", "remote_jid": remote_jid, "name": name, "message": message}
+                created = rep.create_pending(conn, instance["id"], remote_jid, name, message)
+                if created is None:
+                    # Lost a race with a concurrent webhook delivery for the same
+                    # contact; fall back to treating it as an update.
+                    pending = rep.get_pending_by_remote_jid(conn, remote_jid, instance["id"])
+                else:
+                    return {"type": "new_pending", "remote_jid": remote_jid, "name": name, "message": message}
 
-            if pending["status"] in ("converted", "discarded"):
+            if pending is None or pending["status"] in ("converted", "discarded"):
                 return None
 
             rep.update_pending_message(conn, pending["id"], message)

@@ -205,18 +205,22 @@ def create_pending(conn, instance_id, remote_jid, name, last_message):
     """
     Creates a pending contact row.
 
-    Output dict: wa_pending_contacts row dict
+    Output dict: wa_pending_contacts row dict (None if a row for this
+    remote_jid/instance_id was inserted concurrently by another request)
     """
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO wa_pending_contacts (instance_id, remote_jid, name, last_message, last_message_at)
             VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (remote_jid, instance_id) DO NOTHING
             RETURNING id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             """,
             (instance_id, remote_jid, name, last_message),
         )
         row = cur.fetchone()
+    if row is None:
+        return None
     return _row_to_pending_dict(row)
 
 
