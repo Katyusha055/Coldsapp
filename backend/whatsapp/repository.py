@@ -130,7 +130,7 @@ def _row_to_pending_dict(row) -> dict:
     return {
         "id": row[0],
         "instance_id": row[1],
-        "phone": row[2],
+        "remote_jid": row[2],
         "name": row[3],
         "last_message": row[4],
         "last_message_at": row[5],
@@ -148,7 +148,7 @@ def get_pending_contacts(conn, instance_id):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
             WHERE instance_id = %s AND status = 'pending' AND deleted_at IS NULL
             ORDER BY id ASC
@@ -168,7 +168,7 @@ def get_pending_by_id(conn, pending_id):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
             WHERE id = %s AND deleted_at IS NULL
             """,
@@ -180,20 +180,20 @@ def get_pending_by_id(conn, pending_id):
     return _row_to_pending_dict(row)
 
 
-def get_pending_by_phone(conn, phone, instance_id):
+def get_pending_by_remote_jid(conn, remote_jid, instance_id):
     """
-    Gets one pending contact by phone and instance_id, excluding soft-deleted rows.
+    Gets one pending contact by remote_jid and instance_id, excluding soft-deleted rows.
 
     Output dict: wa_pending_contacts row dict (None when not found)
     """
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            SELECT id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             FROM wa_pending_contacts
-            WHERE phone = %s AND instance_id = %s AND deleted_at IS NULL
+            WHERE remote_jid = %s AND instance_id = %s AND deleted_at IS NULL
             """,
-            (phone, instance_id),
+            (remote_jid, instance_id),
         )
         row = cur.fetchone()
     if row is None:
@@ -201,7 +201,7 @@ def get_pending_by_phone(conn, phone, instance_id):
     return _row_to_pending_dict(row)
 
 
-def create_pending(conn, instance_id, phone, name, last_message):
+def create_pending(conn, instance_id, remote_jid, name, last_message):
     """
     Creates a pending contact row.
 
@@ -210,11 +210,11 @@ def create_pending(conn, instance_id, phone, name, last_message):
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO wa_pending_contacts (instance_id, phone, name, last_message, last_message_at)
+            INSERT INTO wa_pending_contacts (instance_id, remote_jid, name, last_message, last_message_at)
             VALUES (%s, %s, %s, %s, NOW())
-            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            RETURNING id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             """,
-            (instance_id, phone, name, last_message),
+            (instance_id, remote_jid, name, last_message),
         )
         row = cur.fetchone()
     return _row_to_pending_dict(row)
@@ -232,7 +232,7 @@ def update_pending_message(conn, pending_id, last_message):
             UPDATE wa_pending_contacts
             SET last_message = %s, last_message_at = NOW()
             WHERE id = %s
-            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            RETURNING id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             """,
             (last_message, pending_id),
         )
@@ -254,7 +254,7 @@ def update_pending_status(conn, pending_id, status):
             UPDATE wa_pending_contacts
             SET status = %s
             WHERE id = %s
-            RETURNING id, instance_id, phone, name, last_message, last_message_at, status, created_at
+            RETURNING id, instance_id, remote_jid, name, last_message, last_message_at, status, created_at
             """,
             (status, pending_id),
         )
@@ -284,26 +284,26 @@ def soft_delete_pending(conn, pending_id):
     return {"deleted": row is not None, "id": pending_id}
 
 
-def get_client_by_phone(conn, phone, user_id):
+def get_client_by_whatsapp_id(conn, remote_jid, user_id):
     """
-    Gets one client by phone and user.
+    Gets one client by whatsapp_id and user.
 
-    Output dict: {"id": int, "name": str, "phone": str} (None when not found)
+    Output dict: {"id": int, "name": str, "whatsapp_id": str} (None when not found)
     """
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, name, phone
+            SELECT id, name, whatsapp_id
             FROM clients
-            WHERE phone = %s AND user_id = %s
+            WHERE whatsapp_id = %s AND user_id = %s
             LIMIT 1
             """,
-            (phone, user_id),
+            (remote_jid, user_id),
         )
         row = cur.fetchone()
     if row is None:
         return None
-    return {"id": row[0], "name": row[1], "phone": row[2]}
+    return {"id": row[0], "name": row[1], "whatsapp_id": row[2]}
 
 
 async def create_evolution_instance(instance_name):
