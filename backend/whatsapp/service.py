@@ -76,35 +76,28 @@ async def process_webhook(payload):
                 logger.info("Ignoring outgoing message (fromMe=True)")
                 return None
 
-            sender = payload.get("sender", "")
-            raw_number = sender.replace("@s.whatsapp.net", "")
-
-            if not raw_number.startswith("593"):
-                logger.warning(f"Ignoring message from unexpected number prefix: {raw_number}")
-                return None
-
-            phone = "0" + raw_number[3:]
+            remote_jid = data.get("key", {}).get("remoteJid")
             name = data.get("pushName")
             message = data.get("message", {}).get("conversation")
             if not message:
                 message = data.get("message", {}).get("extendedTextMessage", {}).get("text")
 
             user_id = instance["user_id"]
-            client = rep.get_client_by_phone(conn, phone, user_id)
+            client = rep.get_client_by_whatsapp_id(conn, remote_jid, user_id)
             if client is not None:
-                logger.info(f"Message from existing client {phone}, ignoring")
+                logger.info(f"Message from existing client {remote_jid}, ignoring")
                 return None
 
-            pending = rep.get_pending_by_phone(conn, phone, instance["id"])
+            pending = rep.get_pending_by_remote_jid(conn, remote_jid, instance["id"])
             if pending is None:
-                rep.create_pending(conn, instance["id"], phone, name, message)
-                return {"type": "new_pending", "phone": phone, "name": name, "message": message}
+                rep.create_pending(conn, instance["id"], remote_jid, name, message)
+                return {"type": "new_pending", "remote_jid": remote_jid, "name": name, "message": message}
 
             if pending["status"] in ("converted", "discarded"):
                 return None
 
             rep.update_pending_message(conn, pending["id"], message)
-            return {"type": "pending_update", "phone": phone, "name": name, "message": message}
+            return {"type": "pending_update", "remote_jid": remote_jid, "name": name, "message": message}
 
         logger.info(f"Unhandled webhook event: {event}")
         return None
