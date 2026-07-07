@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import jwt
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
@@ -63,3 +63,14 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
         return user
 
 CurrentUser = Annotated[dict, Depends(get_current_user)]
+
+def get_current_user_from_query(token: str = Query(...)) -> dict:
+    """Resolve the current user from a `?token=` query param.
+
+    Delegates to get_current_user; the only difference is that the token is read
+    from the query string instead of the Authorization header. Needed for SSE,
+    since the browser EventSource API cannot send custom headers.
+    """
+    return get_current_user(token)
+
+CurrentUserFromQuery = Annotated[dict, Depends(get_current_user_from_query)]

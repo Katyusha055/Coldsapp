@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 import backend.whatsapp.models as mdl
 import backend.whatsapp.service as ser
-from backend.auth.utils import CurrentUser
+from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 import asyncio
 import json
 import logging
@@ -36,7 +36,7 @@ async def whatsapp_webhook(request: Request):
 
 
 @router.get('/events')
-async def whatsapp_events(user: CurrentUser):
+async def whatsapp_events(user: CurrentUserFromQuery):
     queue = asyncio.Queue()
     ser.register_queue(user['id'], queue)
 
