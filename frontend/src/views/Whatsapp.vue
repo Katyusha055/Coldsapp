@@ -27,6 +27,10 @@ const convertForm = ref({});
 const convertSubmitted = ref(false);
 
 const isConnected = computed(() => status.value === 'open');
+const isPhoneValid = computed(() => {
+    const phone = convertForm.value.phone?.trim();
+    return !phone || /^\d{10}$/.test(phone);
+});
 
 function formatDate(value) {
     if (!value) return '';
@@ -124,6 +128,7 @@ async function convertToClient() {
     errorMessage.value = '';
 
     if (!convertForm.value.name?.trim()) return;
+    if (!isPhoneValid.value) return;
 
     try {
         const payload = { 
@@ -213,7 +218,8 @@ async function convertToClient() {
                 </div>
                 <div>
                     <label for="convert-phone" class="block font-bold mb-3">Teléfono</label>
-                    <InputText id="convert-phone" v-model="convertForm.phone" fluid />
+                    <InputText id="convert-phone" v-model="convertForm.phone" :invalid="convertSubmitted && !isPhoneValid" fluid />
+                    <small v-if="convertSubmitted && !isPhoneValid" class="text-red-500">El teléfono debe tener exactamente 10 dígitos.</small>
                 </div>
                 <div>
                     <label for="convert-description" class="block font-bold mb-3">Descripción</label>
