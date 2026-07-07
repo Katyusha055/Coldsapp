@@ -8,7 +8,9 @@ async function handleResponse(response) {
     }
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail ?? 'Request failed.');
+        const err = new Error(data.detail ?? 'Request failed.');
+        err.status = response.status;
+        throw err;
     }
     if (response.status === 204) return null;
     return response.json();

@@ -161,10 +161,22 @@ async function onStatusChange(t, newStatus) {
         const idx = tickets.value.findIndex((tk) => tk.id === t.id);
         if (idx !== -1) tickets.value[idx] = updated;
         toast.add({ severity: 'success', summary: 'Estado actualizado', detail: `Ticket movido a ${statusLabel(newStatus)}.`, life: 3000 });
+
+        if (newStatus === 'ready') {
+            if (updated.whatsapp_notification_sent === true) {
+                toast.add({ severity: 'success', summary: 'WhatsApp', detail: 'Notificación enviada al cliente por WhatsApp.', life: 3000 });
+            } else if (updated.whatsapp_notification_error === 'client_has_no_phone') {
+                toast.add({ severity: 'warn', summary: 'WhatsApp', detail: 'No se pudo notificar: el cliente no tiene número registrado.', life: 4000 });
+            }
+        }
     } catch (err) {
         if (err.status === 401) {
             removeToken();
             router.push('/auth/login?expired=true');
+            return;
+        }
+        if (newStatus === 'ready' && err.status >= 500) {
+            toast.add({ severity: 'warn', summary: 'WhatsApp', detail: 'No se pudo enviar la notificación de WhatsApp, intente nuevamente.', life: 4000 });
             return;
         }
         toast.add({ severity: 'error', summary: 'Error', detail: err.message ?? 'Failed to update status.', life: 3000 });
