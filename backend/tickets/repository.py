@@ -183,6 +183,36 @@ def get_instance_by_user_id(conn, user_id):
     }
 
 
+def get_client_by_id(conn, data: dict):
+    """
+    Gets one client by id and user.
+
+    Duplicated from the clients repository so the tickets feature does not
+    depend on it. Input dict: {"id": int, "user_id": int}
+    Output dict: client dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, name, phone, description, created_at, whatsapp_id
+            FROM clients
+            WHERE id = %s AND user_id = %s
+            """,
+            (data["id"], data["user_id"]),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1],
+        "phone": row[2],
+        "description": row[3],
+        "created_at": str(row[4]),
+        "whatsapp_id": row[5],
+    }
+
+
 async def send_whatsapp_message(instance_name, phone, text):
     """
     Sends a WhatsApp text message via the Evolution API.

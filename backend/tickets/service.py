@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import httpx
 from fastapi import HTTPException
 import backend.tickets.repository as rep
 import backend.clients.repository as clients_rep
@@ -65,7 +66,46 @@ def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
     return ticket
 
 
-def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
+async def notify_ticket_ready(user_id, ticket) -> dict:
+    """
+    Sends the "ready" WhatsApp notification for a ticket's client.
+
+    Returns a dict with the two notification fields to attach to the ticket:
+    {"whatsapp_notification_sent": bool, "whatsapp_notification_error": str | None}.
+
+    Never notifies when the instance is missing or has notifications disabled.
+    Raises HTTPException (504/503/Evo status) if the Evolution API call itself
+    fails, so the caller can abort before persisting the status change.
+    """
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        client = None
+        if instance is not None:
+            client = rep.get_client_by_id(conn, {"id": ticket["client_id"], "user_id": user_id})
+
+    if instance is None or not instance["notifications_enabled"]:
+        return {"whatsapp_notification_sent": False, "whatsapp_notification_error": None}
+
+    if client is None or not client.get("phone"):
+        return {"whatsapp_notification_sent": False, "whatsapp_notification_error": "client_has_no_phone"}
+
+    try:
+        await rep.send_whatsapp_message(
+            instance["instance_name"],
+            client["phone"],
+            f"Hola {client['name']}, tu equipo está listo para retirar.",
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Evolution API timeout")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Evolution API unreachable")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
+    return {"whatsapp_notification_sent": True, "whatsapp_notification_error": None}
+
+
+async def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
     current_ticket = get_ticket_by_id(user_id, ticket_id)
     current_status = current_ticket["status"]
 
@@ -77,9 +117,13 @@ def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
 
     ready_at = None
     delivered_at = None
+    notification = None
 
     if new_status == "ready":
         ready_at = datetime.now(timezone.utc)
+        # Notify before persisting: if the Evolution API fails this raises and
+        # the status is never saved, so the client can safely retry.
+        notification = await notify_ticket_ready(user_id, current_ticket)
     elif new_status == "delivered":
         delivered_at = datetime.now(timezone.utc)
 
@@ -87,4 +131,8 @@ def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketResponse:
         ticket = rep.update_ticket_status(conn, user_id, ticket_id, new_status, ready_at, delivered_at)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if notification is not None:
+        ticket["whatsapp_notification_sent"] = notification["whatsapp_notification_sent"]
+        ticket["whatsapp_notification_error"] = notification["whatsapp_notification_error"]
     return ticket
