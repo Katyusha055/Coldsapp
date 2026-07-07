@@ -1,11 +1,30 @@
 import backend.whatsapp.repository as rep
 from backend.database.connect import connect
 from functools import wraps
+import asyncio
 import httpx
 import logging
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
+
+# In-memory SSE queues, one per user_id. Last connection wins if a user opens
+# multiple tabs. Not shared across processes.
+queues: dict[int, asyncio.Queue] = {}
+
+
+def register_queue(user_id, queue):
+    queues[user_id] = queue
+
+
+def deregister_queue(user_id):
+    queues.pop(user_id, None)
+
+
+async def push_event(user_id, event):
+    queue = queues.get(user_id)
+    if queue is not None:
+        await queue.put(event)
 
 def handle_evo_errors(func):
     @wraps(func)
@@ -57,19 +76,20 @@ async def process_webhook(payload):
             return None
 
         rep.save_event(conn, instance["id"], event, payload)
+        result = None
 
         if event == "connection.update":
             data = payload.get("data", {})
             new_status = data.get("state") or data.get("status")
             rep.update_instance_status(conn, instance["id"], new_status)
             logger.info(f"Instance {instance_name} status changed to {new_status}")
-            return {"type": "connection_update", "detail": new_status}
+            result = {"type": "connection_update", "detail": new_status}
 
-        if event == "qrcode.updated":
+        elif event == "qrcode.updated":
             logger.info(f"QR code refreshed for instance {instance_name}")
-            return {"type": "qr_updated", "detail": "QR code refreshed"}
+            result = {"type": "qr_updated", "detail": "QR code refreshed"}
 
-        if event == "messages.upsert":
+        elif event == "messages.upsert":
             data = payload.get("data", {})
 
             if data.get("key", {}).get("fromMe"):
@@ -96,16 +116,20 @@ async def process_webhook(payload):
                     # contact; fall back to treating it as an update.
                     pending = rep.get_pending_by_remote_jid(conn, remote_jid, instance["id"])
                 else:
-                    return {"type": "new_pending", "remote_jid": remote_jid, "name": name, "message": message}
+                    result = {"type": "new_pending", "remote_jid": remote_jid, "name": name, "message": message}
 
-            if pending is None or pending["status"] in ("converted", "discarded"):
-                return None
+            if result is None:
+                if pending is None or pending["status"] in ("converted", "discarded"):
+                    return None
+                rep.update_pending_message(conn, pending["id"], message)
+                result = {"type": "pending_update", "remote_jid": remote_jid, "name": name, "message": message}
 
-            rep.update_pending_message(conn, pending["id"], message)
-            return {"type": "pending_update", "remote_jid": remote_jid, "name": name, "message": message}
+        else:
+            logger.info(f"Unhandled webhook event: {event}")
 
-        logger.info(f"Unhandled webhook event: {event}")
-        return None
+    if result is not None:
+        await push_event(instance["user_id"], result)
+    return result
 
 
 def set_pending_status(user_id, pending_id, status):
