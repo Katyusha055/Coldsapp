@@ -44,7 +44,7 @@ async def whatsapp_events(user: CurrentUserFromQuery):
         try:
             while True:
                 event = await queue.get()
-                yield f"data: {json.dumps(event)}\n\n"
+                yield json.dumps(event)
         finally:
             ser.deregister_queue(user['id'])
 
