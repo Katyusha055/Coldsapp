@@ -75,6 +75,7 @@ onMounted(async () => {
 
         if (data.type === 'new_pending') {
             pendingContacts.value.push({
+                id: data.id,
                 remote_jid: data.remote_jid,
                 name: data.name,
                 last_message: data.message,
