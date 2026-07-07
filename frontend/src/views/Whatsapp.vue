@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { removeToken } from '@/services/AuthService.js';
-import { getStatus, getQR, getPendingContacts, updatePendingStatus, deletePending } from '@/services/WhatsappService.js';
+import { getStatus, getQR, getPendingContacts, updatePendingStatus, deletePending, setNotificationsEnabled } from '@/services/WhatsappService.js';
 import { createClient } from '@/services/ClientService.js';
 import { BASE_URL } from '@/services/api.js';
 
@@ -13,6 +13,8 @@ const toast = useToast();
 const status = ref('');
 const loadError = ref('');
 const errorMessage = ref('');
+
+const notificationsEnabled = ref(true);
 
 const pendingContacts = ref([]);
 
@@ -59,6 +61,7 @@ onMounted(async () => {
     try {
         const [statusData, pendingData] = await Promise.all([getStatus(), getPendingContacts()]);
         status.value = statusData.status;
+        notificationsEnabled.value = statusData.notifications_enabled ?? true;
         pendingContacts.value = pendingData;
     } catch (err) {
         if (err.status === 401) {
@@ -107,6 +110,25 @@ onUnmounted(() => {
         eventSource.value = null;
     }
 });
+
+async function onNotificationsToggle() {
+    try {
+        await setNotificationsEnabled(notificationsEnabled.value);
+        toast.add({
+            severity: 'success',
+            summary: 'Guardado',
+            detail: notificationsEnabled.value ? 'Notificaciones automáticas activadas.' : 'Notificaciones automáticas desactivadas.',
+            life: 3000
+        });
+    } catch (err) {
+        notificationsEnabled.value = !notificationsEnabled.value;
+        if (err.status === 401) {
+            handleError(err);
+            return;
+        }
+        toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la preferencia.', life: 3000 });
+    }
+}
 
 async function generateQR() {
     errorMessage.value = '';
@@ -205,7 +227,13 @@ async function convertToClient() {
                     <h4 class="m-0">WhatsApp</h4>
                     <Badge :value="status || 'desconocido'" :severity="isConnected ? 'success' : 'danger'" />
                 </div>
-                <Button label="Generar QR" icon="pi pi-qrcode" :disabled="isConnected" :loading="qrLoading" @click="generateQR" />
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label for="notif-toggle" class="text-sm font-medium">Notificaciones automáticas</label>
+                        <ToggleSwitch inputId="notif-toggle" v-model="notificationsEnabled" @change="onNotificationsToggle" />
+                    </div>
+                    <Button label="Generar QR" icon="pi pi-qrcode" :disabled="isConnected" :loading="qrLoading" @click="generateQR" />
+                </div>
             </div>
             <small v-if="!isConnected" class="text-yellow-500 block mt-3">Se ha perdido la conexión, presione para generar el QR</small>
             <small v-if="loadError" class="text-red-500 block mt-3">{{ loadError }}</small>

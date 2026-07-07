@@ -51,3 +51,12 @@ export async function deletePending(id) {
     });
     return handleResponse(response);
 }
+
+export async function setNotificationsEnabled(enabled) {
+    const response = await fetch(`${BASE_URL}/whatsapp/notifications`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ enabled })
+    });
+    return handleResponse(response);
+}
