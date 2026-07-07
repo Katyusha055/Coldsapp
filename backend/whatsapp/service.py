@@ -62,7 +62,15 @@ async def instance_status(user_id):
     if instance is None:
         return {"status": "not_found"}
     status = await rep.get_evolution_instance_status(instance["instance_name"])
-    return {"status": status}
+    return {"status": status, "notifications_enabled": instance["notifications_enabled"]}
+
+
+def set_notifications_enabled(user_id, enabled):
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail="WhatsApp instance not found")
+        return rep.update_notifications_enabled(conn, instance["id"], enabled)
 
 
 async def process_webhook(payload):

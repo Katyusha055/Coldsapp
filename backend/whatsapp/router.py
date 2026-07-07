@@ -51,6 +51,11 @@ async def whatsapp_events(user: CurrentUserFromQuery):
     return EventSourceResponse(generate())
 
 
+@router.patch('/notifications')
+async def update_notifications_endpoint(payload: mdl.NotificationsToggle, user: CurrentUser):
+    return ser.set_notifications_enabled(user['id'], payload.enabled)
+
+
 @router.patch('/pending/{pending_id}/status')
 async def update_pending_status_endpoint(pending_id: int, payload: mdl.PendingStatusUpdate, user: CurrentUser):
     return ser.set_pending_status(user['id'], pending_id, payload.status)
