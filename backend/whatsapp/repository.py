@@ -17,6 +17,7 @@ def _row_to_instance_dict(row) -> dict:
         "status": row[3],
         "created_at": row[4],
         "connected_at": row[5],
+        "notifications_enabled": row[6],
     }
 
 
@@ -29,7 +30,7 @@ def get_instance_by_user_id(conn, user_id):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, user_id, instance_name, status, created_at, connected_at
+            SELECT id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
             FROM whatsapp_instances
             WHERE user_id = %s
             """,
@@ -52,7 +53,7 @@ def create_instance(conn, user_id, instance_name):
             """
             INSERT INTO whatsapp_instances (user_id, instance_name)
             VALUES (%s, %s)
-            RETURNING id, user_id, instance_name, status, created_at, connected_at
+            RETURNING id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
             """,
             (user_id, instance_name),
         )
@@ -72,9 +73,31 @@ def update_instance_status(conn, instance_id, status, connected_at=None):
             UPDATE whatsapp_instances
             SET status = %s, connected_at = COALESCE(%s, connected_at)
             WHERE id = %s
-            RETURNING id, user_id, instance_name, status, created_at, connected_at
+            RETURNING id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
             """,
             (status, connected_at, instance_id),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_instance_dict(row)
+
+
+def update_notifications_enabled(conn, instance_id, enabled):
+    """
+    Updates notifications_enabled for a whatsapp instance.
+
+    Output dict: WhatsAppInstance-compatible dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE whatsapp_instances
+            SET notifications_enabled = %s
+            WHERE id = %s
+            RETURNING id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
+            """,
+            (enabled, instance_id),
         )
         row = cur.fetchone()
     if row is None:
@@ -114,7 +137,7 @@ def get_instance_by_name(conn, instance_name):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, user_id, instance_name, status, created_at, connected_at
+            SELECT id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
             FROM whatsapp_instances
             WHERE instance_name = %s
             """,
