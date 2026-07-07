@@ -14,6 +14,7 @@ def init_db(connect):
                     user_id INTEGER NOT NULL,
                     instance_name VARCHAR NOT NULL UNIQUE,
                     status VARCHAR NOT NULL DEFAULT 'pending',
+                    notifications_enabled BOOLEAN NOT NULL DEFAULT true,
 
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     connected_at TIMESTAMPTZ,
