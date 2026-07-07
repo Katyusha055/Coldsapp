@@ -2,8 +2,11 @@ from fastapi import APIRouter
 import backend.whatsapp.models as mdl
 import backend.whatsapp.service as ser
 from backend.auth.utils import CurrentUser
+import asyncio
+import json
 import logging
 from fastapi import Request
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,22 @@ async def whatsapp_webhook(request: Request):
         return {"status": "discarded"}
     logger.info(f"Webhook processed: {result}")
     return {"status": "ok", "event": result}
+
+
+@router.get('/events')
+async def whatsapp_events(user: CurrentUser):
+    queue = asyncio.Queue()
+    ser.register_queue(user['id'], queue)
+
+    async def generate():
+        try:
+            while True:
+                event = await queue.get()
+                yield f"data: {json.dumps(event)}\n\n"
+        finally:
+            ser.deregister_queue(user['id'])
+
+    return EventSourceResponse(generate())
 
 
 @router.patch('/pending/{pending_id}/status')
