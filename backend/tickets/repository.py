@@ -228,7 +228,7 @@ async def send_whatsapp_message(instance_name, phone, text):
         response = await client.post(
             f"{EVO_API_URL}/message/sendText/{instance_name}",
             headers={"apikey": EVO_API_TOKEN},
-            json={"number": number, "textMessage": {"text": text}},
+            json={"number": number, "text": text},
         )
         response.raise_for_status()
         return response.json()
