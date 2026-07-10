@@ -124,29 +124,29 @@ def test_update_ticket_not_found():
 
 
 # --- update_ticket_status ---
-
-def test_update_ticket_status_happy_path(sample_ticket):
+@pytest.mark.asyncio
+async def test_update_ticket_status_happy_path(sample_ticket):
     updated_ticket = {**sample_ticket, "status": "in_progress"}
     with patch('backend.tickets.service.get_ticket_by_id', return_value=sample_ticket), \
          patch('backend.tickets.service.connect', return_value=MagicMock()), \
          patch('backend.tickets.service.rep.update_ticket_status', return_value=updated_ticket):
-        result = service.update_ticket_status(1, 1, "in_progress")
+        result = await service.update_ticket_status(1, 1, "in_progress")
     assert result["status"] == "in_progress"
 
-
-def test_update_ticket_status_invalid_transition(sample_ticket):
+@pytest.mark.asyncio
+async def test_update_ticket_status_invalid_transition(sample_ticket):
     with patch('backend.tickets.service.get_ticket_by_id', return_value=sample_ticket):
         with pytest.raises(HTTPException) as exc_info:
-            service.update_ticket_status(1, 1, "delivered")
+            await service.update_ticket_status(1, 1, "delivered")
     assert exc_info.value.status_code == 400
     assert "Cannot transition" in exc_info.value.detail
 
-
-def test_update_ticket_status_not_found(sample_ticket):
+@pytest.mark.asyncio
+async def test_update_ticket_status_not_found(sample_ticket):
     with patch('backend.tickets.service.get_ticket_by_id', return_value=sample_ticket), \
          patch('backend.tickets.service.connect', return_value=MagicMock()), \
          patch('backend.tickets.service.rep.update_ticket_status', return_value=None):
         with pytest.raises(HTTPException) as exc_info:
-            service.update_ticket_status(1, 1, "in_progress")
+            await service.update_ticket_status(1, 1, "in_progress")
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Ticket not found"
