@@ -3,7 +3,12 @@ __pycache__/
 *.pyc
 .env
 .env.tests
+.env.evo
 .git/
 logs/
 .pytest_cache/
 .claude/
+setup.cfg
+mutants/
+mutants
+node_modules/
