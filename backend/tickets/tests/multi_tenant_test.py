@@ -50,6 +50,11 @@ def test_tenant_one_cannot_access_or_modify_tenant_two_tickets(api_client, creat
 
     ticket_id = ticket[0]
 
+    # GET /tickets/ should not include tenant 2 tickets when authenticated as tenant 1.
+    list_response = api_client.get('/tickets/', headers=headers)
+    assert list_response.status_code == 200
+    assert list_response.json() == []
+
     # GET /tickets/{id} should not retrieve tenant 2 ticket.
     get_response = api_client.get(f'/tickets/{ticket_id}', headers=headers)
     assert get_response.status_code == 404
@@ -69,3 +74,13 @@ def test_tenant_one_cannot_access_or_modify_tenant_two_tickets(api_client, creat
         headers=headers,
     )
     assert status_response.status_code == 404
+
+    # POST /tickets/ should not let tenant 1 create a ticket against tenant 2's client.
+    tenant_two_client_id = ticket[2]
+    create_response = api_client.post(
+        '/tickets/',
+        json={'client_id': tenant_two_client_id, 'title': 'Illegal cross-tenant ticket'},
+        headers=headers,
+    )
+    assert create_response.status_code == 404
+    assert create_response.json()['detail'] == 'Client not found'
