@@ -5,6 +5,7 @@ def _row_to_client_dict(row: dict) -> dict:
         "phone": row[2],
         "description": row[3],
         "created_at": str(row[4]),
+        "whatsapp_id": row[5],
     }
 
 
@@ -19,7 +20,7 @@ def get_clients(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at, whatsapp_id
             FROM clients
             WHERE user_id = %s
             ORDER BY id ASC
@@ -34,7 +35,7 @@ def create_client(conn, data: dict) -> dict:
     """
     Creates a client row.
 
-    Input dict: {"user_id": int, "name": str, "phone": str, "description": str | None}
+    Input dict: {"user_id": int, "name": str, "phone": str, "description": str | None, "whatsapp_id": str | None}
     Output dict: ResponseClient-compatible dict
     """
     payload = {
@@ -42,20 +43,22 @@ def create_client(conn, data: dict) -> dict:
         "name": data["name"],
         "phone": data["phone"],
         "description": data.get("description"),
+        "whatsapp_id": data.get("whatsapp_id"),
     }
 
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO clients (user_id, name, phone, description)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id, name, phone, description, created_at
+            INSERT INTO clients (user_id, name, phone, description, whatsapp_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, name, phone, description, created_at, whatsapp_id
             """,
             (
                 payload["user_id"],
                 payload["name"],
                 payload["phone"],
                 payload["description"],
+                payload["whatsapp_id"],
             ),
         )
         row = cur.fetchone()
@@ -84,7 +87,7 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
         UPDATE clients
         SET {set_clause}
         WHERE id = %s AND user_id = %s
-        RETURNING id, name, phone, description, created_at
+        RETURNING id, name, phone, description, created_at, whatsapp_id
         """
 
         cur.execute(query, values)
@@ -99,11 +102,24 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
 def delete_client(conn, data: dict) -> dict:
     """
     Deletes one client by id and user.
+    Also deletes associated wa_pending_contacts by whatsapp_id.
 
     Input dict: {"id": int, "user_id": int}
     Output dict: {"deleted": bool, "id": int}
     """
     with conn.cursor() as cur:
+        cur.execute(
+            """
+            DELETE FROM wa_pending_contacts
+            WHERE remote_jid = (
+                SELECT whatsapp_id FROM clients WHERE id = %s AND user_id = %s
+            )
+            AND instance_id = (
+                SELECT id FROM whatsapp_instances WHERE user_id = %s
+            )
+            """,
+            (data["id"], data["user_id"], data["user_id"]),
+        )
         cur.execute(
             """
             DELETE FROM clients
@@ -126,7 +142,7 @@ def get_client_by_phone(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at, whatsapp_id
             FROM clients
             WHERE user_id = %s AND phone = %s
             LIMIT 1
@@ -149,7 +165,7 @@ def get_client_by_id(conn, data: dict) -> dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, name, phone, description, created_at
+            SELECT id, name, phone, description, created_at, whatsapp_id
             FROM clients
             WHERE id = %s AND user_id = %s
             """,

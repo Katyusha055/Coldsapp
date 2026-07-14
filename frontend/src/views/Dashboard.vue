@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { getClients } from '@/services/ClientService.js';
 import { getTickets } from '@/services/TicketService.js';
-import ContactWidget from '@/components/dashboard/ContactWidget.vue';
+import PendingWhatsappWidget from '@/components/dashboard/PendingWhatsappWidget.vue';
 import TopClientsWidget from '@/components/dashboard/TopClientsWidget.vue';
 import PendingTicketsWidget from '@/components/dashboard/PendingTicketsWidget.vue';
 
@@ -69,7 +69,7 @@ onMounted(async () => {
 
         <!-- Widgets -->
         <div class="col-span-12 xl:col-span-4">
-            <ContactWidget />
+            <PendingWhatsappWidget />
         </div>
         <div class="col-span-12 xl:col-span-4">
             <TopClientsWidget />

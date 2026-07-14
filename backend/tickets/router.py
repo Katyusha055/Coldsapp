@@ -35,9 +35,9 @@ def delete_ticket_endpoint(ticket_id: int, user: CurrentUser):
 
 
 @router.patch('/{ticket_id}/status', response_model=mdl.TicketResponse)
-def update_ticket_status_endpoint(ticket_id: int, payload: mdl.TicketStatusUpdate, user: CurrentUser):
+async def update_ticket_status_endpoint(ticket_id: int, payload: mdl.TicketStatusUpdate, user: CurrentUser):
     current_user_id = user['id']
-    return ser.update_ticket_status(current_user_id, ticket_id, payload.status)
+    return await ser.update_ticket_status(current_user_id, ticket_id, payload.status)
 
 
 @router.patch('/{ticket_id}', response_model=mdl.TicketResponse)

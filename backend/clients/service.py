@@ -25,7 +25,7 @@ def update_client_service(user_id, client_id, data):
 
         if not filtered_data:
             raise HTTPException(status_code=422, detail="No valid fields provided for update")
-        response = rep.update_client(conn, user_id, client_id, data)
+        response = rep.update_client(conn, user_id, client_id, filtered_data)
         if response is None:
             raise HTTPException(status_code=404, detail="Client not found")
         return response

@@ -43,8 +43,8 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
     assert row[4] == valid_payload["description"]
 
     invalid_payload = {
-        "name": "Client Without Phone",
-        "description": "Missing required phone",
+        "name": 6767,
+        "description": "Name is a int",
     }
     invalid_response = api_client.post("/clients/", json=invalid_payload, headers=headers)
 

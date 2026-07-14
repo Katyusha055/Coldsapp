@@ -13,6 +13,7 @@ def sample_row():
         "1234567890",
         "Cliente frecuente",
         datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+        "1234567890_wa_id"
     )
 
 @pytest.fixture
@@ -33,6 +34,7 @@ def test_row_to_client_dict(sample_row):
         "phone": "1234567890",
         "description": "Cliente frecuente",
         "created_at": "2026-01-01 12:00:00+00:00",
+        'whatsapp_id': "1234567890_wa_id"
     }
 
 
@@ -49,6 +51,7 @@ def test_get_clients_1(mocked_conn_and_cursor, sample_row):
                 "phone": "1234567890",
                 "description": "Cliente frecuente",
                 "created_at": "2026-01-01 12:00:00+00:00",
+                'whatsapp_id': "1234567890_wa_id"
             } 
         ]
     
@@ -85,6 +88,7 @@ def test_update_client_1(mocked_conn_and_cursor, sample_row):
         sample_row[2],
         "Actualizada",
         sample_row[4],
+        sample_row[5],
     )
     cur.fetchone.return_value = updated_row
 
@@ -111,7 +115,7 @@ def test_delete_client_happy_path(mocked_conn_and_cursor):
     result = rep.delete_client(conn, payload)
 
     assert result == {"deleted": True, "id": 10}
-    cur.execute.assert_called_once()
+    cur.execute.assert_called()
     _, params = cur.execute.call_args.args
     assert params == (10, 1)
 

@@ -104,6 +104,35 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 
 ---
 
+## WhatsApp module
+
+### `remote_jid` as the contact identifier instead of phone number
+**Decision:** Recent versions of Baileys (the unofficial library behind Evolution API) return `@lid` instead of the real phone number for private chats, and there is no reliable way to resolve `@lid` back to a real number without Meta's official Cloud API. `remote_jid` is used directly as the permanent contact identifier instead.
+**Trade-offs accepted:** This assumes `remote_jid` is stable and unique per contact — but that assumption rests on Baileys' current, reverse-engineered behavior, not a documented guarantee from WhatsApp/Meta. Baileys is unofficial and unsupported; if WhatsApp changes how `@lid` is assigned or rotated, this identifier could become unstable without warning.
+**Future ideas:** Migrate to Meta's official Cloud API once volume justifies the cost — Cloud API exposes real phone numbers directly and removes this dependency on reverse-engineered behavior.
+
+### Hard delete on `wa_pending_contacts`
+**Decision:** Soft delete was tried first but conflicted with the `UNIQUE(remote_jid, instance_id)` constraint: a soft-deleted contact blocked reinsertion when that person messaged again. Hard delete removes the row entirely, avoiding the conflict and simplifying queries (no `WHERE deleted_at IS NULL` needed everywhere).
+**Trade-offs accepted:** `wa_events` stores the full raw payload of every incoming webhook event, which covers audit needs for the *message history* leading up to a contact's conversion/discard. It does **not** audit the deletion action itself — there is currently no record of which staff member deleted a pending contact, or when. If that becomes a requirement, this is a real gap, not something already covered.
+**Future ideas:** If per-action audit trail becomes necessary (e.g. compliance, dispute resolution), log staff actions separately rather than reintroducing soft delete on this table.
+
+### `ON CONFLICT DO NOTHING` in `create_pending`
+**Decision:** Evolution API can deliver the same webhook event twice in rapid succession. Without conflict handling, the second insert would raise an uncaught `UniqueViolation`, return a 500 to Evolution API, and trigger indefinite retries. `ON CONFLICT (remote_jid, instance_id) DO NOTHING` accepts the duplicate silently; the service layer detects the `None` return and falls back to treating it as an update instead of a failure.
+**Trade-offs accepted:** None significant — this is a standard idempotency pattern for webhook consumers.
+**Future ideas:** No change planned.
+
+### `get_instance_by_user_id` duplicated in `tickets/repository.py`
+**Decision:** `tickets` needs to check whether a user has an active WhatsApp instance to decide whether to send a "ready" notification. Importing directly from `whatsapp/repository.py` would create a cross-feature coupling that the feature-based architecture is meant to avoid. The query is duplicated instead, as a pragmatic beta-stage choice.
+**Trade-offs accepted:** The same query now lives in two places and must be kept in sync manually if the `whatsapp_instances` schema changes.
+**Future ideas:** Extract to a shared `shared/repository.py` once a third feature needs the same query — two duplications is an acceptable pragmatic cost, three is the threshold to de-duplicate.
+
+### JWT passed as a query parameter for SSE
+**Decision:** The browser's native `EventSource` API does not support custom headers, so the JWT is passed as a `?token=` query parameter instead of an `Authorization` header for the `/whatsapp/events` SSE endpoint.
+**Trade-offs accepted:** Query-string tokens can leak via server access logs, browser history, or any proxy that logs full URLs. This is compounded by the fact that the token used here is the **same long-lived access token** as the rest of the API (`ACCESS_TOKEN_EXPIRE_HOURS`, currently hours-long), not a short-lived token scoped to SSE — so the exposure window is as long as a normal session, not a few minutes. Accepted as a known risk for beta with a small, known user base.
+**Future ideas:** Either issue a short-lived, SSE-scoped token specifically for this endpoint, or migrate to WebSockets (which do support custom headers/subprotocol-based auth) post phase 1.
+
+---
+
 ## Auth module
 
 ### `PyJWT` + `pwdlib` instead of `python-jose` + `passlib`

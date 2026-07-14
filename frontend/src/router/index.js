@@ -24,7 +24,13 @@ const router = createRouter({
                     path: '/tickets',
                     name: 'tickets',
                     component: () => import('@/views/Tickets.vue')
-                }]
+                },
+                {
+                    path: '/whatsapp',
+                    name: 'whatsapp',
+                    component: () => import('@/views/Whatsapp.vue')
+                }            
+            ]
         },
         {
             path: '/auth/login',

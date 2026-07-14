@@ -1,3 +1,12 @@
+import os
+import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
+EVO_API_URL = os.getenv("EVO_API_URL")
+EVO_API_TOKEN = os.getenv("EVO_API_TOKEN")
+
+
 def _row_to_ticket_dict(row) -> dict:
     return {
         "id": row[0],
@@ -142,6 +151,85 @@ def update_ticket(conn, user_id, ticket_id, data: dict) -> dict:
         return None
 
     return _row_to_ticket_dict(row)
+
+
+def get_instance_by_user_id(conn, user_id):
+    """
+    Gets one whatsapp instance by user_id.
+
+    Duplicated from the whatsapp repository so the tickets feature does not
+    depend on it. Output dict: WhatsAppInstance-compatible dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
+            FROM whatsapp_instances
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "instance_name": row[2],
+        "status": row[3],
+        "created_at": row[4],
+        "connected_at": row[5],
+        "notifications_enabled": row[6],
+    }
+
+
+def get_client_by_id(conn, data: dict):
+    """
+    Gets one client by id and user.
+
+    Duplicated from the clients repository so the tickets feature does not
+    depend on it. Input dict: {"id": int, "user_id": int}
+    Output dict: client dict (None when not found)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, name, phone, description, created_at, whatsapp_id
+            FROM clients
+            WHERE id = %s AND user_id = %s
+            """,
+            (data["id"], data["user_id"]),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1],
+        "phone": row[2],
+        "description": row[3],
+        "created_at": str(row[4]),
+        "whatsapp_id": row[5],
+    }
+
+
+async def send_whatsapp_message(instance_name, number, text):
+    """
+    Sends a WhatsApp text message via the Evolution API.
+
+    Expects `number` already formatted for the Evolution API (e.g. "593987654321").
+
+    Raises the raw httpx errors (via raise_for_status); the service layer maps
+    them to HTTP responses, mirroring the whatsapp feature.
+    """
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            f"{EVO_API_URL}/message/sendText/{instance_name}",
+            headers={"apikey": EVO_API_TOKEN},
+            json={"number": number, "text": text},
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def update_ticket_status(conn, user_id, ticket_id, status, ready_at=None, delivered_at=None) -> dict:

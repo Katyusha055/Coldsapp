@@ -29,4 +29,6 @@ class TicketResponse(BaseModel):
     delivered_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    whatsapp_notification_sent: bool | None = None
+    whatsapp_notification_error: str | None = None
 
