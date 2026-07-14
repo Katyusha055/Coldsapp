@@ -15,6 +15,14 @@ VALID_TRANSITIONS = {
 }
 
 
+def _format_ecuador_phone(phone: str) -> str:
+    """
+    Ecuador-formats a phone for the Evolution API: strip a single leading 0
+    and prepend 593 (e.g. "0987654321" -> "593987654321").
+    """
+    return "593" + (phone[1:] if phone.startswith("0") else phone)
+
+
 def create_ticket(user_id, data: dict) -> TicketResponse:
     with connect() as conn:
         client = clients_rep.get_client_by_id(conn, {"id": data["client_id"], "user_id": user_id})
@@ -60,7 +68,7 @@ def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
         raise HTTPException(status_code=400, detail="No valid fields provided for update")
 
     with connect() as conn:
-        ticket = rep.update_ticket(conn, user_id, ticket_id, data)
+        ticket = rep.update_ticket(conn, user_id, ticket_id, filtered_data)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return ticket
@@ -89,10 +97,12 @@ async def notify_ticket_ready(user_id, ticket) -> dict:
     if client is None or not client.get("phone"):
         return {"whatsapp_notification_sent": False, "whatsapp_notification_error": "client_has_no_phone"}
 
+    number = _format_ecuador_phone(client["phone"])
+
     try:
         await rep.send_whatsapp_message(
             instance["instance_name"],
-            client["phone"],
+            number,
             f"Hola {client['name']}, tu equipo está listo para retirar.",
         )
     except httpx.TimeoutException:

@@ -213,17 +213,15 @@ def get_client_by_id(conn, data: dict):
     }
 
 
-async def send_whatsapp_message(instance_name, phone, text):
+async def send_whatsapp_message(instance_name, number, text):
     """
     Sends a WhatsApp text message via the Evolution API.
 
-    Phone is Ecuador-formatted: strip a single leading 0 and prepend 593
-    (e.g. "0987654321" -> "593987654321").
+    Expects `number` already formatted for the Evolution API (e.g. "593987654321").
 
     Raises the raw httpx errors (via raise_for_status); the service layer maps
     them to HTTP responses, mirroring the whatsapp feature.
     """
-    number = "593" + (phone[1:] if phone.startswith("0") else phone)
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             f"{EVO_API_URL}/message/sendText/{instance_name}",
