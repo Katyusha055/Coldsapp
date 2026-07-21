@@ -131,6 +131,11 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** Query-string tokens can leak via server access logs, browser history, or any proxy that logs full URLs. This is compounded by the fact that the token used here is the **same long-lived access token** as the rest of the API (`ACCESS_TOKEN_EXPIRE_HOURS`, currently hours-long), not a short-lived token scoped to SSE — so the exposure window is as long as a normal session, not a few minutes. Accepted as a known risk for beta with a small, known user base.
 **Future ideas:** Either issue a short-lived, SSE-scoped token specifically for this endpoint, or migrate to WebSockets (which do support custom headers/subprotocol-based auth) post phase 1.
 
+### From `schema.py`/`init_db()` to Alembic
+**Decision:** Schema management used to be four per-module `schema.py` files with `CREATE TABLE IF NOT EXISTS` statements, all run unconditionally from FastAPI's `lifespan` on every app boot. This has been replaced entirely by Alembic (`backend/alembic/`), with a baseline migration (`0001_initial_schema.py`) mirroring the old SQL exactly. The Dockerfile now runs `alembic upgrade head` before starting `uvicorn`; `lifespan` was removed from `main.py` since it had no other responsibility. Tests run migrations once per session via a `run_migrations` fixture in `conftest.py` instead of relying on `TestClient(app)` triggering the old lifespan.
+**Trade-offs accepted:** Schema changes now require writing a migration file by hand (no SQLAlchemy ORM models to autogenerate from — consistent with the project's psycopg-only style everywhere else). A developer who forgets to write a migration for a schema change has no automated safety net catching the mismatch.
+**Future ideas:** No change planned. If the schema evolves fast enough that hand-writing raw-SQL migrations becomes a bottleneck, revisit whether a thin SQLAlchemy Core layer (tables-as-code, still no ORM) is worth it for autogenerate support.
+
 ---
 
 ## Auth module

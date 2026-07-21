@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 
@@ -19,6 +21,16 @@ def load_test_env():
         raise ValueError(
             f"Test environment file does not contain 'test' keyword in the database name: {os.getenv('DB_NAME')}"
         )
+
+
+@pytest.fixture(scope='session', autouse=True)
+def run_migrations(load_test_env):
+    """
+    Applies Alembic migrations to the test database once per test session,
+    replacing the old lifespan-triggered schema.py/init_db() setup.
+    """
+    alembic_cfg = Config(str(tests_dir / 'alembic.ini'))
+    command.upgrade(alembic_cfg, 'head')
 
 
 @pytest.fixture()
