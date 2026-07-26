@@ -1,6 +1,6 @@
 import pytest
 
-from backend.conftest import load_test_env, api_client, clean_db
+from backend.conftest import api_client, clean_db
 
 
 @pytest.fixture()

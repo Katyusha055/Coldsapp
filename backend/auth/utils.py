@@ -1,6 +1,4 @@
 from typing_extensions import Annotated
-from dotenv import load_dotenv
-import os
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Query, status
@@ -10,12 +8,11 @@ from pwdlib import PasswordHash
 from backend.auth.models import TokenData
 from backend.database.connect import connect
 from backend.auth import repository
+from backend.settings import settings
 
-load_dotenv()
-
-SECRET_KEY = os.getenv('SECRET_KEY')
-ALGORITHM = os.getenv('ALGORITHM')
-ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv('ACCESS_TOKEN_EXPIRE_HOURS'))
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_HOURS = settings.ACCESS_TOKEN_EXPIRE_HOURS
 
 password_hash = PasswordHash.recommended()
 
