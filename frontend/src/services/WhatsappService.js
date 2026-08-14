@@ -22,7 +22,7 @@ export async function getStatus() {
 }
 
 export async function getQR() {
-    const response = await fetch(`${BASE_URL}/whatsapp`, {
+    const response = await fetch(`${BASE_URL}/whatsapp/`, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);

@@ -34,10 +34,7 @@ def setup_middleware(app: FastAPI) -> None:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "https://coldsapp.up.railway.app",
-        ],
+        allow_origins=settings.CORS_ORIGINS,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )

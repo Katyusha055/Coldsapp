@@ -55,6 +55,14 @@ class Settings:
         self.EVO_API_TOKEN = _required("EVO_API_TOKEN")
         self.WHATSAPP_WEBHOOK_URL = _required("WHATSAPP_WEBHOOK_URL")
 
+        # CORS. Comma-separated in the environment; missing/empty yields an
+        # empty (i.e. restrictive) list rather than falling back to a default.
+        self.CORS_ORIGINS = [
+            origin.strip()
+            for origin in os.getenv("CORS_ORIGINS", "").split(",")
+            if origin.strip()
+        ]
+
     @property
     def is_production(self) -> bool:
         return self.ENV == "production"
