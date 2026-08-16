@@ -20,7 +20,6 @@ app = FastAPI(
 app.include_router(api_router)
 setup_middleware(app)
 
-
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """
