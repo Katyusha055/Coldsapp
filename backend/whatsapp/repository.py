@@ -1,12 +1,10 @@
-import os
 import httpx
 from psycopg.types.json import Jsonb
-from dotenv import load_dotenv
+from backend.settings import settings
 
-load_dotenv()
-EVO_API_URL = os.getenv("EVO_API_URL")
-EVO_API_TOKEN = os.getenv("EVO_API_TOKEN")
-WHATSAPP_WEBHOOK_URL = os.getenv("WHATSAPP_WEBHOOK_URL")
+EVO_API_URL = settings.EVO_API_URL
+EVO_API_TOKEN = settings.EVO_API_TOKEN
+WHATSAPP_WEBHOOK_URL = settings.WHATSAPP_WEBHOOK_URL
 
 
 def _row_to_instance_dict(row) -> dict:

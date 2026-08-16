@@ -1,10 +1,8 @@
-import os
 import httpx
-from dotenv import load_dotenv
+from backend.settings import settings
 
-load_dotenv()
-EVO_API_URL = os.getenv("EVO_API_URL")
-EVO_API_TOKEN = os.getenv("EVO_API_TOKEN")
+EVO_API_URL = settings.EVO_API_URL
+EVO_API_TOKEN = settings.EVO_API_TOKEN
 
 
 def _row_to_ticket_dict(row) -> dict:
