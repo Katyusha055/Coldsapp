@@ -33,6 +33,42 @@ async def find_chats(instance_name: str) -> list[dict]:
         return response.json()
 
 
+def _row_to_instance_dict(row) -> dict:
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "instance_name": row[2],
+        "status": row[3],
+        "created_at": row[4],
+        "connected_at": row[5],
+        "notifications_enabled": row[6],
+    }
+
+
+def get_instance_by_user_id(conn, user_id):
+    """
+    Gets one whatsapp instance by user_id.
+
+    Output dict: WhatsAppInstance-compatible dict (None when not found)
+
+    Duplicated verbatim from whatsapp/repository.py: features don't import
+    from each other, so this stays copied here until it moves to /shared.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, user_id, instance_name, status, created_at, connected_at, notifications_enabled
+            FROM whatsapp_instances
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return None
+    return _row_to_instance_dict(row)
+
+
 def upsert_contacts(conn, instance_id: int, contacts: list[dict]) -> None:
     """
     Bulk upserts already-filtered, already-reconciled contacts for an instance.
