@@ -31,6 +31,45 @@ async def import_contacts(user_id: int) -> dict:
     return {"imported": len(reconciled)}
 
 
+def list_contacts(user_id: int) -> list[dict]:
+    """
+    Lists all contacts belonging to the user's WhatsApp instance.
+    """
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail="WhatsApp instance not found")
+        return rep.list_contacts(conn, instance["id"])
+
+
+def update_contact_name(user_id: int, contact_id: int, name: str) -> dict:
+    """
+    Renames one contact belonging to the user's WhatsApp instance.
+    """
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail="WhatsApp instance not found")
+        updated = rep.update_contact_name(conn, instance["id"], contact_id, name)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return {"updated": True}
+
+
+def update_contact_opted_out(user_id: int, contact_id: int, opted_out: bool) -> dict:
+    """
+    Sets the opted_out flag on one contact belonging to the user's WhatsApp instance.
+    """
+    with connect() as conn:
+        instance = rep.get_instance_by_user_id(conn, user_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail="WhatsApp instance not found")
+        updated = rep.update_contact_opted_out(conn, instance["id"], contact_id, opted_out)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return {"updated": True}
+
+
 async def _fetch_sources(instance_name: str) -> tuple[list, list]:
     """
     Fetches findContacts and findChats from Evolution concurrently.
