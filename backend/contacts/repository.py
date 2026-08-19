@@ -69,6 +69,82 @@ def get_instance_by_user_id(conn, user_id):
     return _row_to_instance_dict(row)
 
 
+def _row_to_contact_dict(row) -> dict:
+    return {
+        "id": row[0],
+        "instance_id": row[1],
+        "remote_jid": row[2],
+        "name": row[3],
+        "opted_out": row[4],
+        "last_incoming_at": row[5],
+        "last_broadcast_at": row[6],
+        "created_at": row[7],
+    }
+
+
+def list_contacts(conn, instance_id) -> list[dict]:
+    """
+    Gets all contacts for an instance.
+
+    Output: list of contacts row dicts
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, instance_id, remote_jid, name, opted_out, last_incoming_at, last_broadcast_at, created_at
+            FROM contacts
+            WHERE instance_id = %s
+            ORDER BY id ASC
+            """,
+            (instance_id,),
+        )
+        rows = cur.fetchall()
+    return [_row_to_contact_dict(row) for row in rows]
+
+
+def update_contact_name(conn, instance_id, contact_id, name) -> bool:
+    """
+    Updates the name of one contact, scoped to instance_id (the multi-tenant
+    guard: a user cannot update a contact outside their own instance).
+
+    Output: True if a row was updated, False otherwise
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE contacts
+            SET name = %s
+            WHERE id = %s AND instance_id = %s
+            RETURNING id
+            """,
+            (name, contact_id, instance_id),
+        )
+        row = cur.fetchone()
+    return row is not None
+
+
+def update_contact_opted_out(conn, instance_id, contact_id, opted_out) -> bool:
+    """
+    Updates the opted_out flag of one contact, scoped to instance_id (the
+    multi-tenant guard: a user cannot update a contact outside their own
+    instance).
+
+    Output: True if a row was updated, False otherwise
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE contacts
+            SET opted_out = %s
+            WHERE id = %s AND instance_id = %s
+            RETURNING id
+            """,
+            (opted_out, contact_id, instance_id),
+        )
+        row = cur.fetchone()
+    return row is not None
+
+
 def upsert_contacts(conn, instance_id: int, contacts: list[dict]) -> None:
     """
     Bulk upserts already-filtered, already-reconciled contacts for an instance.
