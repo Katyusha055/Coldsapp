@@ -93,7 +93,7 @@ def _filter_contacts(raw: list[dict]) -> list[dict]:
         remote_jid = entry.get("remoteJid") or ""
         if entry.get("type") != "contact":
             continue
-        if not remote_jid.endswith("@s.whatsapp.net"):
+        if not remote_jid.endswith("@s.whatsapp.net") or remote_jid.startswith("0@"):
             continue
         filtered.append({"remote_jid": remote_jid, "name": entry.get("pushName") or None})
     return filtered
