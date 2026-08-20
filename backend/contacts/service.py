@@ -1,11 +1,25 @@
 import asyncio
-
+import httpx
+from functools import wraps
 from fastapi import HTTPException
 
 import backend.contacts.repository as rep
 from backend.database.connect import connect
 
+def handle_evo_errors(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Evolution API timeout")
+        except httpx.ConnectError:
+            raise HTTPException(status_code=503, detail="Evolution API unreachable")
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+    return wrapper
 
+@handle_evo_errors
 async def import_contacts(user_id: int) -> dict:
     """
     Fetches contacts and chats from Evolution for the user's WhatsApp
@@ -93,7 +107,7 @@ def _filter_contacts(raw: list[dict]) -> list[dict]:
         remote_jid = entry.get("remoteJid") or ""
         if entry.get("type") != "contact":
             continue
-        if not remote_jid.endswith("@s.whatsapp.net") or remote_jid.startswith("0@"):
+        if not remote_jid.endswith("@s.whatsapp.net") or remote_jid.startswith("0@"): #The "0@" is the whatsapp official number, so we do not want that in the DB
             continue
         filtered.append({"remote_jid": remote_jid, "name": entry.get("pushName") or None})
     return filtered
@@ -116,7 +130,7 @@ def _filter_chats(raw: list[dict]) -> list[dict]:
         remote_jid = chat.get("remoteJid") or ""
         resolved_jid = None
 
-        if remote_jid.endswith("@s.whatsapp.net"):
+        if remote_jid.endswith("@s.whatsapp.net") and not remote_jid.startswith("0@"):
             resolved_jid = remote_jid
         elif remote_jid.endswith("@lid"):
             last_message = chat.get("lastMessage") or {}
