@@ -30,9 +30,26 @@ const model = ref([
                 label: 'WhatsApp',
                 icon: 'pi pi-fw pi-whatsapp',
                 to: '/whatsapp'
+            },
+            {
+                label: 'Contactos',
+                icon: 'pi pi-fw pi-address-book',
+                path: '/contacts',
+                items: [
+                    {
+                        label: 'Todos',
+                        icon: 'pi pi-fw pi-list',
+                        to: '/contacts'
+                    },
+                    {
+                        label: 'Lista Negra',
+                        icon: 'pi pi-fw pi-ban',
+                        to: '/contacts/blacklist'
+                    }
+                ]
             }
         ]
-    },
+    }
 ]);
 </script>
 
