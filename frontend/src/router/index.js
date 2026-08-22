@@ -34,6 +34,11 @@ const router = createRouter({
                     path: '/contacts',
                     name: 'contacts',
                     component: () => import('@/views/Contacts.vue')
+                },
+                {
+                    path: '/contacts/blacklist',
+                    name: 'contactsBlacklist',
+                    component: () => import('@/views/Blacklist.vue')
                 }
             ]
         },

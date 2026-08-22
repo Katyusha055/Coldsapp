@@ -34,7 +34,19 @@ const model = ref([
             {
                 label: 'Contactos',
                 icon: 'pi pi-fw pi-address-book',
-                to: '/contacts'
+                path: '/contacts',
+                items: [
+                    {
+                        label: 'Todos',
+                        icon: 'pi pi-fw pi-list',
+                        to: '/contacts'
+                    },
+                    {
+                        label: 'Lista Negra',
+                        icon: 'pi pi-fw pi-ban',
+                        to: '/contacts/blacklist'
+                    }
+                ]
             }
         ]
     }
