@@ -106,7 +106,7 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 
 ## WhatsApp module
 
-### `remote_jid` as the contact identifier instead of phone number
+### `remote_jid` as the contact identifier instead of phone number (DEPRECATED)
 **Decision:** Recent versions of Baileys (the unofficial library behind Evolution API) return `@lid` instead of the real phone number for private chats, and there is no reliable way to resolve `@lid` back to a real number without Meta's official Cloud API. `remote_jid` is used directly as the permanent contact identifier instead.
 **Trade-offs accepted:** This assumes `remote_jid` is stable and unique per contact — but that assumption rests on Baileys' current, reverse-engineered behavior, not a documented guarantee from WhatsApp/Meta. Baileys is unofficial and unsupported; if WhatsApp changes how `@lid` is assigned or rotated, this identifier could become unstable without warning.
 **Future ideas:** Migrate to Meta's official Cloud API once volume justifies the cost — Cloud API exposes real phone numbers directly and removes this dependency on reverse-engineered behavior.
@@ -210,6 +210,44 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** Brute-force attacks on the login endpoint are currently unrestricted. Mitigated partially by `DUMMY_HASH` (no user enumeration) but not by throttling.
 **Future ideas:** Implement as part of the post-phase-1 OWASP Top 10 audit. Candidates: `slowapi` (token bucket per IP) or Railway's edge-level rate limiting.
 
+### Contacts module:
+
+**Reconciling findContacts + findChats, not either alone**
+
+Neither endpoint alone covers the real contact set (verified: 46 contacts only in findChats, 580 only in findContacts, against a real account). Both fetched concurrently via asyncio.gather.
+
+**remote_jid always a resolved real number — @lid never persisted**
+
+Revises the earlier WhatsApp-module decision. @lid is a WhatsApp privacy feature (Linked ID), resolved via findChats's lastMessage.key.remoteJidAlt when a contact has interaction history (either direction). Unresolved @lid contacts are skipped, not stored. findContacts can expose the same person twice (real number + separate @lid row, no linking field) — any @lid-format row from findContacts is discarded outright.
+
+**pushName bug — NULL persisted, never a placeholder string**
+
+The bug (name wiped on outgoing message) also corrupts already-good names in findContacts, not just blanks on import. Missing name is always NULL; "Sin Nombre" is applied only in the frontend read layer.
+
+**Reconciliation upsert never overwrites a non-blank name with a blank one**
+
+Single SQL statement (ON CONFLICT ... DO UPDATE ... WHERE EXCLUDED.name IS NOT NULL AND != '') over the batch via executemany, not a Python loop.
+
+**Reconciliation never touches last_incoming_at/last_broadcast_at**
+
+Exclusive ownership of the (deferred) reactive webhook handler.
+
+**No DELETE endpoint — opted_out covers hiding**
+
+A hard delete would be undone by the next reconciliation (full re-fetch every run). opted_out is never written by the upsert, so it persists. Blacklist view = contacts WHERE opted_out = true, no separate table.
+
+**System contact 0@s.whatsapp.net filtered**
+
+Discarded via remote_jid.startswith("0@"). No other "junk name" normalization added deliberately (., phone-as-name, etc. kept as-is — not this program's call).
+
+**contacts and clients are separate entities, no auto-linking**
+
+Conversion is a manual UI action (prefill), not a migration or shared row. contacts scoped by instance_id; clients/tickets by user_id. clients.whatsapp_id vs contacts.remote_jid — naming and format compatibility unverified, don't assume join-ready.
+
+**Discovery: dev/prod Evolution API version mismatch caused a false data-loss bug**
+
+Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2.3.7 silently dropped ~490/570 contacts against v2.1.1 data. Cost a full debugging session. Lesson: verify both environments run the same Evolution version before debugging any response-shape issue.
+
 ---
 
 ## General architecture
@@ -238,6 +276,10 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Decision:** Service-layer tests run against a real PostgreSQL database rather than mocks. This covers the full `service → repository → DB` chain and catches issues that mock-based tests miss (constraint violations, query correctness, transaction behavior). Mutation testing with `mutmut` runs at 93.6% — the remaining 6.4% is a conscious decision, not an oversight.
 **Trade-offs accepted:** Tests require a running database and are slower than unit tests with mocks. Test fixtures use a factory pattern (`create_user`, `auth_headers` in `conftest.py`) to keep setup readable.
 **Future ideas:** No change to the real-DB philosophy. If test suite duration becomes a bottleneck, parallelize with `pytest-xdist` before considering mocks.
+
+**Deferred /shared folder — criterion by nature, not layer**
+
+Infrastructure with no domain knowledge goes to /shared regardless of calling layer (revises "only repository.py" — wrongly excluded things like an Evolution-error decorator wrapping service.py). Business logic never shared, stays duplicated. Includes: webhook dispatch router, get_instance_by_user_id migration, splitting whatsapp/ into infra vs. sibling feature folders (contacts/, pendings/).
 
 ---
 
