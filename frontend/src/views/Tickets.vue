@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { removeToken } from '@/services/AuthService.js';
+import { handleAuthError } from '@/services/AuthService.js';
 import { getTickets, createTicket, updateTicket, updateTicketStatus, deleteTicket } from '@/services/TicketService.js';
 import { getClients } from '@/services/ClientService.js';
 
@@ -14,7 +13,6 @@ const VALID_TRANSITIONS = {
     cancelled:   []
 };
 
-const router = useRouter();
 const toast = useToast();
 
 const tickets = ref([]);
@@ -68,11 +66,7 @@ function getTransitionOptions(status) {
 }
 
 function handleError(err) {
-    if (err.status === 401) {
-        removeToken();
-        router.push('/auth/login?expired=true');
-        return;
-    }
+    if (handleAuthError(err)) return;
     errorMessage.value = err.message ?? 'An unexpected error occurred.';
 }
 
@@ -82,12 +76,8 @@ onMounted(async () => {
         tickets.value = ticketsData;
         clients.value = clientsData;
     } catch (err) {
-        if (err.status === 401) {
-            removeToken();
-            router.push('/auth/login?expired=true');
-        } else {
-            loadError.value = err.message ?? 'Failed to load data.';
-        }
+        if (handleAuthError(err)) return;
+        loadError.value = err.message ?? 'Failed to load data.';
     }
 });
 
@@ -170,11 +160,7 @@ async function onStatusChange(t, newStatus) {
             }
         }
     } catch (err) {
-        if (err.status === 401) {
-            removeToken();
-            router.push('/auth/login?expired=true');
-            return;
-        }
+        if (handleAuthError(err)) return;
         if (newStatus === 'ready' && err.status >= 500) {
             toast.add({ severity: 'warn', summary: 'WhatsApp', detail: 'No se pudo enviar la notificación de WhatsApp, intente nuevamente.', life: 4000 });
             return;

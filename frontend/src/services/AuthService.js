@@ -48,3 +48,10 @@ export function logout() {
     removeToken();
     resetStores();
 }
+
+export function handleAuthError(err) {
+    if (err?.status !== 401) return false;
+    logout();
+    window.location.assign('/auth/login?expired=true');
+    return true;
+}
