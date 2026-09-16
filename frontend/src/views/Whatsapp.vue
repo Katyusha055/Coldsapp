@@ -1,13 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { removeToken } from '@/services/AuthService.js';
+import { handleAuthError } from '@/services/AuthService.js';
 import { getStatus, getQR, getPendingContacts, updatePendingStatus, deletePending, setNotificationsEnabled } from '@/services/WhatsappService.js';
 import { createClient } from '@/services/ClientService.js';
 import { BASE_URL } from '@/services/api.js';
 
-const router = useRouter();
 const toast = useToast();
 
 const status = ref('');
@@ -49,11 +47,7 @@ function formatDate(value) {
 }
 
 function handleError(err) {
-    if (err.status === 401) {
-        removeToken();
-        router.push('/auth/login?expired=true');
-        return;
-    }
+    if (handleAuthError(err)) return;
     errorMessage.value = err.message ?? 'An unexpected error occurred.';
 }
 
@@ -64,11 +58,8 @@ onMounted(async () => {
         notificationsEnabled.value = statusData.notifications_enabled ?? true;
         pendingContacts.value = pendingData;
     } catch (err) {
-        if (err.status === 401) {
-            handleError(err);
-        } else {
-            loadError.value = err.message ?? 'Failed to load WhatsApp data.';
-        }
+        if (handleAuthError(err)) return;
+        loadError.value = err.message ?? 'Failed to load WhatsApp data.';
     }
 
     const token = localStorage.getItem('access_token');
@@ -122,10 +113,7 @@ async function onNotificationsToggle() {
         });
     } catch (err) {
         notificationsEnabled.value = !notificationsEnabled.value;
-        if (err.status === 401) {
-            handleError(err);
-            return;
-        }
+        if (handleAuthError(err)) return;
         toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la preferencia.', life: 3000 });
     }
 }

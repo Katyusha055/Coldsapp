@@ -1,11 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { removeToken } from '@/services/AuthService.js';
+import { handleAuthError } from '@/services/AuthService.js';
 import { useContactsStore } from '@/stores/contacts.js';
 
-const router = useRouter();
 const toast = useToast();
 const store = useContactsStore();
 
@@ -56,11 +54,7 @@ function errorMessageFor(err) {
 }
 
 function handleError(err) {
-    if (err.status === 401) {
-        removeToken();
-        router.push('/auth/login?expired=true');
-        return;
-    }
+    if (handleAuthError(err)) return;
     toast.add({ severity: 'error', summary: 'Error', detail: errorMessageFor(err), life: 3000 });
 }
 
@@ -68,11 +62,8 @@ onMounted(async () => {
     try {
         await store.loadContacts();
     } catch (err) {
-        if (err.status === 401) {
-            handleError(err);
-        } else {
-            loadError.value = errorMessageFor(err);
-        }
+        if (handleAuthError(err)) return;
+        loadError.value = errorMessageFor(err);
     }
 });
 

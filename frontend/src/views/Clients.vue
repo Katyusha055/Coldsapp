@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { removeToken } from '@/services/AuthService.js';
+import { handleAuthError } from '@/services/AuthService.js';
 import { getClients, createClient, updateClient, deleteClient } from '@/services/ClientService.js';
 import { getTickets } from '@/services/TicketService.js';
 
@@ -31,11 +31,7 @@ function formatDate(value) {
 }
 
 function handleError(err) {
-    if (err.status === 401) {
-        removeToken();
-        router.push('/auth/login?expired=true');
-        return;
-    }
+    if (handleAuthError(err)) return;
     errorMessage.value = err.message ?? 'An unexpected error occurred.';
 }
 
@@ -45,11 +41,8 @@ onMounted(async () => {
         clients.value = clientsData;
         tickets.value = ticketsData;
     } catch (err) {
-        if (err.status === 401) {
-            handleError(err);
-        } else {
-            loadError.value = err.message ?? 'Failed to load clients.';
-        }
+        if (handleAuthError(err)) return;
+        loadError.value = err.message ?? 'Failed to load clients.';
     }
 });
 

@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
 import { useRouter } from 'vue-router';
-import { removeToken } from '@/services/AuthService.js';
+import { logout } from '@/services/AuthService.js';
 
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
 const router = useRouter();
@@ -10,7 +10,7 @@ const router = useRouter();
 const showLogoutDialog = ref(false);
 
 function confirmLogout() {
-    removeToken();
+    logout();
     showLogoutDialog.value = false;
     router.push('/auth/login');
 }

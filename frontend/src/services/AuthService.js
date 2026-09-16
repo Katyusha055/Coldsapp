@@ -1,4 +1,5 @@
 import { BASE_URL, getPublicHeaders } from './api.js';
+import { useContactsStore } from '@/stores/contacts.js';
 
 export async function register(name, phone, password) {
     const response = await fetch(`${BASE_URL}/auth/register`, {
@@ -37,4 +38,20 @@ export function getToken() {
 
 export function removeToken() {
     localStorage.removeItem('access_token');
+}
+
+export function resetStores() {
+    useContactsStore().$reset();
+}
+
+export function logout() {
+    removeToken();
+    resetStores();
+}
+
+export function handleAuthError(err) {
+    if (err?.status !== 401) return false;
+    logout();
+    window.location.assign('/auth/login?expired=true');
+    return true;
 }

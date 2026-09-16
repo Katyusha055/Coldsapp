@@ -1,6 +1,6 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
-import { login, saveToken } from '@/services/AuthService.js';
+import { login, saveToken, resetStores } from '@/services/AuthService.js';
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -16,6 +16,7 @@ async function submit() {
     apiError.value = '';
     try {
         const data = await login(phone.value, password.value);
+        resetStores();
         saveToken(data.access_token);
         router.push('/');
     } catch (err) {

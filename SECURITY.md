@@ -210,3 +210,63 @@ with a silently empty/`None` secret.
 
 **Code reference:** `backend/settings.py`, `Settings` class (module-level
 `settings` instance).
+
+---
+
+## 5. Client-side session isolation on logout
+
+*Added after the part-1 pass above, in response to a reported bug — not part
+of the original OWASP hardening PR.*
+
+**What was implemented:** Pinia stores are module singletons that live for
+the whole lifetime of the SPA's JS runtime, not for a login session. On
+logout the frontend previously only removed the JWT and navigated away, so
+the store contents stayed in memory. Three changes:
+
+- `logout()` in `frontend/src/services/AuthService.js` now calls
+  `removeToken()` **and** `resetStores()`, which calls Pinia's `$reset()`
+  on every session-scoped store (currently `useContactsStore`).
+- `Login.vue`'s `submit()` calls `resetStores()` on a successful login,
+  before `saveToken()` — a guard for any logout path that doesn't route
+  through `logout()`.
+- `handleAuthError(err)` (the centralized 401 handler, item introduced in
+  the same change) redirects with `window.location.assign(...)` rather than
+  the SPA router, so session-expiry always triggers a full page reload,
+  which recreates the runtime and drops all in-memory state independently
+  of `resetStores()`.
+
+**Status:** Mitigated.
+
+**Rationale:** `contacts` (and `wa_pending_contacts`) are tenant-scoped by
+`instance_id`, not `user_id`. After operator A logged out, the in-memory
+contacts store still held A's rows. Operator B logging in on the same tab
+without a hard refresh hit the store's cache guard in `loadContacts()`
+(`if (this.loaded && !force) return;`) and was served A's contacts — a
+cross-tenant data exposure, most plausible on a shared front-desk device. A
+manual browser refresh cleared it only because that recreates the JS
+runtime and re-initializes the store.
+
+**Trade-offs / known limitations:**
+- The store list inside `resetStores()` is maintained by hand. A new
+  session-scoped Pinia store that isn't added there will leak across
+  logins in exactly the same way. There is no framework enforcement — same
+  class of gap as the manual tenancy filters noted elsewhere.
+- `resetStores()` only clears Pinia state. Module-scoped or component
+  state that outlives navigation would not be covered; there is none of
+  note today, but the guarantee is "the stores we listed", not "all
+  client state".
+- The explicit topbar logout uses SPA navigation (no reload), so between
+  that logout and the next login the previous data still sits in the JS
+  heap until GC. `resetStores()` clears the store references immediately,
+  which is the meaningful part, but the process is not memory-zeroed the
+  way the `window.location` reload on the 401 path is.
+- On the 401 path the full reload makes the `resetStores()` call inside
+  `logout()` redundant; it is kept because the topbar logout path does not
+  reload.
+- The JWT in `localStorage` continues to be cleared only by
+  `removeToken()` (unchanged) — see the "only the JWT lives in
+  localStorage" note in `dev_notes.md`.
+
+**Code reference:** `frontend/src/services/AuthService.js` (`logout`,
+`resetStores`, `handleAuthError`); `frontend/src/views/pages/auth/Login.vue`
+(`submit`).
