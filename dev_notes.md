@@ -102,6 +102,11 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** The schema cannot support invoicing or workload tracking. Both are explicit deferrals, not oversights.
 **Future ideas:** Add `price` when a customer requests it with a clear billing workflow defined. Add `technician_id` when onboarding a shop with 5+ technicians.
 
+### Fixed: `create_ticket` importing `clients/repository.py` directly
+**Decision:** `tickets/service.py` imported `backend.clients.repository` and called it directly in `create_ticket`, even though `tickets/repository.py` already carries its own duplicate of `get_client_by_id` for this exact purpose — used correctly elsewhere in the same file, in `notify_ticket_ready`. A straight cross-feature import that the duplicate-instead-of-couple policy exists to prevent. `create_ticket` now goes through the local duplicate like the rest of the file; the cross-feature import is gone.
+**Trade-offs accepted:** None — this was a plain inconsistency, not a deliberate trade-off.
+**Future ideas:** No change planned.
+
 ---
 
 ## WhatsApp module
@@ -121,10 +126,10 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** None significant — this is a standard idempotency pattern for webhook consumers.
 **Future ideas:** No change planned.
 
-### `get_instance_by_user_id` duplicated in `tickets/repository.py`
+### `get_instance_by_user_id` duplicated in `tickets/repository.py` (RESOLVED)
 **Decision:** `tickets` needs to check whether a user has an active WhatsApp instance to decide whether to send a "ready" notification. Importing directly from `whatsapp/repository.py` would create a cross-feature coupling that the feature-based architecture is meant to avoid. The query is duplicated instead, as a pragmatic beta-stage choice.
 **Trade-offs accepted:** The same query now lives in two places and must be kept in sync manually if the `whatsapp_instances` schema changes.
-**Future ideas:** Extract to a shared `shared/repository.py` once a third feature needs the same query — two duplications is an acceptable pragmatic cost, three is the threshold to de-duplicate.
+**Future ideas:** ~~Extract to a shared `shared/repository.py` once a third feature needs the same query — two duplications is an acceptable pragmatic cost, three is the threshold to de-duplicate.~~ Done: `contacts/repository.py` picked up a third copy, crossing that threshold. See "`backend/shared/` for domain-free infrastructure" under General architecture.
 
 ### JWT passed as a query parameter for SSE
 **Decision:** The browser's native `EventSource` API does not support custom headers, so the JWT is passed as a `?token=` query parameter instead of an `Authorization` header for the `/whatsapp/events` SSE endpoint.
@@ -277,9 +282,10 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 **Trade-offs accepted:** Tests require a running database and are slower than unit tests with mocks. Test fixtures use a factory pattern (`create_user`, `auth_headers` in `conftest.py`) to keep setup readable.
 **Future ideas:** No change to the real-DB philosophy. If test suite duration becomes a bottleneck, parallelize with `pytest-xdist` before considering mocks.
 
-**Deferred /shared folder — criterion by nature, not layer**
-
-Infrastructure with no domain knowledge goes to /shared regardless of calling layer (revises "only repository.py" — wrongly excluded things like an Evolution-error decorator wrapping service.py). Business logic never shared, stays duplicated. Includes: webhook dispatch router, get_instance_by_user_id migration, splitting whatsapp/ into infra vs. sibling feature folders (contacts/, pendings/).
+### `backend/shared/` for domain-free infrastructure
+**Decision:** New top-level `shared/` package, for infrastructure with no domain knowledge, regardless of which layer calls it — this revises an earlier, stricter framing that said only `repository.py`-layer code could be shared, which wrongly excluded things like an Evolution-API error-handling decorator that wraps `service.py` functions but is itself pure infrastructure. Two things moved in: `get_instance_by_user_id` (`shared/repository.py`) — it had reached three verbatim copies (`whatsapp/`, `tickets/`, `contacts/`), crossing the "three is the threshold" bar set when the first duplication was accepted — and `handle_evo_errors` (`shared/error_handlers.py`), the httpx→`HTTPException` mapping that was a byte-identical decorator in `whatsapp/service.py` and `contacts/service.py`, plus the same mapping inlined a third time in `tickets/service.py`. Neither has any validation or domain-specific decision-making — pure data access and pure exception translation. `get_client_by_id` (`clients/` + `tickets/`, two copies) stays duplicated: still under the threshold, and more domain-flavored (a client record) than an instance lookup — a deliberate line, not an oversight.
+**Trade-offs accepted:** `shared/` has no `router.py`/`service.py`/`models.py` — it isn't a feature, so the usual four-file convention doesn't apply. There's still no framework enforcement enforcing "no domain knowledge here"; that stays a per-PR judgment call, same as the `user_id` filter convention above.
+**Future ideas:** The webhook dispatch router and the `whatsapp/` → infra-only + `pendings/` split are still pending — they depend on `pendings/` existing as its own feature first, which this pass didn't touch.
 
 ---
 
