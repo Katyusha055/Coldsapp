@@ -1,8 +1,8 @@
 import backend.whatsapp.repository as rep
+import backend.shared.repository as shared_rep
 from backend.database.connect import connect
-from functools import wraps
+from backend.shared.error_handlers import handle_evo_errors
 import asyncio
-import httpx
 import logging
 from fastapi import HTTPException
 
@@ -26,22 +26,9 @@ async def push_event(user_id, event):
     if queue is not None:
         await queue.put(event)
 
-def handle_evo_errors(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Evolution API timeout")
-        except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Evolution API unreachable")
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
-    return wrapper
-
 async def get_or_create_instance(user_id):
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is not None:
             return instance
 
@@ -58,7 +45,7 @@ async def get_qr(user_id):
 @handle_evo_errors
 async def instance_status(user_id):
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
     if instance is None:
         return {"status": "not_found"}
     status = await rep.get_evolution_instance_status(instance["instance_name"])
@@ -67,7 +54,7 @@ async def instance_status(user_id):
 
 def set_notifications_enabled(user_id, enabled):
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             raise HTTPException(status_code=404, detail="WhatsApp instance not found")
         return rep.update_notifications_enabled(conn, instance["id"], enabled)
@@ -146,7 +133,7 @@ def set_pending_status(user_id, pending_id, status):
         if pending is None:
             raise HTTPException(status_code=404, detail="Pending contact not found")
 
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None or instance["id"] != pending["instance_id"]:
             raise HTTPException(status_code=404, detail="Pending contact not found")
 
@@ -156,7 +143,7 @@ def set_pending_status(user_id, pending_id, status):
 
 def list_pending_contacts(user_id):
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             return []
         return rep.get_pending_contacts(conn, instance["id"])
@@ -168,7 +155,7 @@ def delete_pending(user_id, pending_id):
         if pending is None:
             raise HTTPException(status_code=404, detail="Pending contact not found")
 
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None or instance["id"] != pending["instance_id"]:
             raise HTTPException(status_code=404, detail="Pending contact not found")
 

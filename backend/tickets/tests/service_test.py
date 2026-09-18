@@ -197,7 +197,7 @@ def _instance(notifications_enabled=True):
 @pytest.mark.asyncio
 async def test_notify_ticket_ready_no_instance_skips_notification(sample_ticket):
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=None):
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=None):
         result = await service.notify_ticket_ready(1, sample_ticket)
     assert result == {"whatsapp_notification_sent": False, "whatsapp_notification_error": None}
 
@@ -205,7 +205,7 @@ async def test_notify_ticket_ready_no_instance_skips_notification(sample_ticket)
 @pytest.mark.asyncio
 async def test_notify_ticket_ready_notifications_disabled_skips_notification(sample_ticket):
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance(notifications_enabled=False)):
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance(notifications_enabled=False)):
         result = await service.notify_ticket_ready(1, sample_ticket)
     assert result == {"whatsapp_notification_sent": False, "whatsapp_notification_error": None}
 
@@ -214,7 +214,7 @@ async def test_notify_ticket_ready_notifications_disabled_skips_notification(sam
 async def test_notify_ticket_ready_client_without_phone(sample_ticket):
     client = {"id": 5, "name": "Jane", "phone": None}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance()), \
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance()), \
          patch('backend.tickets.service.rep.get_client_by_id', return_value=client):
         result = await service.notify_ticket_ready(1, sample_ticket)
     assert result == {"whatsapp_notification_sent": False, "whatsapp_notification_error": "client_has_no_phone"}
@@ -224,7 +224,7 @@ async def test_notify_ticket_ready_client_without_phone(sample_ticket):
 async def test_notify_ticket_ready_happy_path_sends_formatted_number(sample_ticket):
     client = {"id": 5, "name": "Jane", "phone": "0987654321"}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance()), \
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance()), \
          patch('backend.tickets.service.rep.get_client_by_id', return_value=client), \
          patch('backend.tickets.service.rep.send_whatsapp_message', new=AsyncMock()) as mock_send:
         result = await service.notify_ticket_ready(1, sample_ticket)
@@ -237,7 +237,7 @@ async def test_notify_ticket_ready_happy_path_sends_formatted_number(sample_tick
 async def test_notify_ticket_ready_evolution_timeout_raises_504(sample_ticket):
     client = {"id": 5, "name": "Jane", "phone": "0987654321"}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance()), \
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance()), \
          patch('backend.tickets.service.rep.get_client_by_id', return_value=client), \
          patch('backend.tickets.service.rep.send_whatsapp_message',
                new=AsyncMock(side_effect=httpx.TimeoutException("timed out"))):
@@ -250,7 +250,7 @@ async def test_notify_ticket_ready_evolution_timeout_raises_504(sample_ticket):
 async def test_notify_ticket_ready_evolution_connect_error_raises_503(sample_ticket):
     client = {"id": 5, "name": "Jane", "phone": "0987654321"}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance()), \
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance()), \
          patch('backend.tickets.service.rep.get_client_by_id', return_value=client), \
          patch('backend.tickets.service.rep.send_whatsapp_message',
                new=AsyncMock(side_effect=httpx.ConnectError("unreachable"))):
@@ -266,7 +266,7 @@ async def test_notify_ticket_ready_evolution_http_status_error_propagates_status
     response = httpx.Response(422, request=request, text="invalid number")
     error = httpx.HTTPStatusError("bad request", request=request, response=response)
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.rep.get_instance_by_user_id', return_value=_instance()), \
+         patch('backend.tickets.service.shared_rep.get_instance_by_user_id', return_value=_instance()), \
          patch('backend.tickets.service.rep.get_client_by_id', return_value=client), \
          patch('backend.tickets.service.rep.send_whatsapp_message', new=AsyncMock(side_effect=error)):
         with pytest.raises(HTTPException) as exc_info:

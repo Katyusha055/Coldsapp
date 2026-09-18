@@ -1,23 +1,10 @@
 import asyncio
-import httpx
-from functools import wraps
 from fastapi import HTTPException
 
 import backend.contacts.repository as rep
+import backend.shared.repository as shared_rep
 from backend.database.connect import connect
-
-def handle_evo_errors(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Evolution API timeout")
-        except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Evolution API unreachable")
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
-    return wrapper
+from backend.shared.error_handlers import handle_evo_errors
 
 @handle_evo_errors
 async def import_contacts(user_id: int) -> dict:
@@ -28,7 +15,7 @@ async def import_contacts(user_id: int) -> dict:
     Output dict: {"imported": int}
     """
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             raise HTTPException(status_code=404, detail="WhatsApp instance not found")
         if instance["status"] != "open":
@@ -50,7 +37,7 @@ def list_contacts(user_id: int) -> list[dict]:
     Lists all contacts belonging to the user's WhatsApp instance.
     """
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             raise HTTPException(status_code=404, detail="WhatsApp instance not found")
         return rep.list_contacts(conn, instance["id"])
@@ -61,7 +48,7 @@ def update_contact_name(user_id: int, contact_id: int, name: str) -> dict:
     Renames one contact belonging to the user's WhatsApp instance.
     """
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             raise HTTPException(status_code=404, detail="WhatsApp instance not found")
         updated = rep.update_contact_name(conn, instance["id"], contact_id, name)
@@ -75,7 +62,7 @@ def update_contact_opted_out(user_id: int, contact_id: int, opted_out: bool) -> 
     Sets the opted_out flag on one contact belonging to the user's WhatsApp instance.
     """
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         if instance is None:
             raise HTTPException(status_code=404, detail="WhatsApp instance not found")
         updated = rep.update_contact_opted_out(conn, instance["id"], contact_id, opted_out)
