@@ -28,7 +28,7 @@ def sample_ticket():
 def test_create_ticket_happy_path(sample_ticket):
     data = {"client_id": 5, "title": "Fix display bug", "description": "Screen goes black"}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.clients_rep.get_client_by_id', return_value={"id": 5}), \
+         patch('backend.tickets.service.rep.get_client_by_id', return_value={"id": 5}), \
          patch('backend.tickets.service.rep.create_ticket', return_value=sample_ticket):
         result = service.create_ticket(1, data)
     assert result == sample_ticket
@@ -37,7 +37,7 @@ def test_create_ticket_happy_path(sample_ticket):
 def test_create_ticket_client_not_found():
     data = {"client_id": 999, "title": "Fix display bug", "description": None}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \
-         patch('backend.tickets.service.clients_rep.get_client_by_id', return_value=None):
+         patch('backend.tickets.service.rep.get_client_by_id', return_value=None):
         with pytest.raises(HTTPException) as exc_info:
             service.create_ticket(1, data)
     assert exc_info.value.status_code == 404

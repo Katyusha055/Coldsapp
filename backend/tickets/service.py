@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import HTTPException
 import backend.tickets.repository as rep
-import backend.clients.repository as clients_rep
 from backend.database.connect import connect
 from backend.tickets.models import TicketResponse
 
@@ -25,7 +24,7 @@ def _format_ecuador_phone(phone: str) -> str:
 
 def create_ticket(user_id, data: dict) -> TicketResponse:
     with connect() as conn:
-        client = clients_rep.get_client_by_id(conn, {"id": data["client_id"], "user_id": user_id})
+        client = rep.get_client_by_id(conn, {"id": data["client_id"], "user_id": user_id})
         if client is None:
             raise HTTPException(status_code=404, detail="Client not found")
         ticket = rep.create_ticket(conn, {**data, "user_id": user_id})
