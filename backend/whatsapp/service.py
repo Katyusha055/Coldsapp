@@ -44,17 +44,21 @@ def set_notifications_enabled(user_id, enabled):
 
 def handle_connection_event(instance, event, payload):
     """
-    Handles the two whatsapp-instance connection webhook events. Called by
-    shared.webhook_dispatch after it has already resolved the instance and
-    audited the raw event.
+    Handles the two whatsapp-instance connection webhook events
+    (connection.update, qrcode.updated). Called by shared.webhook_dispatch
+    after it has already resolved the instance and audited the raw event.
     """
-    with connect() as conn:
-        if event == "connection.update":
-            data = payload.get("data", {})
-            new_status = data.get("state") or data.get("status")
+    if event == "connection.update":
+        data = payload.get("data", {})
+        new_status = data.get("state") or data.get("status")
+        with connect() as conn:
             rep.update_instance_status(conn, instance["id"], new_status)
-            logger.info(f"Instance {instance['instance_name']} status changed to {new_status}")
-            return {"type": "connection_update", "detail": new_status}
+        logger.info(f"Instance {instance['instance_name']} status changed to {new_status}")
+        return {"type": "connection_update", "detail": new_status}
 
+    if event == "qrcode.updated":
         logger.info(f"QR code refreshed for instance {instance['instance_name']}")
         return {"type": "qr_updated", "detail": "QR code refreshed"}
+
+    logger.warning(f"handle_connection_event called with unexpected event: {event}")
+    return None

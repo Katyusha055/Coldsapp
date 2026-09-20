@@ -28,12 +28,22 @@ def test_handle_connection_event_connection_update_updates_status(sample_instanc
     assert result == {"type": "connection_update", "detail": "open"}
 
 
-def test_handle_connection_event_qrcode_updated_returns_result(sample_instance):
+def test_handle_connection_event_qrcode_updated_returns_result_without_touching_db(sample_instance):
     payload = {"data": {}}
-    with patch('backend.whatsapp.service.connect', return_value=MagicMock()):
+    with patch('backend.whatsapp.service.connect') as mock_connect:
         result = service.handle_connection_event(sample_instance, "qrcode.updated", payload)
 
     assert result == {"type": "qr_updated", "detail": "QR code refreshed"}
+    mock_connect.assert_not_called()
+
+
+def test_handle_connection_event_unexpected_event_returns_none(sample_instance):
+    payload = {"data": {}}
+    with patch('backend.whatsapp.service.connect') as mock_connect:
+        result = service.handle_connection_event(sample_instance, "some.other.event", payload)
+
+    assert result is None
+    mock_connect.assert_not_called()
 
 
 # --- get_or_create_instance ---
