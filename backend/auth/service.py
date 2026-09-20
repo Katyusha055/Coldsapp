@@ -1,4 +1,4 @@
-from backend.database.connect import connect
+from backend.shared.connect import connect
 from backend.auth import repository
 from backend.auth.models import Token, UserResponse
 from backend.auth.utils import (

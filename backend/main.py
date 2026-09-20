@@ -1,6 +1,6 @@
 import logging
 
-from backend.core.logging_config import setup_logging
+from backend.shared.logging_config import setup_logging
 from backend.api.routers import api_router
 from backend.middleware import setup_middleware
 from backend.settings import settings

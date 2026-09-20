@@ -10,7 +10,7 @@ def create_user_two_clients(create_user):
     user_one_id = user_one['id']
     user_two_id = user_two['id']
 
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     with connect() as conn:
         with conn.cursor() as cur:

@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 import backend.contacts.repository as rep
 import backend.shared.repository as shared_rep
-from backend.database.connect import connect
+from backend.shared.connect import connect
 from backend.shared.error_handlers import handle_evo_errors
 
 @handle_evo_errors

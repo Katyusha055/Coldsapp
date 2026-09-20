@@ -45,7 +45,7 @@ def api_client():
 @pytest.fixture(autouse=True)
 def clean_db():
     yield
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     with connect() as conn:
         with conn.cursor() as cur:

@@ -1,5 +1,5 @@
 def _create_instance(user_id, instance_name="1_whatsapp", notifications_enabled=True):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     with connect() as conn:
         with conn.cursor() as cur:
@@ -15,7 +15,7 @@ def _create_instance(user_id, instance_name="1_whatsapp", notifications_enabled=
 
 
 def _create_pending(instance_id, remote_jid="123@s.whatsapp.net", name="Jane", last_message="Hola", status="pending"):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     with connect() as conn:
         with conn.cursor() as cur:

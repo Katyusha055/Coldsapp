@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from backend.auth.models import TokenData
-from backend.database.connect import connect
+from backend.shared.connect import connect
 from backend.auth import repository
 from backend.settings import settings
 

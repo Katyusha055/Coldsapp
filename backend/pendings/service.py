@@ -1,6 +1,6 @@
 import backend.pendings.repository as rep
 import backend.shared.repository as shared_rep
-from backend.database.connect import connect
+from backend.shared.connect import connect
 import logging
 from fastapi import HTTPException
 

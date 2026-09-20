@@ -3,7 +3,7 @@ import logging
 import backend.shared.repository as rep
 import backend.whatsapp.service as whatsapp_service
 import backend.pendings.service as pendings_service
-from backend.database.connect import connect
+from backend.shared.connect import connect
 from backend.shared.events import push_event
 
 logger = logging.getLogger(__name__)

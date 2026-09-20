@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
-from backend.database.connect import connect
+from backend.shared.connect import connect
 
 
 def _create_instance(user_id, instance_name="1_whatsapp", status="open"):
