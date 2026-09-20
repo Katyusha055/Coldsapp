@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-import backend.whatsapp.models as mdl
-import backend.whatsapp.service as ser
+import backend.pendings.models as mdl
+import backend.pendings.service as ser
 from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 import asyncio
 import json

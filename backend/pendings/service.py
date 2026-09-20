@@ -1,4 +1,4 @@
-import backend.whatsapp.repository as rep
+import backend.pendings.repository as rep
 import backend.shared.repository as shared_rep
 from backend.database.connect import connect
 from backend.shared.error_handlers import handle_evo_errors
