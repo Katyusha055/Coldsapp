@@ -1,6 +1,5 @@
 from unittest.mock import patch, MagicMock, AsyncMock
 
-import asyncio
 import pytest
 
 import backend.pendings.service as service
@@ -36,106 +35,59 @@ def _upsert_payload(instance_name, remote_jid="123@s.whatsapp.net", name="Jane",
     }
 
 
-# --- unknown instance ---
+# --- handle_connection_event ---
 
-@pytest.mark.asyncio
-async def test_process_webhook_unknown_instance_skips_processing():
-    payload = {"instance": "ghost_instance", "event": "connection.update", "data": {}}
+def test_handle_connection_event_connection_update_updates_status(sample_instance):
+    payload = {"data": {"state": "open"}}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=None), \
-         patch('backend.pendings.service.rep.save_event') as mock_save, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.update_instance_status') as mock_update_status:
+        result = service.handle_connection_event(sample_instance, "connection.update", payload)
 
-    assert result is None
-    mock_save.assert_not_called()
-    mock_push.assert_not_awaited()
-
-
-# --- connection.update ---
-
-@pytest.mark.asyncio
-async def test_process_webhook_connection_update_updates_status_and_pushes_event(sample_instance):
-    payload = {
-        "instance": sample_instance["instance_name"],
-        "event": "connection.update",
-        "data": {"state": "open"},
-    }
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event') as mock_save, \
-         patch('backend.pendings.service.rep.update_instance_status') as mock_update_status, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
-
-    mock_save.assert_called_once()
-    mock_update_status.assert_called_once_with(mock_save.call_args.args[0], sample_instance["id"], "open")
+    mock_update_status.assert_called_once_with(mock_update_status.call_args.args[0], sample_instance["id"], "open")
     assert result == {"type": "connection_update", "detail": "open"}
-    mock_push.assert_awaited_once_with(sample_instance["user_id"], result)
 
 
-# --- qrcode.updated ---
-
-@pytest.mark.asyncio
-async def test_process_webhook_qrcode_updated_returns_result(sample_instance):
-    payload = {"instance": sample_instance["instance_name"], "event": "qrcode.updated", "data": {}}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+def test_handle_connection_event_qrcode_updated_returns_result(sample_instance):
+    payload = {"data": {}}
+    with patch('backend.pendings.service.connect', return_value=MagicMock()):
+        result = service.handle_connection_event(sample_instance, "qrcode.updated", payload)
 
     assert result == {"type": "qr_updated", "detail": "QR code refreshed"}
-    mock_push.assert_awaited_once_with(sample_instance["user_id"], result)
 
 
-# --- messages.upsert ---
+# --- handle_incoming_message ---
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_from_me_is_ignored(sample_instance):
+def test_handle_incoming_message_from_me_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], from_me=True)
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id') as mock_get_client, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.get_client_by_whatsapp_id') as mock_get_client:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
     mock_get_client.assert_not_called()
-    mock_push.assert_not_awaited()
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_known_client_is_ignored(sample_instance):
+def test_handle_incoming_message_known_client_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"])
     existing_client = {"id": 5, "name": "Jane", "whatsapp_id": "123@s.whatsapp.net"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=existing_client), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
     mock_get_pending.assert_not_called()
-    mock_push.assert_not_awaited()
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_new_contact_creates_pending(sample_instance):
+def test_handle_incoming_message_new_contact_creates_pending(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", name="Jane", conversation="Hola")
     created = {"id": 99, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
                "name": "Jane", "last_message": "Hola", "status": "pending"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
          patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=None), \
-         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     mock_create.assert_called_once()
     assert result == {
@@ -145,11 +97,9 @@ async def test_process_webhook_messages_upsert_new_contact_creates_pending(sampl
         "name": "Jane",
         "message": "Hola",
     }
-    mock_push.assert_awaited_once_with(sample_instance["user_id"], result)
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_concurrent_insert_falls_back_to_update(sample_instance):
+def test_handle_incoming_message_concurrent_insert_falls_back_to_update(sample_instance):
     """
     create_pending returning None means another webhook delivery won the race
     and inserted the row first; the handler should re-fetch it and treat this
@@ -159,14 +109,11 @@ async def test_process_webhook_messages_upsert_concurrent_insert_falls_back_to_u
     existing_pending = {"id": 99, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
                          "name": "Jane", "last_message": "Hola", "status": "pending"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
          patch('backend.pendings.service.rep.get_pending_by_remote_jid', side_effect=[None, existing_pending]), \
          patch('backend.pendings.service.rep.create_pending', return_value=None), \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     mock_update_message.assert_called_once()
     assert mock_update_message.call_args.args[1] == 99
@@ -177,23 +124,18 @@ async def test_process_webhook_messages_upsert_concurrent_insert_falls_back_to_u
         "name": "Jane",
         "message": "Segundo mensaje",
     }
-    mock_push.assert_awaited_once_with(sample_instance["user_id"], result)
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_existing_pending_is_updated(sample_instance):
+def test_handle_incoming_message_existing_pending_is_updated(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", conversation="Otra vez")
     existing_pending = {"id": 42, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
                          "name": "Jane", "last_message": "Hola", "status": "pending"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
          patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=existing_pending), \
          patch('backend.pendings.service.rep.create_pending') as mock_create, \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     mock_create.assert_not_called()
     mock_update_message.assert_called_once_with(mock_update_message.call_args.args[0], 42, "Otra vez")
@@ -203,60 +145,35 @@ async def test_process_webhook_messages_upsert_existing_pending_is_updated(sampl
         "name": "Jane",
         "message": "Otra vez",
     }
-    mock_push.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_converted_pending_is_ignored(sample_instance):
+def test_handle_incoming_message_converted_pending_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net")
     converted_pending = {"id": 42, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
                           "name": "Jane", "last_message": "Hola", "status": "converted"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
          patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=converted_pending), \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
     mock_update_message.assert_not_called()
-    mock_push.assert_not_awaited()
 
 
-@pytest.mark.asyncio
-async def test_process_webhook_messages_upsert_extended_text_message_fallback(sample_instance):
+def test_handle_incoming_message_extended_text_message_fallback(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net",
                                extended_text="Mensaje largo con formato")
     created = {"id": 1, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
                "name": "Jane", "last_message": "Mensaje largo con formato", "status": "pending"}
     with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
          patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
          patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=None), \
-         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create, \
-         patch('backend.pendings.service.push_event', new=AsyncMock()):
-        result = await service.process_webhook(payload)
+         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create:
+        result = service.handle_incoming_message(sample_instance, payload)
 
     assert mock_create.call_args.args[4] == "Mensaje largo con formato"
     assert result["message"] == "Mensaje largo con formato"
-
-
-# --- unhandled event ---
-
-@pytest.mark.asyncio
-async def test_process_webhook_unhandled_event_type_returns_none(sample_instance):
-    payload = {"instance": sample_instance["instance_name"], "event": "some.other.event", "data": {}}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_instance_by_name', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.save_event'), \
-         patch('backend.pendings.service.push_event', new=AsyncMock()) as mock_push:
-        result = await service.process_webhook(payload)
-
-    assert result is None
-    mock_push.assert_not_awaited()
 
 
 # --- get_or_create_instance ---
@@ -286,35 +203,3 @@ async def test_get_or_create_instance_creates_evolution_instance_when_missing(sa
     mock_create_instance.assert_called_once()
     assert mock_create_instance.call_args.args[2] == "1_whatsapp"
     assert result == sample_instance
-
-
-# --- register_queue / deregister_queue / push_event ---
-
-def test_register_queue_stores_queue_for_user():
-    queue = asyncio.Queue()
-    service.register_queue(7, queue)
-    try:
-        assert service.queues[7] is queue
-    finally:
-        service.deregister_queue(7)
-
-
-def test_deregister_queue_removes_user_without_raising_when_absent():
-    service.deregister_queue(999)  # never registered
-    assert 999 not in service.queues
-
-
-@pytest.mark.asyncio
-async def test_push_event_puts_event_on_registered_users_queue():
-    queue = asyncio.Queue()
-    service.register_queue(7, queue)
-    try:
-        await service.push_event(7, {"type": "test"})
-        assert queue.get_nowait() == {"type": "test"}
-    finally:
-        service.deregister_queue(7)
-
-
-@pytest.mark.asyncio
-async def test_push_event_is_a_noop_for_unregistered_user():
-    await service.push_event(12345, {"type": "test"})  # should not raise

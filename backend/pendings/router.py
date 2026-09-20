@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 import backend.pendings.models as mdl
 import backend.pendings.service as ser
+import backend.shared.events as events
+import backend.shared.webhook_dispatch as webhook_dispatch
 from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 import asyncio
 import json
@@ -28,7 +30,7 @@ async def get_status_endpoint(user: CurrentUser):
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
     payload = await request.json()
-    result = await ser.process_webhook(payload)
+    result = await webhook_dispatch.handle_webhook(payload)
     if result is None:
         return {"status": "discarded"}
     logger.info(f"Webhook processed: {result}")
@@ -38,7 +40,7 @@ async def whatsapp_webhook(request: Request):
 @router.get('/events')
 async def whatsapp_events(user: CurrentUserFromQuery):
     queue = asyncio.Queue()
-    ser.register_queue(user['id'], queue)
+    events.register_queue(user['id'], queue)
 
     async def generate():
         try:
@@ -46,7 +48,7 @@ async def whatsapp_events(user: CurrentUserFromQuery):
                 event = await queue.get()
                 yield json.dumps(event)
         finally:
-            ser.deregister_queue(user['id'])
+            events.deregister_queue(user['id'])
 
     return EventSourceResponse(generate())
 
