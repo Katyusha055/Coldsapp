@@ -1,6 +1,7 @@
 import logging
 
 import backend.shared.repository as rep
+import backend.whatsapp.service as whatsapp_service
 import backend.pendings.service as pendings_service
 from backend.database.connect import connect
 from backend.shared.events import push_event
@@ -27,7 +28,7 @@ async def handle_webhook(payload):
         rep.save_event(conn, instance["id"], event, payload)
 
     if event in ("connection.update", "qrcode.updated"):
-        result = pendings_service.handle_connection_event(instance, event, payload)
+        result = whatsapp_service.handle_connection_event(instance, event, payload)
     elif event == "messages.upsert":
         result = pendings_service.handle_incoming_message(instance, payload)
     else:

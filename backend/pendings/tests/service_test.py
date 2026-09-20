@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -33,26 +33,6 @@ def _upsert_payload(instance_name, remote_jid="123@s.whatsapp.net", name="Jane",
             "message": message,
         },
     }
-
-
-# --- handle_connection_event ---
-
-def test_handle_connection_event_connection_update_updates_status(sample_instance):
-    payload = {"data": {"state": "open"}}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.update_instance_status') as mock_update_status:
-        result = service.handle_connection_event(sample_instance, "connection.update", payload)
-
-    mock_update_status.assert_called_once_with(mock_update_status.call_args.args[0], sample_instance["id"], "open")
-    assert result == {"type": "connection_update", "detail": "open"}
-
-
-def test_handle_connection_event_qrcode_updated_returns_result(sample_instance):
-    payload = {"data": {}}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()):
-        result = service.handle_connection_event(sample_instance, "qrcode.updated", payload)
-
-    assert result == {"type": "qr_updated", "detail": "QR code refreshed"}
 
 
 # --- handle_incoming_message ---
@@ -174,32 +154,3 @@ def test_handle_incoming_message_extended_text_message_fallback(sample_instance)
 
     assert mock_create.call_args.args[4] == "Mensaje largo con formato"
     assert result["message"] == "Mensaje largo con formato"
-
-
-# --- get_or_create_instance ---
-
-@pytest.mark.asyncio
-async def test_get_or_create_instance_returns_existing_instance_without_calling_evolution(sample_instance):
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.shared_rep.get_instance_by_user_id', return_value=sample_instance), \
-         patch('backend.pendings.service.rep.create_evolution_instance', new=AsyncMock()) as mock_create_evo, \
-         patch('backend.pendings.service.rep.create_instance') as mock_create_instance:
-        result = await service.get_or_create_instance(1)
-
-    assert result == sample_instance
-    mock_create_evo.assert_not_awaited()
-    mock_create_instance.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_get_or_create_instance_creates_evolution_instance_when_missing(sample_instance):
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.shared_rep.get_instance_by_user_id', return_value=None), \
-         patch('backend.pendings.service.rep.create_evolution_instance', new=AsyncMock()) as mock_create_evo, \
-         patch('backend.pendings.service.rep.create_instance', return_value=sample_instance) as mock_create_instance:
-        result = await service.get_or_create_instance(1)
-
-    mock_create_evo.assert_awaited_once_with("1_whatsapp")
-    mock_create_instance.assert_called_once()
-    assert mock_create_instance.call_args.args[2] == "1_whatsapp"
-    assert result == sample_instance

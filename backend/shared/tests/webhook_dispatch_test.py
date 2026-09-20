@@ -31,13 +31,13 @@ async def test_handle_webhook_unknown_instance_skips_processing():
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_connection_update_routes_to_pendings_service(sample_instance):
+async def test_handle_webhook_connection_update_routes_to_whatsapp_service(sample_instance):
     payload = {"instance": sample_instance["instance_name"], "event": "connection.update", "data": {"state": "open"}}
     handler_result = {"type": "connection_update", "detail": "open"}
     with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
          patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
          patch('backend.shared.webhook_dispatch.rep.save_event') as mock_save, \
-         patch('backend.shared.webhook_dispatch.pendings_service.handle_connection_event', return_value=handler_result) as mock_handle, \
+         patch('backend.shared.webhook_dispatch.whatsapp_service.handle_connection_event', return_value=handler_result) as mock_handle, \
          patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push:
         result = await webhook_dispatch.handle_webhook(payload)
 
@@ -48,13 +48,13 @@ async def test_handle_webhook_connection_update_routes_to_pendings_service(sampl
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_qrcode_updated_routes_to_pendings_service(sample_instance):
+async def test_handle_webhook_qrcode_updated_routes_to_whatsapp_service(sample_instance):
     payload = {"instance": sample_instance["instance_name"], "event": "qrcode.updated", "data": {}}
     handler_result = {"type": "qr_updated", "detail": "QR code refreshed"}
     with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
          patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
          patch('backend.shared.webhook_dispatch.rep.save_event'), \
-         patch('backend.shared.webhook_dispatch.pendings_service.handle_connection_event', return_value=handler_result) as mock_handle, \
+         patch('backend.shared.webhook_dispatch.whatsapp_service.handle_connection_event', return_value=handler_result) as mock_handle, \
          patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push:
         result = await webhook_dispatch.handle_webhook(payload)
 
