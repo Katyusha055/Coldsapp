@@ -1,4 +1,7 @@
+from unittest.mock import patch, MagicMock
+
 from backend.contacts.service import _filter_contacts, _filter_chats, _reconcile
+import backend.contacts.service as service
 
 
 # --- _filter_contacts ---
@@ -108,3 +111,59 @@ def test_reconcile_never_lets_an_empty_name_overwrite_a_non_empty_one():
     assert _reconcile(contacts_named, chats_blank) == [
         {"remote_jid": "222@s.whatsapp.net", "name": "Contacts Name"}
     ]
+
+
+# --- handle_incoming_message ---
+
+def test_handle_incoming_message_from_me_makes_no_repository_call():
+    instance = {"id": 10, "user_id": 1}
+    payload = {
+        "data": {
+            "key": {"fromMe": True, "remoteJid": "111@s.whatsapp.net"},
+            "pushName": "Jane",
+        }
+    }
+
+    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
+         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+        result = service.handle_incoming_message(instance, payload)
+
+    assert result is None
+    mock_repair.assert_not_called()
+
+
+def test_handle_incoming_message_calls_repair_and_touch_with_normalized_push_name():
+    instance = {"id": 10, "user_id": 1}
+    payload = {
+        "data": {
+            "key": {"fromMe": False, "remoteJid": "111@s.whatsapp.net"},
+            "pushName": "Jane",
+        }
+    }
+
+    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
+         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+        service.handle_incoming_message(instance, payload)
+
+    mock_repair.assert_called_once()
+    kwargs = mock_repair.call_args.kwargs
+    assert kwargs["remote_jid"] == "111@s.whatsapp.net"
+    assert kwargs["instance_id"] == 10
+    assert kwargs["push_name"] == "Jane"
+    assert kwargs["last_incoming_at"] is not None
+
+
+def test_handle_incoming_message_normalizes_whitespace_only_push_name_to_none():
+    instance = {"id": 10, "user_id": 1}
+    payload = {
+        "data": {
+            "key": {"fromMe": False, "remoteJid": "111@s.whatsapp.net"},
+            "pushName": "   ",
+        }
+    }
+
+    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
+         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+        service.handle_incoming_message(instance, payload)
+
+    assert mock_repair.call_args.kwargs["push_name"] is None

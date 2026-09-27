@@ -132,3 +132,36 @@ def upsert_contacts(conn, instance_id: int, contacts: list[dict]) -> None:
             """,
             [(instance_id, contact["remote_jid"], contact["name"]) for contact in contacts],
         )
+
+
+def repair_and_touch(conn, *, remote_jid, instance_id, push_name, last_incoming_at) -> None:
+    """
+    Called on every incoming message: always bumps last_incoming_at, and
+    repairs name only when it is currently NULL.
+
+    A single atomic UPDATE — COALESCE(name, push_name) is the whole rule, so
+    an already-set name is never overwritten regardless of what push_name
+    carries, and there's no read-then-write race between near-simultaneous
+    messages from the same contact.
+
+    No-op (matches zero rows) when the contact doesn't exist yet for this
+    remote_jid/instance_id — contact creation is owned by the reconciliation
+    flow (import_contacts / upsert_contacts), not this path.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE contacts
+            SET
+                last_incoming_at = %(last_incoming_at)s,
+                name = COALESCE(name, %(push_name)s)
+            WHERE remote_jid = %(remote_jid)s
+              AND instance_id = %(instance_id)s
+            """,
+            {
+                "last_incoming_at": last_incoming_at,
+                "push_name": push_name,
+                "remote_jid": remote_jid,
+                "instance_id": instance_id,
+            },
+        )
