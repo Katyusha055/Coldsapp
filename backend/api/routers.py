@@ -3,6 +3,7 @@ from backend.clients.router import router as clients_router
 from backend.tickets.router import router as tickets_router
 from backend.auth.router import router as auth_router
 from backend.whatsapp.router import router as whatsapp_router
+from backend.pendings.router import router as pendings_router
 from backend.contacts.router import router as contacts_router
 
 api_router = APIRouter()
@@ -10,4 +11,5 @@ api_router.include_router(clients_router)
 api_router.include_router(tickets_router)
 api_router.include_router(auth_router)
 api_router.include_router(whatsapp_router)
+api_router.include_router(pendings_router)
 api_router.include_router(contacts_router)

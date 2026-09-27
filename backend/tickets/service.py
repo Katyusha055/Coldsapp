@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
-import httpx
 from fastapi import HTTPException
 import backend.tickets.repository as rep
-import backend.clients.repository as clients_rep
-from backend.database.connect import connect
+import backend.shared.repository as shared_rep
+from backend.shared.connect import connect
+from backend.shared.error_handlers import handle_evo_errors
 from backend.tickets.models import TicketResponse
 
 VALID_TRANSITIONS = {
@@ -25,7 +25,7 @@ def _format_ecuador_phone(phone: str) -> str:
 
 def create_ticket(user_id, data: dict) -> TicketResponse:
     with connect() as conn:
-        client = clients_rep.get_client_by_id(conn, {"id": data["client_id"], "user_id": user_id})
+        client = rep.get_client_by_id(conn, {"id": data["client_id"], "user_id": user_id})
         if client is None:
             raise HTTPException(status_code=404, detail="Client not found")
         ticket = rep.create_ticket(conn, {**data, "user_id": user_id})
@@ -74,6 +74,7 @@ def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
     return ticket
 
 
+@handle_evo_errors
 async def notify_ticket_ready(user_id, ticket) -> dict:
     """
     Sends the "ready" WhatsApp notification for a ticket's client.
@@ -86,7 +87,7 @@ async def notify_ticket_ready(user_id, ticket) -> dict:
     fails, so the caller can abort before persisting the status change.
     """
     with connect() as conn:
-        instance = rep.get_instance_by_user_id(conn, user_id)
+        instance = shared_rep.get_instance_by_user_id(conn, user_id)
         client = None
         if instance is not None:
             client = rep.get_client_by_id(conn, {"id": ticket["client_id"], "user_id": user_id})
@@ -99,18 +100,11 @@ async def notify_ticket_ready(user_id, ticket) -> dict:
 
     number = _format_ecuador_phone(client["phone"])
 
-    try:
-        await rep.send_whatsapp_message(
-            instance["instance_name"],
-            number,
-            f"Hola {client['name']}, tu equipo está listo para retirar.",
-        )
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Evolution API timeout")
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="Evolution API unreachable")
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+    await rep.send_whatsapp_message(
+        instance["instance_name"],
+        number,
+        f"Hola {client['name']}, tu equipo está listo para retirar.",
+    )
 
     return {"whatsapp_notification_sent": True, "whatsapp_notification_error": None}
 

@@ -1,6 +1,6 @@
 import pytest
 
-from backend.database.connect import connect
+from backend.shared.connect import connect
 
 
 @pytest.fixture()

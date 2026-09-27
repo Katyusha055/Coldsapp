@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 # so autogenerate is not available; migrations are written by hand.
 target_metadata = None
 
-# Reuses the same 5 DB_* variables as backend/database/connect.py, from the
+# Reuses the same 5 DB_* variables as backend/shared/connect.py, from the
 # .env file at the project root, instead of hardcoding a URL in alembic.ini.
 load_dotenv(override=False)
 

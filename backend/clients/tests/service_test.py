@@ -3,7 +3,7 @@ import pytest
 def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_payload(
     api_client, auth_headers
 ):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
     user_id = 1
@@ -55,7 +55,7 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
 def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     api_client, auth_headers
 ):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
     user_id = 1
@@ -151,7 +151,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
 def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_payload(
     api_client, auth_headers
 ):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
     user_id = 1
@@ -223,7 +223,7 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
 def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid_payload(
     api_client, auth_headers
 ):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
     user_id = 1

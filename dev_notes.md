@@ -102,6 +102,11 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** The schema cannot support invoicing or workload tracking. Both are explicit deferrals, not oversights.
 **Future ideas:** Add `price` when a customer requests it with a clear billing workflow defined. Add `technician_id` when onboarding a shop with 5+ technicians.
 
+### Fixed: `create_ticket` importing `clients/repository.py` directly
+**Decision:** `tickets/service.py` imported `backend.clients.repository` and called it directly in `create_ticket`, even though `tickets/repository.py` already carries its own duplicate of `get_client_by_id` for this exact purpose — used correctly elsewhere in the same file, in `notify_ticket_ready`. A straight cross-feature import that the duplicate-instead-of-couple policy exists to prevent. `create_ticket` now goes through the local duplicate like the rest of the file; the cross-feature import is gone.
+**Trade-offs accepted:** None — this was a plain inconsistency, not a deliberate trade-off.
+**Future ideas:** No change planned.
+
 ---
 
 ## WhatsApp module
@@ -121,15 +126,27 @@ Human note: yes i am using AI, though i do the system desing, i treat ai more li
 **Trade-offs accepted:** None significant — this is a standard idempotency pattern for webhook consumers.
 **Future ideas:** No change planned.
 
-### `get_instance_by_user_id` duplicated in `tickets/repository.py`
+### `get_instance_by_user_id` duplicated in `tickets/repository.py` (RESOLVED)
 **Decision:** `tickets` needs to check whether a user has an active WhatsApp instance to decide whether to send a "ready" notification. Importing directly from `whatsapp/repository.py` would create a cross-feature coupling that the feature-based architecture is meant to avoid. The query is duplicated instead, as a pragmatic beta-stage choice.
 **Trade-offs accepted:** The same query now lives in two places and must be kept in sync manually if the `whatsapp_instances` schema changes.
-**Future ideas:** Extract to a shared `shared/repository.py` once a third feature needs the same query — two duplications is an acceptable pragmatic cost, three is the threshold to de-duplicate.
+**Future ideas:** ~~Extract to a shared `shared/repository.py` once a third feature needs the same query — two duplications is an acceptable pragmatic cost, three is the threshold to de-duplicate.~~ Done: `contacts/repository.py` picked up a third copy, crossing that threshold. See "`backend/shared/` for domain-free infrastructure" under General architecture.
 
 ### JWT passed as a query parameter for SSE
 **Decision:** The browser's native `EventSource` API does not support custom headers, so the JWT is passed as a `?token=` query parameter instead of an `Authorization` header for the `/whatsapp/events` SSE endpoint.
 **Trade-offs accepted:** Query-string tokens can leak via server access logs, browser history, or any proxy that logs full URLs. This is compounded by the fact that the token used here is the **same long-lived access token** as the rest of the API (`ACCESS_TOKEN_EXPIRE_HOURS`, currently hours-long), not a short-lived token scoped to SSE — so the exposure window is as long as a normal session, not a few minutes. Accepted as a known risk for beta with a small, known user base.
 **Future ideas:** Either issue a short-lived, SSE-scoped token specifically for this endpoint, or migrate to WebSockets (which do support custom headers/subprotocol-based auth) post phase 1.
+
+### Split into whatsapp/ (infra) + pendings/ (clientes potenciales) + shared webhook dispatch
+**Decision:** `whatsapp/` used to mix two unrelated concerns: WhatsApp connection infrastructure (instance creation, QR code, connection status, receiving Evolution's raw webhook) and "clientes potenciales" business logic (matching an incoming message against an existing client, creating/updating a pending contact). The mixing became a real problem once `contacts/` also needed to react to the same incoming-message webhook event without being wired into the pending-contacts handler to do it. Split three ways:
+- `whatsapp/` now holds only infra: `get_or_create_instance`, `get_qr`, `instance_status`, `set_notifications_enabled`, `handle_connection_event`, the instance-row repository functions, the three Evolution API HTTP calls, and the `/`, `/status`, `/webhook`, `/events`, `/notifications` endpoints.
+- `pendings/` (renamed from the old `whatsapp/`, a sibling feature folder — NOT nested under `whatsapp/`) holds `handle_incoming_message`, the pending-contact repository functions, `get_client_by_whatsapp_id`, and the `/pending/*` endpoints.
+- `shared/webhook_dispatch.py` is the new entry point for every raw Evolution webhook: it resolves the instance (`shared/repository.get_instance_by_name`, moved here since the dispatcher needs it before it even knows which feature to call), audits the raw event (`shared/repository.save_event`), then routes by event type — `connection.update`/`qrcode.updated` to `whatsapp_service.handle_connection_event`, `messages.upsert` to `pendings_service.handle_incoming_message`. Session B will add `contacts_service.handle_incoming(payload)` as a second `messages.upsert` recipient without touching either existing handler.
+- The per-user SSE push mechanism (`register_queue`/`deregister_queue`/`push_event`) moved to `shared/events.py` — it carries both whatsapp-infra events (`connection_update`, `qr_updated`) and pendings events (`new_pending`, `pending_update`) over the same `/whatsapp/events` stream, so keeping it inside either feature would force the other to import it cross-feature.
+
+`pendings/router.py` deliberately keeps the `/whatsapp` URL prefix, and both routers stay tagged `whatsapp` in OpenAPI — the frontend calls `/whatsapp/pending/*` directly, and this was a refactor-only pass with no visible behavior change permitted. Module structure changed; the HTTP surface didn't (checked by rebuilding the full route table and diffing it against the pre-split version).
+
+**Trade-offs accepted:** The instance-lookup+audit-log and the per-event-type handling now run in separate DB transactions (the dispatcher's own connection, then whichever feature service opens its own — matching the existing "service.py always opens its own connection" convention) instead of one shared transaction across the whole webhook. Concretely: if the downstream handler fails after the audit row is already committed, that audit row no longer rolls back with it. Considered acceptable, arguably more correct — `wa_events` exists to prove a webhook arrived, independent of whether it was successfully processed.
+**Future ideas:** Session B wires `contacts_service.handle_incoming(payload)` into the same `messages.upsert` branch, and adds the reactive contact auto-repair + group-message filter — neither touches this session's structure, by design.
 
 ### From `schema.py`/`init_db()` to Alembic
 **Decision:** Schema management used to be four per-module `schema.py` files with `CREATE TABLE IF NOT EXISTS` statements, all run unconditionally from FastAPI's `lifespan` on every app boot. This has been replaced entirely by Alembic (`backend/alembic/`), with a baseline migration (`0001_initial_schema.py`) mirroring the old SQL exactly. The Dockerfile now runs `alembic upgrade head` before starting `uvicorn`; `lifespan` was removed from `main.py` since it had no other responsibility. Tests run migrations once per session via a `run_migrations` fixture in `conftest.py` instead of relying on `TestClient(app)` triggering the old lifespan.
@@ -277,9 +294,10 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 **Trade-offs accepted:** Tests require a running database and are slower than unit tests with mocks. Test fixtures use a factory pattern (`create_user`, `auth_headers` in `conftest.py`) to keep setup readable.
 **Future ideas:** No change to the real-DB philosophy. If test suite duration becomes a bottleneck, parallelize with `pytest-xdist` before considering mocks.
 
-**Deferred /shared folder — criterion by nature, not layer**
-
-Infrastructure with no domain knowledge goes to /shared regardless of calling layer (revises "only repository.py" — wrongly excluded things like an Evolution-error decorator wrapping service.py). Business logic never shared, stays duplicated. Includes: webhook dispatch router, get_instance_by_user_id migration, splitting whatsapp/ into infra vs. sibling feature folders (contacts/, pendings/).
+### `backend/shared/` for domain-free infrastructure
+**Decision:** New top-level `shared/` package, for infrastructure with no domain knowledge, regardless of which layer calls it — this revises an earlier, stricter framing that said only `repository.py`-layer code could be shared, which wrongly excluded things like an Evolution-API error-handling decorator that wraps `service.py` functions but is itself pure infrastructure. Two things moved in: `get_instance_by_user_id` (`shared/repository.py`) — it had reached three verbatim copies (`whatsapp/`, `tickets/`, `contacts/`), crossing the "three is the threshold" bar set when the first duplication was accepted — and `handle_evo_errors` (`shared/error_handlers.py`), the httpx→`HTTPException` mapping that was a byte-identical decorator in `whatsapp/service.py` and `contacts/service.py`, plus the same mapping inlined a third time in `tickets/service.py`. Neither has any validation or domain-specific decision-making — pure data access and pure exception translation. `get_client_by_id` (`clients/` + `tickets/`, two copies) stays duplicated: still under the threshold, and more domain-flavored (a client record) than an instance lookup — a deliberate line, not an oversight.
+**Trade-offs accepted:** `shared/` has no `router.py`/`service.py`/`models.py` — it isn't a feature, so the usual four-file convention doesn't apply. There's still no framework enforcement enforcing "no domain knowledge here"; that stays a per-PR judgment call, same as the `user_id` filter convention above.
+**Future ideas:** ~~The webhook dispatch router and the `whatsapp/` → infra-only + `pendings/` split are still pending — they depend on `pendings/` existing as its own feature first, which this pass didn't touch.~~ Done — see "Split into whatsapp/ + pendings/ + shared webhook dispatch" under WhatsApp module. `shared/` also picked up `get_instance_by_name`, `save_event`, and the SSE queue mechanism (`shared/events.py`) as part of that split.
 
 ---
 

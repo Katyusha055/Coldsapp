@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 import backend.whatsapp.models as mdl
 import backend.whatsapp.service as ser
+import backend.shared.events as events
+import backend.shared.webhook_dispatch as webhook_dispatch
 from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 import asyncio
 import json
@@ -28,7 +30,7 @@ async def get_status_endpoint(user: CurrentUser):
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
     payload = await request.json()
-    result = await ser.process_webhook(payload)
+    result = await webhook_dispatch.handle_webhook(payload)
     if result is None:
         return {"status": "discarded"}
     logger.info(f"Webhook processed: {result}")
@@ -38,7 +40,7 @@ async def whatsapp_webhook(request: Request):
 @router.get('/events')
 async def whatsapp_events(user: CurrentUserFromQuery):
     queue = asyncio.Queue()
-    ser.register_queue(user['id'], queue)
+    events.register_queue(user['id'], queue)
 
     async def generate():
         try:
@@ -46,7 +48,7 @@ async def whatsapp_events(user: CurrentUserFromQuery):
                 event = await queue.get()
                 yield json.dumps(event)
         finally:
-            ser.deregister_queue(user['id'])
+            events.deregister_queue(user['id'])
 
     return EventSourceResponse(generate())
 
@@ -54,18 +56,3 @@ async def whatsapp_events(user: CurrentUserFromQuery):
 @router.patch('/notifications')
 async def update_notifications_endpoint(payload: mdl.NotificationsToggle, user: CurrentUser):
     return ser.set_notifications_enabled(user['id'], payload.enabled)
-
-
-@router.patch('/pending/{pending_id}/status')
-async def update_pending_status_endpoint(pending_id: int, payload: mdl.PendingStatusUpdate, user: CurrentUser):
-    return ser.set_pending_status(user['id'], pending_id, payload.status)
-
-
-@router.get('/pending')
-async def list_pending_contacts_endpoint(user: CurrentUser):
-    return ser.list_pending_contacts(user['id'])
-
-
-@router.delete('/pending/{pending_id}')
-async def delete_pending_endpoint(pending_id: int, user: CurrentUser):
-    return ser.delete_pending(user['id'], pending_id)

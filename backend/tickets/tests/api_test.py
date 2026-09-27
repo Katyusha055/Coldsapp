@@ -4,7 +4,7 @@ import pytest
 def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_payload(
     api_client, auth_headers
 ):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
     user_id = 1
@@ -129,7 +129,7 @@ def test_get_ticket_by_id_endpoint_retrieves_ticket_and_rejects_invalid(api_clie
 
 
 def test_delete_ticket_endpoint_deletes_ticket_and_returns_404_when_missing(api_client, auth_headers):
-    from backend.database.connect import connect
+    from backend.shared.connect import connect
 
     headers = auth_headers()
 
