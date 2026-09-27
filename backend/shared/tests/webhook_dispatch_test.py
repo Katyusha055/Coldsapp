@@ -64,17 +64,19 @@ async def test_handle_webhook_qrcode_updated_routes_to_whatsapp_service(sample_i
 
 
 @pytest.mark.asyncio
-async def test_handle_webhook_messages_upsert_routes_to_pendings_service(sample_instance):
+async def test_handle_webhook_messages_upsert_dispatches_to_both_contacts_and_pendings(sample_instance):
     payload = {"instance": sample_instance["instance_name"], "event": "messages.upsert", "data": {}}
     handler_result = {"type": "new_pending", "id": 1, "remote_jid": "x", "name": "Jane", "message": "hola"}
     with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
          patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
          patch('backend.shared.webhook_dispatch.rep.save_event'), \
-         patch('backend.shared.webhook_dispatch.pendings_service.handle_incoming_message', return_value=handler_result) as mock_handle, \
+         patch('backend.shared.webhook_dispatch.contacts_service.handle_incoming_message') as mock_contacts, \
+         patch('backend.shared.webhook_dispatch.pendings_service.handle_incoming_message', return_value=handler_result) as mock_pendings, \
          patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push:
         result = await webhook_dispatch.handle_webhook(payload)
 
-    mock_handle.assert_called_once_with(sample_instance, payload)
+    mock_contacts.assert_called_once_with(sample_instance, payload)
+    mock_pendings.assert_called_once_with(sample_instance, payload)
     assert result == handler_result
     mock_push.assert_awaited_once_with(sample_instance["user_id"], handler_result)
 
@@ -85,12 +87,56 @@ async def test_handle_webhook_feature_handler_returning_none_is_not_pushed(sampl
     with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
          patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
          patch('backend.shared.webhook_dispatch.rep.save_event'), \
+         patch('backend.shared.webhook_dispatch.contacts_service.handle_incoming_message'), \
          patch('backend.shared.webhook_dispatch.pendings_service.handle_incoming_message', return_value=None), \
          patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push:
         result = await webhook_dispatch.handle_webhook(payload)
 
     assert result is None
     mock_push.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_contacts_failure_does_not_block_pendings(sample_instance):
+    payload = {"instance": sample_instance["instance_name"], "event": "messages.upsert", "data": {}}
+    handler_result = {"type": "new_pending", "id": 1, "remote_jid": "x", "name": "Jane", "message": "hola"}
+    with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
+         patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
+         patch('backend.shared.webhook_dispatch.rep.save_event'), \
+         patch('backend.shared.webhook_dispatch.contacts_service.handle_incoming_message', side_effect=RuntimeError("boom")), \
+         patch('backend.shared.webhook_dispatch.pendings_service.handle_incoming_message', return_value=handler_result) as mock_pendings, \
+         patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push, \
+         patch('backend.shared.webhook_dispatch.logger') as mock_logger:
+        result = await webhook_dispatch.handle_webhook(payload)  # must not raise
+
+    mock_pendings.assert_called_once_with(sample_instance, payload)
+    assert result == handler_result
+    mock_push.assert_awaited_once_with(sample_instance["user_id"], handler_result)
+    mock_logger.error.assert_called_once()
+    assert mock_logger.error.call_args.args[0].startswith("[webhook:messages.upsert]")
+    assert "contacts" in mock_logger.error.call_args.args
+    assert mock_logger.error.call_args.kwargs == {"exc_info": True}
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_pendings_failure_does_not_block_contacts(sample_instance):
+    payload = {"instance": sample_instance["instance_name"], "event": "messages.upsert", "data": {}}
+    with patch('backend.shared.webhook_dispatch.connect', return_value=MagicMock()), \
+         patch('backend.shared.webhook_dispatch.rep.get_instance_by_name', return_value=sample_instance), \
+         patch('backend.shared.webhook_dispatch.rep.save_event'), \
+         patch('backend.shared.webhook_dispatch.contacts_service.handle_incoming_message') as mock_contacts, \
+         patch('backend.shared.webhook_dispatch.pendings_service.handle_incoming_message', side_effect=RuntimeError("boom")), \
+         patch('backend.shared.webhook_dispatch.push_event', new=AsyncMock()) as mock_push, \
+         patch('backend.shared.webhook_dispatch.logger') as mock_logger:
+        result = await webhook_dispatch.handle_webhook(payload)  # must not raise
+
+    mock_contacts.assert_called_once_with(sample_instance, payload)
+    assert result is None
+    mock_push.assert_not_awaited()
+    mock_logger.error.assert_called_once()
+    assert mock_logger.error.call_args.args[0].startswith("[webhook:messages.upsert]")
+    assert "pendings" in mock_logger.error.call_args.args
+    assert mock_logger.error.call_args.kwargs == {"exc_info": True}
 
 
 @pytest.mark.asyncio
