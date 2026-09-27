@@ -21,6 +21,10 @@ def handle_incoming_message(instance, payload):
         return None
 
     remote_jid = data.get("key", {}).get("remoteJid")
+    if (remote_jid or "").endswith("@g.us"):  # group JID - pendings tracks 1:1 conversations only
+        logger.info(f"Ignoring group message ({remote_jid})")
+        return None
+
     name = data.get("pushName")
     message = data.get("message", {}).get("conversation")
     if not message:
