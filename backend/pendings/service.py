@@ -1,18 +1,21 @@
 import backend.pendings.repository as rep
 import backend.shared.repository as shared_rep
 from backend.shared.connect import connect
+from backend.shared.error_handlers import safe_dispatch
 import logging
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
 
+@safe_dispatch("pendings")
 def handle_incoming_message(instance, payload):
     """
     Handles a messages.upsert webhook event: matches it against an existing
     client, and if it doesn't match, creates or updates a pending contact.
-    Called by shared.webhook_dispatch after it has already resolved the
-    instance and audited the raw event.
+    Called by shared.webhook_dispatch — @safe_dispatch means a failure here
+    is caught, logged, and never affects the contacts dispatch running
+    alongside it.
     """
     data = payload.get("data", {})
 

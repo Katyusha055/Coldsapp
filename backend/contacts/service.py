@@ -5,7 +5,7 @@ from fastapi import HTTPException
 import backend.contacts.repository as rep
 import backend.shared.repository as shared_rep
 from backend.shared.connect import connect
-from backend.shared.error_handlers import handle_evo_errors
+from backend.shared.error_handlers import handle_evo_errors, safe_dispatch
 
 @handle_evo_errors
 async def import_contacts(user_id: int) -> dict:
@@ -58,12 +58,14 @@ def update_contact_name(user_id: int, contact_id: int, name: str) -> dict:
     return {"updated": True}
 
 
+@safe_dispatch("contacts")
 def handle_incoming_message(instance, payload):
     """
     Reactive self-repair: on every incoming (non-outgoing) message, touches
     last_incoming_at and fills in a NULL name from the message's pushName.
-    Called by shared.webhook_dispatch, wrapped in safe_dispatch — a failure
-    here must never affect the pendings dispatch running alongside it.
+    Called by shared.webhook_dispatch — @safe_dispatch means a failure here
+    is caught, logged, and never affects the pendings dispatch running
+    alongside it.
     """
     data = payload.get("data", {})
     if data.get("key", {}).get("fromMe"):
