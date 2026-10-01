@@ -3,6 +3,7 @@ import logging
 import backend.shared.repository as rep
 import backend.whatsapp.service as whatsapp_service
 import backend.pendings.service as pendings_service
+import backend.contacts.service as contacts_service
 from backend.shared.connect import connect
 from backend.shared.events import push_event
 
@@ -30,6 +31,10 @@ async def handle_webhook(payload):
     if event in ("connection.update", "qrcode.updated"):
         result = whatsapp_service.handle_connection_event(instance, event, payload)
     elif event == "messages.upsert":
+        # Two independent features react to the same event; neither knows
+        # about the other, and each is @safe_dispatch-wrapped at its own
+        # definition so a failure in one can never block the other.
+        contacts_service.handle_incoming_message(instance, payload)
         result = pendings_service.handle_incoming_message(instance, payload)
     else:
         logger.info(f"Unhandled webhook event: {event}")

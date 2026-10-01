@@ -1,10 +1,11 @@
 import asyncio
+from datetime import datetime, timezone
 from fastapi import HTTPException
 
 import backend.contacts.repository as rep
 import backend.shared.repository as shared_rep
 from backend.shared.connect import connect
-from backend.shared.error_handlers import handle_evo_errors
+from backend.shared.error_handlers import handle_evo_errors, safe_dispatch
 
 @handle_evo_errors
 async def import_contacts(user_id: int) -> dict:
@@ -55,6 +56,32 @@ def update_contact_name(user_id: int, contact_id: int, name: str) -> dict:
     if not updated:
         raise HTTPException(status_code=404, detail="Contact not found")
     return {"updated": True}
+
+
+@safe_dispatch("contacts")
+def handle_incoming_message(instance, payload):
+    """
+    Reactive self-repair: on every incoming (non-outgoing) message, touches
+    last_incoming_at and fills in a NULL name from the message's pushName.
+    Called by shared.webhook_dispatch — @safe_dispatch means a failure here
+    is caught, logged, and never affects the pendings dispatch running
+    alongside it.
+    """
+    data = payload.get("data", {})
+    if data.get("key", {}).get("fromMe"):
+        return
+
+    remote_jid = data.get("key", {}).get("remoteJid")
+    push_name = (data.get("pushName") or "").strip() or None
+
+    with connect() as conn:
+        rep.repair_and_touch(
+            conn,
+            remote_jid=remote_jid,
+            instance_id=instance["id"],
+            push_name=push_name,
+            last_incoming_at=datetime.now(timezone.utc),
+        )
 
 
 def update_contact_opted_out(user_id: int, contact_id: int, opted_out: bool) -> dict:

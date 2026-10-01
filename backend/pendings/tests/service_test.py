@@ -47,6 +47,38 @@ def test_handle_incoming_message_from_me_is_ignored(sample_instance):
     mock_get_client.assert_not_called()
 
 
+def test_handle_incoming_message_group_message_is_ignored(sample_instance):
+    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123456@g.us")
+    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
+         patch('backend.pendings.service.rep.get_client_by_whatsapp_id') as mock_get_client, \
+         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending, \
+         patch('backend.pendings.service.rep.create_pending') as mock_create, \
+         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+        result = service.handle_incoming_message(sample_instance, payload)
+
+    assert result is None
+    mock_get_client.assert_not_called()
+    mock_get_pending.assert_not_called()
+    mock_create.assert_not_called()
+    mock_update_message.assert_not_called()
+
+
+def test_handle_incoming_message_group_message_does_not_touch_an_existing_pending(sample_instance):
+    """
+    A group message must be a total no-op — it must not disturb an unrelated
+    pending contact that already exists for a different (1:1) remote_jid.
+    """
+    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123456@g.us")
+    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
+         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending, \
+         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+        result = service.handle_incoming_message(sample_instance, payload)
+
+    assert result is None
+    mock_get_pending.assert_not_called()
+    mock_update_message.assert_not_called()
+
+
 def test_handle_incoming_message_known_client_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"])
     existing_client = {"id": 5, "name": "Jane", "whatsapp_id": "123@s.whatsapp.net"}
