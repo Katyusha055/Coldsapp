@@ -3,14 +3,14 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useContactsStore } from '@/stores/contacts.js';
+import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
+import EntityDrawer from '@/components/EntityDrawer.vue';
 
 const toast = useToast();
 const store = useContactsStore();
 
 const loadError = ref('');
 
-const drawerVisible = ref(false);
-const selectedContact = ref(null);
 const editableName = ref('');
 
 const searchQuery = ref('');
@@ -25,6 +25,16 @@ const filteredContacts = computed(() => {
     if (!query) return store.blacklistedContacts;
     return store.blacklistedContacts.filter((contact) => contact.name?.toLowerCase().includes(query));
 });
+
+const nav = useDrawerNavigation(filteredContacts);
+const selectedContact = computed(() => store.byId(nav.currentId));
+
+watch(
+    () => [nav.currentId, nav.visible],
+    () => {
+        editableName.value = selectedContact.value?.name ?? '';
+    }
+);
 
 const isNameDirty = computed(() => {
     if (!selectedContact.value) return false;
@@ -68,9 +78,7 @@ onMounted(async () => {
 });
 
 function onRowClick(event) {
-    selectedContact.value = event.data;
-    editableName.value = event.data.name ?? '';
-    drawerVisible.value = true;
+    nav.open(event.data.id);
 }
 
 async function saveName() {
@@ -100,7 +108,7 @@ async function onToggleOptedOut(contact, value) {
         </div>
 
         <div class="card">
-            <DataTable :value="filteredContacts" dataKey="id" :rowClass="() => 'cursor-pointer'" @row-click="onRowClick" paginator :rows="30" v-model:first="tableFirst" rowHover>
+            <DataTable :ref="nav.bindTable" :value="filteredContacts" dataKey="id" :rowClass="() => 'cursor-pointer'" @row-click="onRowClick" paginator :rows="30" v-model:first="tableFirst" rowHover>
                 <template #header>
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Contactos Dados de Baja</h4>
@@ -147,7 +155,7 @@ async function onToggleOptedOut(contact, value) {
         <Toast />
 
         <!-- Contact Detail Drawer -->
-        <Drawer v-model:visible="drawerVisible" position="right" :style="{ width: '28rem' }" header="Detalle del Contacto">
+        <EntityDrawer :nav="nav" header="Detalle del Contacto">
             <div v-if="selectedContact" class="flex flex-col gap-6">
                 <div>
                     <label for="contact-name" class="block font-bold mb-3">Nombre</label>
@@ -179,6 +187,6 @@ async function onToggleOptedOut(contact, value) {
                     <span>{{ formatDate(selectedContact.created_at) }}</span>
                 </div>
             </div>
-        </Drawer>
+        </EntityDrawer>
     </div>
 </template>
