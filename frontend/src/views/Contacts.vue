@@ -60,7 +60,7 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        await store.loadContacts();
+        await store.load();
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = errorMessageFor(err);

@@ -1,5 +1,5 @@
 import { BASE_URL, getPublicHeaders } from './api.js';
-import { useContactsStore } from '@/stores/contacts.js';
+import { resetAllStores } from '@/stores/createEntityStore.js';
 
 export async function register(name, phone, password) {
     const response = await fetch(`${BASE_URL}/auth/register`, {
@@ -41,7 +41,7 @@ export function removeToken() {
 }
 
 export function resetStores() {
-    useContactsStore().$reset();
+    resetAllStores();
 }
 
 export function logout() {
