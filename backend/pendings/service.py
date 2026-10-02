@@ -56,7 +56,7 @@ def handle_incoming_message(instance, payload):
             if pending is None or pending["status"] in ("converted", "discarded"):
                 return None
             rep.update_pending_message(conn, pending["id"], message)
-            result = {"type": "pending_update", "remote_jid": remote_jid, "name": name, "message": message}
+            result = {"type": "pending_update", "id": pending["id"], "remote_jid": remote_jid, "name": name, "message": message}
 
     return result
 

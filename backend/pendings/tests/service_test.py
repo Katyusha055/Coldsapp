@@ -132,6 +132,7 @@ def test_handle_incoming_message_concurrent_insert_falls_back_to_update(sample_i
     assert mock_update_message.call_args.args[2] == "Segundo mensaje"
     assert result == {
         "type": "pending_update",
+        "id": 99,
         "remote_jid": "123@s.whatsapp.net",
         "name": "Jane",
         "message": "Segundo mensaje",
@@ -153,6 +154,7 @@ def test_handle_incoming_message_existing_pending_is_updated(sample_instance):
     mock_update_message.assert_called_once_with(mock_update_message.call_args.args[0], 42, "Otra vez")
     assert result == {
         "type": "pending_update",
+        "id": 42,
         "remote_jid": "123@s.whatsapp.net",
         "name": "Jane",
         "message": "Otra vez",
