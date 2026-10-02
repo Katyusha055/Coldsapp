@@ -1,22 +1,21 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getStatus, getQR, getPendingContacts, updatePendingStatus, deletePending, setNotificationsEnabled } from '@/services/WhatsappService.js';
-import { createClient } from '@/services/ClientService.js';
-import { BASE_URL } from '@/services/api.js';
+import { getStatus, getQR, setNotificationsEnabled } from '@/services/WhatsappService.js';
+import { usePendingsStore } from '@/stores/pendings.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useWhatsappEvents } from '@/composables/useWhatsappEvents.js';
 
 const toast = useToast();
+const pendingsStore = usePendingsStore();
+const clientsStore = useClientsStore();
 
 const status = ref('');
 const loadError = ref('');
 const errorMessage = ref('');
 
 const notificationsEnabled = ref(true);
-
-const pendingContacts = ref([]);
-
-const eventSource = ref(null);
 
 const qr = ref('');
 const qrDialog = ref(false);
@@ -53,52 +52,25 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [statusData, pendingData] = await Promise.all([getStatus(), getPendingContacts()]);
+        const [statusData] = await Promise.all([getStatus(), pendingsStore.load(true)]);
         status.value = statusData.status;
         notificationsEnabled.value = statusData.notifications_enabled ?? true;
-        pendingContacts.value = pendingData;
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load WhatsApp data.';
     }
-
-    const token = localStorage.getItem('access_token');
-    eventSource.value = new EventSource(`${BASE_URL}/whatsapp/events?token=${token}`);
-    eventSource.value.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'new_pending') {
-            pendingContacts.value.push({
-                id: data.id,
-                remote_jid: data.remote_jid,
-                name: data.name,
-                last_message: data.message,
-                last_message_at: new Date().toISOString()
-            });
-        } else if (data.type === 'pending_update') {
-            const row = pendingContacts.value.find((p) => p.remote_jid === data.remote_jid);
-            if (row) {
-                row.last_message = data.message;
-                row.last_message_at = new Date().toISOString();
-            }
-        } else if (data.type === 'connection_update') {
-            status.value = data.detail;
-            if (data.detail === 'open') {
-                qrDialog.value = false;
-                qr.value = null;
-            }
-        } else if (data.type === 'qr_updated') {
-            if (qrDialog.value) {
-                generateQR();
-            }
-        }
-    };
 });
 
-onUnmounted(() => {
-    if (eventSource.value) {
-        eventSource.value.close();
-        eventSource.value = null;
+useWhatsappEvents({
+    onConnectionUpdate(newStatus) {
+        status.value = newStatus;
+        if (newStatus === 'open') {
+            qrDialog.value = false;
+            qr.value = null;
+        }
+    },
+    onQrUpdated() {
+        if (qrDialog.value) generateQR();
     }
 });
 
@@ -134,8 +106,7 @@ async function generateQR() {
 
 async function discardPending(row) {
     try {
-        await updatePendingStatus(row.id, 'discarded');
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== row.id);
+        await pendingsStore.resolve(row.id, 'discarded');
         toast.add({ severity: 'success', summary: 'Descartado', detail: 'Contacto descartado correctamente.', life: 3000 });
     } catch (err) {
         handleError(err);
@@ -150,8 +121,7 @@ function confirmDeletePending(row) {
 
 async function doDeletePending() {
     try {
-        await deletePending(pending.value.id);
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== pending.value.id);
+        await pendingsStore.remove(pending.value.id);
         deleteDialog.value = false;
         pending.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Contacto eliminado correctamente.', life: 3000 });
@@ -189,15 +159,14 @@ async function convertToClient() {
         };
         if (convertForm.value.phone?.trim()) payload.phone = convertForm.value.phone.trim();
         if (convertForm.value.description) payload.description = convertForm.value.description;
-        await createClient(payload);
+        await clientsStore.create(payload);
     } catch (err) {
         handleError(err);
         return;
     }
 
     try {
-        await updatePendingStatus(pending.value.id, 'converted');
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== pending.value.id);
+        await pendingsStore.resolve(pending.value.id, 'converted');
         convertDialog.value = false;
         pending.value = {};
         toast.add({ severity: 'success', summary: 'Convertido', detail: 'Contacto convertido a cliente correctamente.', life: 3000 });
@@ -229,7 +198,7 @@ async function convertToClient() {
         </div>
 
         <div class="card">
-            <DataTable :value="pendingContacts" dataKey="id">
+            <DataTable :value="pendingsStore.items" dataKey="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Posibles Clientes Nuevos</h4>

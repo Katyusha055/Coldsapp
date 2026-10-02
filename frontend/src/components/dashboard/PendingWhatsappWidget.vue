@@ -1,17 +1,21 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getPendingContacts } from '@/services/WhatsappService.js';
+import { usePendingsStore } from '@/stores/pendings.js';
 
 const router = useRouter();
+const pendingsStore = usePendingsStore();
 const loading = ref(true);
-const pendingContacts = ref([]);
+const failed = ref(false);
+
+const pendingContacts = computed(() => (failed.value ? [] : pendingsStore.items));
 
 onMounted(async () => {
     try {
-        pendingContacts.value = await getPendingContacts();
+        // Forced: new pendings only reach the store live on the WhatsApp page.
+        await pendingsStore.load(true);
     } catch {
-        pendingContacts.value = [];
+        failed.value = true;
     } finally {
         loading.value = false;
     }
