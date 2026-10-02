@@ -1,30 +1,33 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getClients } from '@/services/ClientService.js';
-import { getTickets } from '@/services/TicketService.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useTicketsStore } from '@/stores/tickets.js';
 
 const router = useRouter();
+const clientsStore = useClientsStore();
+const ticketsStore = useTicketsStore();
 const loading = ref(true);
-const topClients = ref([]);
 
 const INACTIVE_STATUSES = new Set(['cancelled', 'delivered']);
 
+const topClients = computed(() => {
+    const ticketCounts = {};
+    for (const ticket of ticketsStore.items) {
+        if (!INACTIVE_STATUSES.has(ticket.status)) {
+            ticketCounts[ticket.client_id] = (ticketCounts[ticket.client_id] ?? 0) + 1;
+        }
+    }
+
+    return clientsStore.items
+        .map((c) => ({ ...c, activeCount: ticketCounts[c.id] ?? 0 }))
+        .sort((a, b) => b.activeCount - a.activeCount)
+        .slice(0, 3);
+});
+
 onMounted(async () => {
     try {
-        const [clients, tickets] = await Promise.all([getClients(), getTickets()]);
-
-        const ticketCounts = {};
-        for (const ticket of tickets) {
-            if (!INACTIVE_STATUSES.has(ticket.status)) {
-                ticketCounts[ticket.client_id] = (ticketCounts[ticket.client_id] ?? 0) + 1;
-            }
-        }
-
-        topClients.value = clients
-            .map(c => ({ ...c, activeCount: ticketCounts[c.id] ?? 0 }))
-            .sort((a, b) => b.activeCount - a.activeCount)
-            .slice(0, 3);
+        await Promise.all([clientsStore.load(), ticketsStore.load()]);
     } finally {
         loading.value = false;
     }

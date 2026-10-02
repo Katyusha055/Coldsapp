@@ -1,18 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getClients } from '@/services/ClientService.js';
-import { getTickets } from '@/services/TicketService.js';
+import { ref, computed, onMounted } from 'vue';
+import { useClientsStore } from '@/stores/clients.js';
+import { useTicketsStore } from '@/stores/tickets.js';
 import PendingWhatsappWidget from '@/components/dashboard/PendingWhatsappWidget.vue';
 import TopClientsWidget from '@/components/dashboard/TopClientsWidget.vue';
 import PendingTicketsWidget from '@/components/dashboard/PendingTicketsWidget.vue';
 
-const totalClients = ref(null);
-const totalTickets = ref(null);
+const clientsStore = useClientsStore();
+const ticketsStore = useTicketsStore();
+const settled = ref(false);
+
+function totalOf(store) {
+    if (store.loaded) return store.items.length;
+    return settled.value ? 0 : null;
+}
+
+const totalClients = computed(() => totalOf(clientsStore));
+const totalTickets = computed(() => totalOf(ticketsStore));
 
 onMounted(async () => {
-    const [clients, tickets] = await Promise.allSettled([getClients(), getTickets()]);
-    totalClients.value = clients.status === 'fulfilled' ? clients.value.length : 0;
-    totalTickets.value = tickets.status === 'fulfilled' ? tickets.value.length : 0;
+    await Promise.allSettled([clientsStore.load(), ticketsStore.load()]);
+    settled.value = true;
 });
 </script>
 

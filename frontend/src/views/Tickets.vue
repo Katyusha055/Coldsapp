@@ -2,8 +2,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getTickets, createTicket, updateTicket, updateTicketStatus, deleteTicket } from '@/services/TicketService.js';
-import { getClients } from '@/services/ClientService.js';
+import { useTicketsStore } from '@/stores/tickets.js';
+import { useClientsStore } from '@/stores/clients.js';
 
 const VALID_TRANSITIONS = {
     pending:     ['in_progress', 'cancelled'],
@@ -14,9 +14,9 @@ const VALID_TRANSITIONS = {
 };
 
 const toast = useToast();
+const ticketsStore = useTicketsStore();
+const clientsStore = useClientsStore();
 
-const tickets = ref([]);
-const clients = ref([]);
 const ticketDialog = ref(false);
 const deleteTicketDialog = ref(false);
 const ticket = ref({});
@@ -35,8 +35,8 @@ const filterStatusOptions = [
 ];
 
 const filteredTickets = computed(() => {
-    if (filterStatus.value === 'all') return tickets.value;
-    return tickets.value.filter((t) => t.status === filterStatus.value);
+    if (filterStatus.value === 'all') return ticketsStore.items;
+    return ticketsStore.items.filter((t) => t.status === filterStatus.value);
 });
 
 function formatDate(value) {
@@ -72,9 +72,7 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [ticketsData, clientsData] = await Promise.all([getTickets(), getClients()]);
-        tickets.value = ticketsData;
-        clients.value = clientsData;
+        await Promise.all([ticketsStore.load(), clientsStore.load()]);
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load data.';
@@ -110,13 +108,10 @@ async function saveTicket() {
 
     try {
         if (ticket.value.id) {
-            const updated = await updateTicket(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
-            const idx = tickets.value.findIndex((t) => t.id === ticket.value.id);
-            if (idx !== -1) tickets.value[idx] = updated;
+            await ticketsStore.update(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
             toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Ticket actualizado correctamente.', life: 3000 });
         } else {
-            const created = await createTicket(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
-            tickets.value.push(created);
+            await ticketsStore.create(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
             toast.add({ severity: 'success', summary: 'Creado', detail: 'Ticket creado correctamente.', life: 3000 });
         }
         ticketDialog.value = false;
@@ -134,8 +129,7 @@ function confirmDeleteTicket(t) {
 
 async function doDeleteTicket() {
     try {
-        await deleteTicket(ticket.value.id);
-        tickets.value = tickets.value.filter((t) => t.id !== ticket.value.id);
+        await ticketsStore.remove(ticket.value.id);
         deleteTicketDialog.value = false;
         ticket.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Ticket eliminado correctamente.', life: 3000 });
@@ -147,9 +141,7 @@ async function doDeleteTicket() {
 
 async function onStatusChange(t, newStatus) {
     try {
-        const updated = await updateTicketStatus(t.id, newStatus);
-        const idx = tickets.value.findIndex((tk) => tk.id === t.id);
-        if (idx !== -1) tickets.value[idx] = updated;
+        const updated = await ticketsStore.setStatus(t.id, newStatus);
         toast.add({ severity: 'success', summary: 'Estado actualizado', detail: `Ticket movido a ${statusLabel(newStatus)}.`, life: 3000 });
 
         if (newStatus === 'ready') {
@@ -240,7 +232,7 @@ async function onStatusChange(t, newStatus) {
                     <Select
                         id="ticket-client"
                         v-model="ticket.client_id"
-                        :options="clients"
+                        :options="clientsStore.items"
                         optionLabel="name"
                         optionValue="id"
                         placeholder="Seleccionar un cliente"
@@ -251,7 +243,7 @@ async function onStatusChange(t, newStatus) {
                         <template #option="slotProps">
                             <div class="flex flex-col">
                                 <span>{{ slotProps.option.name }}</span>
-                                <small class="text-surface-400">{{ tickets.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
+                                <small class="text-surface-400">{{ ticketsStore.items.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
                             </div>
                         </template>
                     </Select>

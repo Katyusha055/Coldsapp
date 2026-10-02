@@ -1,11 +1,18 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getTickets } from '@/services/TicketService.js';
+import { useTicketsStore } from '@/stores/tickets.js';
 
 const router = useRouter();
+const ticketsStore = useTicketsStore();
 const loading = ref(true);
-const pendingTickets = ref([]);
+
+const pendingTickets = computed(() =>
+    ticketsStore.items
+        .filter((t) => t.status === 'pending')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 3)
+);
 
 function formatDate(dateStr) {
     if (!dateStr) return '—';
@@ -14,11 +21,7 @@ function formatDate(dateStr) {
 
 onMounted(async () => {
     try {
-        const tickets = await getTickets();
-        pendingTickets.value = tickets
-            .filter(t => t.status === 'pending')
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 3);
+        await ticketsStore.load();
     } finally {
         loading.value = false;
     }

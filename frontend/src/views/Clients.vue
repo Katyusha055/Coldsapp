@@ -3,14 +3,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getClients, createClient, updateClient, deleteClient } from '@/services/ClientService.js';
-import { getTickets } from '@/services/TicketService.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useTicketsStore } from '@/stores/tickets.js';
 
 const router = useRouter();
 const toast = useToast();
+const clientsStore = useClientsStore();
+const ticketsStore = useTicketsStore();
 
-const clients = ref([]);
-const tickets = ref([]);
 const expandedRows = ref({});
 const clientDialog = ref(false);
 const deleteClientDialog = ref(false);
@@ -37,9 +37,7 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [clientsData, ticketsData] = await Promise.all([getClients(), getTickets()]);
-        clients.value = clientsData;
-        tickets.value = ticketsData;
+        await Promise.all([clientsStore.load(), ticketsStore.load()]);
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load clients.';
@@ -47,7 +45,7 @@ onMounted(async () => {
 });
 
 function clientTickets(clientId) {
-    return tickets.value.filter((t) => t.client_id === clientId);
+    return ticketsStore.items.filter((t) => t.client_id === clientId);
 }
 
 function toggleRow(row) {
@@ -90,15 +88,12 @@ async function saveClient() {
         if (client.value.id) {
             const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
             if (client.value.description) payload.description = client.value.description;
-            const updated = await updateClient(client.value.id, payload);
-            const idx = clients.value.findIndex((c) => c.id === client.value.id);
-            if (idx !== -1) clients.value[idx] = updated;
+            await clientsStore.update(client.value.id, payload);
             toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Cliente actualizado correctamente.', life: 3000 });
         } else {
             const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
             if (client.value.description) payload.description = client.value.description;
-            const created = await createClient(payload);
-            clients.value.push(created);
+            await clientsStore.create(payload);
             toast.add({ severity: 'success', summary: 'Creado', detail: 'Cliente creado correctamente.', life: 3000 });
         }
         clientDialog.value = false;
@@ -116,8 +111,8 @@ function confirmDeleteClient(c) {
 
 async function doDeleteClient() {
     try {
-        await deleteClient(client.value.id);
-        clients.value = clients.value.filter((c) => c.id !== client.value.id);
+        await clientsStore.remove(client.value.id);
+        ticketsStore.invalidate();
         deleteClientDialog.value = false;
         client.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Cliente eliminado correctamente.', life: 3000 });
@@ -139,7 +134,7 @@ async function doDeleteClient() {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :value="clients" dataKey="id" v-model:expandedRows="expandedRows">
+            <DataTable :value="clientsStore.items" dataKey="id" v-model:expandedRows="expandedRows">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Clientes</h4>
