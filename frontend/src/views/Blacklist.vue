@@ -5,6 +5,8 @@ import { handleAuthError } from '@/services/AuthService.js';
 import { useContactsStore } from '@/stores/contacts.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate, formatPhone } from '@/utils/format.js';
 
 const toast = useToast();
 const store = useContactsStore();
@@ -40,22 +42,6 @@ const isNameDirty = computed(() => {
     if (!selectedContact.value) return false;
     return editableName.value.trim() !== (selectedContact.value.name ?? '');
 });
-
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function formatPhone(remoteJid) {
-    if (!remoteJid) return '';
-    return `+${remoteJid.split('@')[0]}`;
-}
 
 function errorMessageFor(err) {
     if (err.status === 404) return 'No se encontró una instancia de WhatsApp vinculada a tu cuenta.';
@@ -118,8 +104,7 @@ async function onToggleOptedOut(contact, value) {
 
                 <Column field="name" header="Nombre" sortable style="min-width: 14rem">
                     <template #body="slotProps">
-                        <span v-if="slotProps.data.name">{{ slotProps.data.name }}</span>
-                        <span v-else class="italic text-surface-500">Sin Nombre</span>
+                        <PlaceholderCell :value="slotProps.data.name" placeholder="Sin Nombre" />
                     </template>
                 </Column>
                 <Column field="remote_jid" header="Número" sortable style="min-width: 12rem">

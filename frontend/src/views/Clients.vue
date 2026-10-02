@@ -7,6 +7,8 @@ import { useClientsStore } from '@/stores/clients.js';
 import { useTicketsStore } from '@/stores/tickets.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate } from '@/utils/format.js';
 
 const router = useRouter();
 const toast = useToast();
@@ -30,17 +32,6 @@ watch(
 const submitted = ref(false);
 const errorMessage = ref('');
 const loadError = ref('');
-
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 
 function handleError(err) {
     if (handleAuthError(err)) return;
@@ -150,7 +141,7 @@ async function doDeleteClient() {
                 <Column field="phone" header="Teléfono" sortable style="min-width: 12rem"></Column>
                 <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
+                        <PlaceholderCell :value="slotProps.data.description" placeholder="Sin descripción" truncate />
                     </template>
                 </Column>
                 <Column field="created_at" header="Fecha de Creación" sortable style="min-width: 14rem">

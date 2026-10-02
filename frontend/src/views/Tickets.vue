@@ -6,6 +6,8 @@ import { useTicketsStore } from '@/stores/tickets.js';
 import { useClientsStore } from '@/stores/clients.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate } from '@/utils/format.js';
 
 const VALID_TRANSITIONS = {
     pending:     ['in_progress', 'cancelled'],
@@ -51,17 +53,6 @@ watch(
         errorMessage.value = '';
     }
 );
-
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 
 function statusLabel(status) {
     const labels = {
@@ -178,7 +169,7 @@ async function onStatusChange(t, newStatus) {
                 <Column field="title" header="Título" sortable style="min-width: 16rem"></Column>
                 <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
+                        <PlaceholderCell :value="slotProps.data.description" placeholder="Sin descripción" truncate />
                     </template>
                 </Column>
                 <Column header="Estado" style="min-width: 14rem">

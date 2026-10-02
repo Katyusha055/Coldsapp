@@ -6,6 +6,8 @@ import { getStatus, getQR, setNotificationsEnabled } from '@/services/WhatsappSe
 import { usePendingsStore } from '@/stores/pendings.js';
 import { useClientsStore } from '@/stores/clients.js';
 import { useWhatsappEvents } from '@/composables/useWhatsappEvents.js';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate } from '@/utils/format.js';
 
 const toast = useToast();
 const pendingsStore = usePendingsStore();
@@ -33,17 +35,6 @@ const isPhoneValid = computed(() => {
     const phone = convertForm.value.phone?.trim();
     return !phone || /^\d{10}$/.test(phone);
 });
-
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 
 function handleError(err) {
     if (handleAuthError(err)) return;
@@ -208,7 +199,7 @@ async function convertToClient() {
                 <Column field="name" header="Nombre" sortable style="min-width: 14rem"></Column>
                 <Column field="last_message" header="Último Mensaje" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.last_message" class="block truncate">{{ slotProps.data.last_message }}</span>
+                        <PlaceholderCell :value="slotProps.data.last_message" placeholder="Mensaje sin texto" truncate />
                     </template>
                 </Column>
                 <Column header="Fecha" style="min-width: 14rem">
