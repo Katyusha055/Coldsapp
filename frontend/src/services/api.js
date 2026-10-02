@@ -21,11 +21,6 @@ export function errorMessageFrom(detail, fallback = 'Request failed.') {
 }
 
 export async function handleResponse(response) {
-    if (response.status === 401) {
-        const err = new Error('Session expired. Please log in again.');
-        err.status = 401;
-        throw err;
-    }
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         const err = new Error(errorMessageFrom(data.detail));
