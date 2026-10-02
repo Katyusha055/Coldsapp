@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
@@ -32,6 +32,11 @@ watch(
 const submitted = ref(false);
 const errorMessage = ref('');
 const loadError = ref('');
+
+const isPhoneValid = computed(() => {
+    const phone = client.value.phone?.trim();
+    return !phone || /^\d{10}$/.test(phone);
+});
 
 function handleError(err) {
     if (handleAuthError(err)) return;
@@ -66,18 +71,18 @@ async function saveClient() {
     submitted.value = true;
     errorMessage.value = '';
 
-    if (!client.value.name?.trim() || !client.value.phone?.trim()) return;
+    if (!client.value.name?.trim() || !isPhoneValid.value) return;
+
+    const payload = { name: client.value.name.trim() };
+    if (client.value.phone?.trim()) payload.phone = client.value.phone.trim();
+    if (client.value.description) payload.description = client.value.description;
 
     try {
         if (client.value.id) {
-            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
-            if (client.value.description) payload.description = client.value.description;
             await clientsStore.update(client.value.id, payload);
             submitted.value = false;
             toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Cliente actualizado correctamente.', life: 3000 });
         } else {
-            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
-            if (client.value.description) payload.description = client.value.description;
             await clientsStore.create(payload);
             toast.add({ severity: 'success', summary: 'Creado', detail: 'Cliente creado correctamente.', life: 3000 });
             nav.close();
@@ -190,8 +195,8 @@ async function doDeleteClient() {
                 </div>
                 <div>
                     <label for="client-phone" class="block font-bold mb-3">Teléfono</label>
-                    <InputText id="client-phone" v-model.trim="client.phone" :invalid="submitted && !client.phone" fluid />
-                    <small v-if="submitted && !client.phone" class="text-red-500">El teléfono es requerido.</small>
+                    <InputText id="client-phone" v-model.trim="client.phone" :invalid="submitted && !isPhoneValid" fluid />
+                    <small v-if="submitted && !isPhoneValid" class="text-red-500">El teléfono debe tener exactamente 10 dígitos.</small>
                 </div>
                 <div>
                     <label for="client-description" class="block font-bold mb-3">Descripción</label>
