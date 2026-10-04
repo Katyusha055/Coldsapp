@@ -7,7 +7,7 @@ import { usePendingsStore } from '@/stores/pendings.js';
 import { useClientsStore } from '@/stores/clients.js';
 import { useWhatsappEvents } from '@/composables/useWhatsappEvents.js';
 import PlaceholderCell from '@/components/PlaceholderCell.vue';
-import { formatDate } from '@/utils/format.js';
+import { formatDate, formatPhone } from '@/utils/format.js';
 
 const toast = useToast();
 const pendingsStore = usePendingsStore();
@@ -196,7 +196,11 @@ async function convertToClient() {
                     </div>
                 </template>
 
-                <Column field="name" header="Nombre" sortable style="min-width: 14rem"></Column>
+                <Column field="name" header="Nombre" sortable style="min-width: 14rem">
+                    <template #body="slotProps">
+                        <PlaceholderCell :value="slotProps.data.name" placeholder="Sin Nombre" />
+                    </template>
+                </Column>
                 <Column field="last_message" header="Último Mensaje" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
                         <PlaceholderCell :value="slotProps.data.last_message" placeholder="Mensaje sin texto" truncate />
@@ -254,7 +258,7 @@ async function convertToClient() {
         <Dialog v-model:visible="deleteDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="pending">¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || pending.phone }}</b>?</span>
+                <span v-if="pending">¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || formatPhone(pending.remote_jid) }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteDialog = false" />
