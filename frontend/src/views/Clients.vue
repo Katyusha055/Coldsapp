@@ -8,7 +8,7 @@ import { useTicketsStore } from '@/stores/tickets.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
 import PlaceholderCell from '@/components/PlaceholderCell.vue';
-import { formatDate } from '@/utils/format.js';
+import { formatDate, ticketStatusLabel } from '@/utils/format.js';
 
 const router = useRouter();
 const toast = useToast();
@@ -171,7 +171,11 @@ async function doDeleteClient() {
                             @row-click="() => router.push('/tickets')"
                         >
                             <Column field="title" header="Título" style="min-width: 16rem"></Column>
-                            <Column field="status" header="Estado" style="min-width: 10rem"></Column>
+                            <Column field="status" header="Estado" style="min-width: 10rem">
+                                <template #body="ticketSlot">
+                                    {{ ticketStatusLabel(ticketSlot.data.status) }}
+                                </template>
+                            </Column>
                             <Column field="created_at" header="Fecha de Creación" style="min-width: 14rem">
                                 <template #body="ticketSlot">
                                     {{ formatDate(ticketSlot.data.created_at) }}

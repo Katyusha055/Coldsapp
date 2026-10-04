@@ -7,7 +7,7 @@ import { useClientsStore } from '@/stores/clients.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
 import PlaceholderCell from '@/components/PlaceholderCell.vue';
-import { formatDate } from '@/utils/format.js';
+import { formatDate, ticketStatusLabel as statusLabel } from '@/utils/format.js';
 
 const VALID_TRANSITIONS = {
     pending:     ['in_progress', 'cancelled'],
@@ -53,17 +53,6 @@ watch(
         errorMessage.value = '';
     }
 );
-
-function statusLabel(status) {
-    const labels = {
-        pending: 'Pendiente',
-        in_progress: 'En progreso',
-        ready: 'Listo',
-        delivered: 'Entregado',
-        cancelled: 'Cancelado'
-    };
-    return labels[status] ?? status;
-}
 
 function getTransitionOptions(status) {
     return (VALID_TRANSITIONS[status] ?? []).map((s) => ({ label: statusLabel(s), value: s }));
