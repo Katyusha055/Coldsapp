@@ -137,7 +137,6 @@ async function onToggleOptedOut(contact, value) {
             </DataTable>
         </div>
 
-        <Toast />
 
         <!-- Contact Detail Drawer -->
         <EntityDrawer :nav="nav" header="Detalle del Contacto">

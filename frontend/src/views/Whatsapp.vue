@@ -217,7 +217,6 @@ async function convertToClient() {
             </DataTable>
         </div>
 
-        <Toast />
 
         <!-- QR Dialog -->
         <Dialog v-model:visible="qrDialog" :style="{ width: '350px' }" header="Código QR" :modal="true">

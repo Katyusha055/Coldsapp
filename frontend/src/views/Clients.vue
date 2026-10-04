@@ -187,7 +187,6 @@ async function doDeleteClient() {
             </DataTable>
         </div>
 
-        <Toast />
 
         <!-- Create / Edit Drawer -->
         <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Cliente' : 'Editar Cliente'">

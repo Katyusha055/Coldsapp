@@ -197,7 +197,6 @@ async function onStatusChange(t, newStatus) {
             </DataTable>
         </div>
 
-        <Toast />
 
         <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Ticket' : 'Editar Ticket'">
             <div class="flex flex-col gap-6">
