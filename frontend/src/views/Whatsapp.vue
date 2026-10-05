@@ -7,7 +7,7 @@ import { usePendingsStore } from '@/stores/pendings.js';
 import { useClientsStore } from '@/stores/clients.js';
 import { useWhatsappEvents } from '@/composables/useWhatsappEvents.js';
 import PlaceholderCell from '@/components/PlaceholderCell.vue';
-import { formatDate, formatPhone } from '@/utils/format.js';
+import { formatDate, formatPhone, localPhoneFromJid } from '@/utils/format.js';
 
 const toast = useToast();
 const pendingsStore = usePendingsStore();
@@ -122,9 +122,18 @@ async function doDeletePending() {
     }
 }
 
+function notifyPhoneNotFilled(remoteJid) {
+    const detail = remoteJid?.endsWith('@lid')
+        ? 'WhatsApp oculta el número de este contacto. Ingresa el teléfono manualmente.'
+        : 'El número no es de Ecuador. Ingresa el teléfono manualmente.';
+    toast.add({ severity: 'info', summary: 'Teléfono no completado', detail, life: 5000 });
+}
+
 function openConvertDialog(row) {
     pending.value = row;
-    convertForm.value = { name: row.name ?? '', phone: '', description: '' };
+    const phone = localPhoneFromJid(row.remote_jid);
+    if (!phone) notifyPhoneNotFilled(row.remote_jid);
+    convertForm.value = { name: row.name ?? '', phone, description: '' };
     convertSubmitted.value = false;
     errorMessage.value = '';
     convertDialog.value = true;

@@ -21,6 +21,14 @@ export function ticketStatusLabel(status) {
     return TICKET_STATUS_LABELS[status] ?? status;
 }
 
+// Ecuadorian mobile JIDs only: 593 + 9 digits becomes the 10-digit local
+// form clients are stored in. Anything else (foreign numbers, @lid privacy
+// ids) has no correct local form, so it returns ''.
+export function localPhoneFromJid(remoteJid) {
+    const match = /^593(\d{9})@s\.whatsapp\.net$/.exec(remoteJid ?? '');
+    return match ? `0${match[1]}` : '';
+}
+
 export function formatPhone(remoteJid) {
     if (!remoteJid) return '';
     return `+${remoteJid.split('@')[0]}`;
