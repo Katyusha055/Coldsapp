@@ -1,34 +1,42 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getClients, createClient, updateClient, deleteClient } from '@/services/ClientService.js';
-import { getTickets } from '@/services/TicketService.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useTicketsStore } from '@/stores/tickets.js';
+import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
+import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate, ticketStatusLabel } from '@/utils/format.js';
 
 const router = useRouter();
 const toast = useToast();
+const clientsStore = useClientsStore();
+const ticketsStore = useTicketsStore();
 
-const clients = ref([]);
-const tickets = ref([]);
 const expandedRows = ref({});
-const clientDialog = ref(false);
 const deleteClientDialog = ref(false);
 const client = ref({});
+const clientToDelete = ref({});
+const nav = useDrawerNavigation(() => clientsStore.items);
+
+watch(
+    () => [nav.currentId, nav.visible],
+    () => {
+        client.value = nav.isNew ? {} : { ...clientsStore.byId(nav.currentId) };
+        submitted.value = false;
+        errorMessage.value = '';
+    }
+);
 const submitted = ref(false);
 const errorMessage = ref('');
 const loadError = ref('');
 
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
+const isPhoneValid = computed(() => {
+    const phone = client.value.phone?.trim();
+    return !phone || /^\d{10}$/.test(phone);
+});
 
 function handleError(err) {
     if (handleAuthError(err)) return;
@@ -37,9 +45,7 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [clientsData, ticketsData] = await Promise.all([getClients(), getTickets()]);
-        clients.value = clientsData;
-        tickets.value = ticketsData;
+        await Promise.all([clientsStore.load(), ticketsStore.load()]);
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load clients.';
@@ -47,7 +53,7 @@ onMounted(async () => {
 });
 
 function clientTickets(clientId) {
-    return tickets.value.filter((t) => t.client_id === clientId);
+    return ticketsStore.items.filter((t) => t.client_id === clientId);
 }
 
 function toggleRow(row) {
@@ -60,66 +66,44 @@ function toggleRow(row) {
     }
 }
 
-function openNew() {
-    client.value = {};
-    submitted.value = false;
-    errorMessage.value = '';
-    clientDialog.value = true;
-}
-
-function editClient(c) {
-    client.value = { ...c };
-    submitted.value = false;
-    errorMessage.value = '';
-    clientDialog.value = true;
-}
-
-function hideDialog() {
-    clientDialog.value = false;
-    submitted.value = false;
-    errorMessage.value = '';
-}
 
 async function saveClient() {
     submitted.value = true;
     errorMessage.value = '';
 
-    if (!client.value.name?.trim() || !client.value.phone?.trim()) return;
+    if (!client.value.name?.trim() || !isPhoneValid.value) return;
+
+    const payload = { name: client.value.name.trim() };
+    if (client.value.phone?.trim()) payload.phone = client.value.phone.trim();
+    if (client.value.description) payload.description = client.value.description;
 
     try {
         if (client.value.id) {
-            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
-            if (client.value.description) payload.description = client.value.description;
-            const updated = await updateClient(client.value.id, payload);
-            const idx = clients.value.findIndex((c) => c.id === client.value.id);
-            if (idx !== -1) clients.value[idx] = updated;
+            await clientsStore.update(client.value.id, payload);
+            submitted.value = false;
             toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Cliente actualizado correctamente.', life: 3000 });
         } else {
-            const payload = { name: client.value.name.trim(), phone: client.value.phone.trim() };
-            if (client.value.description) payload.description = client.value.description;
-            const created = await createClient(payload);
-            clients.value.push(created);
+            await clientsStore.create(payload);
             toast.add({ severity: 'success', summary: 'Creado', detail: 'Cliente creado correctamente.', life: 3000 });
+            nav.close();
         }
-        clientDialog.value = false;
-        client.value = {};
     } catch (err) {
         handleError(err);
     }
 }
 
 function confirmDeleteClient(c) {
-    client.value = c;
+    clientToDelete.value = c;
     errorMessage.value = '';
     deleteClientDialog.value = true;
 }
 
 async function doDeleteClient() {
     try {
-        await deleteClient(client.value.id);
-        clients.value = clients.value.filter((c) => c.id !== client.value.id);
+        await clientsStore.remove(clientToDelete.value.id);
+        ticketsStore.invalidate();
         deleteClientDialog.value = false;
-        client.value = {};
+        clientToDelete.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Cliente eliminado correctamente.', life: 3000 });
     } catch (err) {
         deleteClientDialog.value = false;
@@ -133,13 +117,13 @@ async function doDeleteClient() {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" @click="openNew" />
+                    <Button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
                 </template>
             </Toolbar>
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :value="clients" dataKey="id" v-model:expandedRows="expandedRows">
+            <DataTable :ref="nav.bindTable" :value="clientsStore.items" dataKey="id" v-model:expandedRows="expandedRows">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Clientes</h4>
@@ -162,7 +146,7 @@ async function doDeleteClient() {
                 <Column field="phone" header="Teléfono" sortable style="min-width: 12rem"></Column>
                 <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
+                        <PlaceholderCell :value="slotProps.data.description" placeholder="Sin descripción" truncate />
                     </template>
                 </Column>
                 <Column field="created_at" header="Fecha de Creación" sortable style="min-width: 14rem">
@@ -172,7 +156,7 @@ async function doDeleteClient() {
                 </Column>
                 <Column :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editClient(slotProps.data)" />
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="nav.open(slotProps.data.id)" />
                         <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteClient(slotProps.data)" />
                     </template>
                 </Column>
@@ -187,7 +171,11 @@ async function doDeleteClient() {
                             @row-click="() => router.push('/tickets')"
                         >
                             <Column field="title" header="Título" style="min-width: 16rem"></Column>
-                            <Column field="status" header="Estado" style="min-width: 10rem"></Column>
+                            <Column field="status" header="Estado" style="min-width: 10rem">
+                                <template #body="ticketSlot">
+                                    {{ ticketStatusLabel(ticketSlot.data.status) }}
+                                </template>
+                            </Column>
                             <Column field="created_at" header="Fecha de Creación" style="min-width: 14rem">
                                 <template #body="ticketSlot">
                                     {{ formatDate(ticketSlot.data.created_at) }}
@@ -199,10 +187,9 @@ async function doDeleteClient() {
             </DataTable>
         </div>
 
-        <Toast />
 
-        <!-- Create / Edit Dialog -->
-        <Dialog v-model:visible="clientDialog" :style="{ width: '450px' }" :header="client.id ? 'Editar Cliente' : 'Nuevo Cliente'" :modal="true">
+        <!-- Create / Edit Drawer -->
+        <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Cliente' : 'Editar Cliente'">
             <div class="flex flex-col gap-6">
                 <div>
                     <label for="client-name" class="block font-bold mb-3">Nombre</label>
@@ -211,8 +198,8 @@ async function doDeleteClient() {
                 </div>
                 <div>
                     <label for="client-phone" class="block font-bold mb-3">Teléfono</label>
-                    <InputText id="client-phone" v-model.trim="client.phone" :invalid="submitted && !client.phone" fluid />
-                    <small v-if="submitted && !client.phone" class="text-red-500">El teléfono es requerido.</small>
+                    <InputText id="client-phone" v-model.trim="client.phone" :invalid="submitted && !isPhoneValid" fluid />
+                    <small v-if="submitted && !isPhoneValid" class="text-red-500">El teléfono debe tener exactamente 10 dígitos.</small>
                 </div>
                 <div>
                     <label for="client-description" class="block font-bold mb-3">Descripción</label>
@@ -221,16 +208,18 @@ async function doDeleteClient() {
                 <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
             </div>
             <template #footer>
-                <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Guardar" icon="pi pi-check" @click="saveClient" />
+                <div class="flex justify-end gap-2">
+                    <Button label="Cancelar" icon="pi pi-times" text @click="nav.close()" />
+                    <Button label="Guardar" icon="pi pi-check" @click="saveClient" />
+                </div>
             </template>
-        </Dialog>
+        </EntityDrawer>
 
         <!-- Delete Confirmation Dialog -->
         <Dialog v-model:visible="deleteClientDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="client">¿Estás seguro de que deseas eliminar a <b>{{ client.name }}</b>?</span>
+                <span v-if="clientToDelete">¿Estás seguro de que deseas eliminar a <b>{{ clientToDelete.name }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteClientDialog = false" />

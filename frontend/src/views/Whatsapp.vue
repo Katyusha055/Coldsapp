@@ -1,22 +1,23 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getStatus, getQR, getPendingContacts, updatePendingStatus, deletePending, setNotificationsEnabled } from '@/services/WhatsappService.js';
-import { createClient } from '@/services/ClientService.js';
-import { BASE_URL } from '@/services/api.js';
+import { getStatus, getQR, setNotificationsEnabled } from '@/services/WhatsappService.js';
+import { usePendingsStore } from '@/stores/pendings.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useWhatsappEvents } from '@/composables/useWhatsappEvents.js';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate, formatPhone, localPhoneFromJid } from '@/utils/format.js';
 
 const toast = useToast();
+const pendingsStore = usePendingsStore();
+const clientsStore = useClientsStore();
 
 const status = ref('');
 const loadError = ref('');
 const errorMessage = ref('');
 
 const notificationsEnabled = ref(true);
-
-const pendingContacts = ref([]);
-
-const eventSource = ref(null);
 
 const qr = ref('');
 const qrDialog = ref(false);
@@ -35,17 +36,6 @@ const isPhoneValid = computed(() => {
     return !phone || /^\d{10}$/.test(phone);
 });
 
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
 function handleError(err) {
     if (handleAuthError(err)) return;
     errorMessage.value = err.message ?? 'An unexpected error occurred.';
@@ -53,52 +43,25 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [statusData, pendingData] = await Promise.all([getStatus(), getPendingContacts()]);
+        const [statusData] = await Promise.all([getStatus(), pendingsStore.load(true)]);
         status.value = statusData.status;
         notificationsEnabled.value = statusData.notifications_enabled ?? true;
-        pendingContacts.value = pendingData;
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load WhatsApp data.';
     }
-
-    const token = localStorage.getItem('access_token');
-    eventSource.value = new EventSource(`${BASE_URL}/whatsapp/events?token=${token}`);
-    eventSource.value.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'new_pending') {
-            pendingContacts.value.push({
-                id: data.id,
-                remote_jid: data.remote_jid,
-                name: data.name,
-                last_message: data.message,
-                last_message_at: new Date().toISOString()
-            });
-        } else if (data.type === 'pending_update') {
-            const row = pendingContacts.value.find((p) => p.remote_jid === data.remote_jid);
-            if (row) {
-                row.last_message = data.message;
-                row.last_message_at = new Date().toISOString();
-            }
-        } else if (data.type === 'connection_update') {
-            status.value = data.detail;
-            if (data.detail === 'open') {
-                qrDialog.value = false;
-                qr.value = null;
-            }
-        } else if (data.type === 'qr_updated') {
-            if (qrDialog.value) {
-                generateQR();
-            }
-        }
-    };
 });
 
-onUnmounted(() => {
-    if (eventSource.value) {
-        eventSource.value.close();
-        eventSource.value = null;
+useWhatsappEvents({
+    onConnectionUpdate(newStatus) {
+        status.value = newStatus;
+        if (newStatus === 'open') {
+            qrDialog.value = false;
+            qr.value = null;
+        }
+    },
+    onQrUpdated() {
+        if (qrDialog.value) generateQR();
     }
 });
 
@@ -134,8 +97,7 @@ async function generateQR() {
 
 async function discardPending(row) {
     try {
-        await updatePendingStatus(row.id, 'discarded');
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== row.id);
+        await pendingsStore.resolve(row.id, 'discarded');
         toast.add({ severity: 'success', summary: 'Descartado', detail: 'Contacto descartado correctamente.', life: 3000 });
     } catch (err) {
         handleError(err);
@@ -150,8 +112,7 @@ function confirmDeletePending(row) {
 
 async function doDeletePending() {
     try {
-        await deletePending(pending.value.id);
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== pending.value.id);
+        await pendingsStore.remove(pending.value.id);
         deleteDialog.value = false;
         pending.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Contacto eliminado correctamente.', life: 3000 });
@@ -161,9 +122,18 @@ async function doDeletePending() {
     }
 }
 
+function notifyPhoneNotFilled(remoteJid) {
+    const detail = remoteJid?.endsWith('@lid')
+        ? 'WhatsApp oculta el número de este contacto. Ingresa el teléfono manualmente.'
+        : 'El número no es de Ecuador. Ingresa el teléfono manualmente.';
+    toast.add({ severity: 'info', summary: 'Teléfono no completado', detail, life: 5000 });
+}
+
 function openConvertDialog(row) {
     pending.value = row;
-    convertForm.value = { name: row.name ?? '', phone: '', description: '' };
+    const phone = localPhoneFromJid(row.remote_jid);
+    if (!phone) notifyPhoneNotFilled(row.remote_jid);
+    convertForm.value = { name: row.name ?? '', phone, description: '' };
     convertSubmitted.value = false;
     errorMessage.value = '';
     convertDialog.value = true;
@@ -189,15 +159,14 @@ async function convertToClient() {
         };
         if (convertForm.value.phone?.trim()) payload.phone = convertForm.value.phone.trim();
         if (convertForm.value.description) payload.description = convertForm.value.description;
-        await createClient(payload);
+        await clientsStore.create(payload);
     } catch (err) {
         handleError(err);
         return;
     }
 
     try {
-        await updatePendingStatus(pending.value.id, 'converted');
-        pendingContacts.value = pendingContacts.value.filter((p) => p.id !== pending.value.id);
+        await pendingsStore.resolve(pending.value.id, 'converted');
         convertDialog.value = false;
         pending.value = {};
         toast.add({ severity: 'success', summary: 'Convertido', detail: 'Contacto convertido a cliente correctamente.', life: 3000 });
@@ -229,17 +198,21 @@ async function convertToClient() {
         </div>
 
         <div class="card">
-            <DataTable :value="pendingContacts" dataKey="id">
+            <DataTable :value="pendingsStore.items" dataKey="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Posibles Clientes Nuevos</h4>
                     </div>
                 </template>
 
-                <Column field="name" header="Nombre" sortable style="min-width: 14rem"></Column>
+                <Column field="name" header="Nombre" sortable style="min-width: 14rem">
+                    <template #body="slotProps">
+                        <PlaceholderCell :value="slotProps.data.name" placeholder="Sin Nombre" />
+                    </template>
+                </Column>
                 <Column field="last_message" header="Último Mensaje" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.last_message" class="block truncate">{{ slotProps.data.last_message }}</span>
+                        <PlaceholderCell :value="slotProps.data.last_message" placeholder="Mensaje sin texto" truncate />
                     </template>
                 </Column>
                 <Column header="Fecha" style="min-width: 14rem">
@@ -257,7 +230,6 @@ async function convertToClient() {
             </DataTable>
         </div>
 
-        <Toast />
 
         <!-- QR Dialog -->
         <Dialog v-model:visible="qrDialog" :style="{ width: '350px' }" header="Código QR" :modal="true">
@@ -295,7 +267,7 @@ async function convertToClient() {
         <Dialog v-model:visible="deleteDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="pending">¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || pending.phone }}</b>?</span>
+                <span v-if="pending">¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || formatPhone(pending.remote_jid) }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteDialog = false" />

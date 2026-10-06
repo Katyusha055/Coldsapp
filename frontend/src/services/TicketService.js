@@ -1,20 +1,4 @@
-import { BASE_URL, getAuthHeaders } from '@/services/api.js';
-
-async function handleResponse(response) {
-    if (response.status === 401) {
-        const err = new Error('Session expired. Please log in again.');
-        err.status = 401;
-        throw err;
-    }
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const err = new Error(data.detail ?? 'Request failed.');
-        err.status = response.status;
-        throw err;
-    }
-    if (response.status === 204) return null;
-    return response.json();
-}
+import { BASE_URL, getAuthHeaders, handleResponse } from '@/services/api.js';
 
 export async function getTickets() {
     const response = await fetch(`${BASE_URL}/tickets/`, {

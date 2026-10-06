@@ -1,5 +1,5 @@
-import { BASE_URL, getPublicHeaders } from './api.js';
-import { useContactsStore } from '@/stores/contacts.js';
+import { BASE_URL, getPublicHeaders, errorMessageFrom } from './api.js';
+import { resetAllStores } from '@/stores/createEntityStore.js';
 
 export async function register(name, phone, password) {
     const response = await fetch(`${BASE_URL}/auth/register`, {
@@ -9,7 +9,7 @@ export async function register(name, phone, password) {
     });
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail ?? 'Registration failed.');
+        throw new Error(errorMessageFrom(data.detail, 'Registration failed.'));
     }
     return response.json();
 }
@@ -23,7 +23,7 @@ export async function login(phone, password) {
     });
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail ?? 'Login failed.');
+        throw new Error(errorMessageFrom(data.detail, 'Login failed.'));
     }
     return response.json();
 }
@@ -41,7 +41,7 @@ export function removeToken() {
 }
 
 export function resetStores() {
-    useContactsStore().$reset();
+    resetAllStores();
 }
 
 export function logout() {

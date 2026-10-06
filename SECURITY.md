@@ -225,7 +225,7 @@ the store contents stayed in memory. Three changes:
 
 - `logout()` in `frontend/src/services/AuthService.js` now calls
   `removeToken()` **and** `resetStores()`, which calls Pinia's `$reset()`
-  on every session-scoped store (currently `useContactsStore`).
+  on every store built by `createEntityStore` (see the update below).
 - `Login.vue`'s `submit()` calls `resetStores()` on a successful login,
   before `saveToken()` — a guard for any logout path that doesn't route
   through `logout()`.
@@ -247,10 +247,15 @@ manual browser refresh cleared it only because that recreates the JS
 runtime and re-initializes the store.
 
 **Trade-offs / known limitations:**
-- The store list inside `resetStores()` is maintained by hand. A new
-  session-scoped Pinia store that isn't added there will leak across
-  logins in exactly the same way. There is no framework enforcement — same
-  class of gap as the manual tenancy filters noted elsewhere.
+- ~~The store list inside `resetStores()` is maintained by hand.~~
+  Resolved: every store is now built by `createEntityStore`
+  (`frontend/src/stores/createEntityStore.js`), which registers it, and
+  `resetStores()` calls `resetAllStores()` over that registry. What remains
+  is narrower: a store written with `defineStore` directly, bypassing the
+  factory, would not be reset. Nothing enforces using the factory.
+- A fetch still in flight when the reset happens could write the previous
+  session's rows into the reset store. `resetAllStores()` bumps a generation
+  counter and each fetch discards its result if the counter moved.
 - `resetStores()` only clears Pinia state. Module-scoped or component
   state that outlives navigation would not be covered; there is none of
   note today, but the guarantee is "the stores we listed", not "all
@@ -269,4 +274,4 @@ runtime and re-initializes the store.
 
 **Code reference:** `frontend/src/services/AuthService.js` (`logout`,
 `resetStores`, `handleAuthError`); `frontend/src/views/pages/auth/Login.vue`
-(`submit`).
+(`submit`); `frontend/src/stores/createEntityStore.js` (`resetAllStores`).

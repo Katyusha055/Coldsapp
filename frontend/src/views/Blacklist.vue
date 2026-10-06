@@ -3,14 +3,16 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useContactsStore } from '@/stores/contacts.js';
+import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
+import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate, formatPhone } from '@/utils/format.js';
 
 const toast = useToast();
 const store = useContactsStore();
 
 const loadError = ref('');
 
-const drawerVisible = ref(false);
-const selectedContact = ref(null);
 const editableName = ref('');
 
 const searchQuery = ref('');
@@ -26,26 +28,20 @@ const filteredContacts = computed(() => {
     return store.blacklistedContacts.filter((contact) => contact.name?.toLowerCase().includes(query));
 });
 
+const nav = useDrawerNavigation(filteredContacts);
+const selectedContact = computed(() => store.byId(nav.currentId));
+
+watch(
+    () => [nav.currentId, nav.visible],
+    () => {
+        editableName.value = selectedContact.value?.name ?? '';
+    }
+);
+
 const isNameDirty = computed(() => {
     if (!selectedContact.value) return false;
     return editableName.value.trim() !== (selectedContact.value.name ?? '');
 });
-
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function formatPhone(remoteJid) {
-    if (!remoteJid) return '';
-    return `+${remoteJid.split('@')[0]}`;
-}
 
 function errorMessageFor(err) {
     if (err.status === 404) return 'No se encontró una instancia de WhatsApp vinculada a tu cuenta.';
@@ -60,7 +56,7 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        await store.loadContacts();
+        await store.load();
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = errorMessageFor(err);
@@ -68,9 +64,7 @@ onMounted(async () => {
 });
 
 function onRowClick(event) {
-    selectedContact.value = event.data;
-    editableName.value = event.data.name ?? '';
-    drawerVisible.value = true;
+    nav.open(event.data.id);
 }
 
 async function saveName() {
@@ -100,7 +94,7 @@ async function onToggleOptedOut(contact, value) {
         </div>
 
         <div class="card">
-            <DataTable :value="filteredContacts" dataKey="id" :rowClass="() => 'cursor-pointer'" @row-click="onRowClick" paginator :rows="30" v-model:first="tableFirst" rowHover>
+            <DataTable :ref="nav.bindTable" :value="filteredContacts" dataKey="id" :rowClass="() => 'cursor-pointer'" @row-click="onRowClick" paginator :rows="30" v-model:first="tableFirst" rowHover>
                 <template #header>
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Contactos Dados de Baja</h4>
@@ -110,8 +104,7 @@ async function onToggleOptedOut(contact, value) {
 
                 <Column field="name" header="Nombre" sortable style="min-width: 14rem">
                     <template #body="slotProps">
-                        <span v-if="slotProps.data.name">{{ slotProps.data.name }}</span>
-                        <span v-else class="italic text-surface-500">Sin Nombre</span>
+                        <PlaceholderCell :value="slotProps.data.name" placeholder="Sin Nombre" />
                     </template>
                 </Column>
                 <Column field="remote_jid" header="Número" sortable style="min-width: 12rem">
@@ -144,10 +137,9 @@ async function onToggleOptedOut(contact, value) {
             </DataTable>
         </div>
 
-        <Toast />
 
         <!-- Contact Detail Drawer -->
-        <Drawer v-model:visible="drawerVisible" position="right" :style="{ width: '28rem' }" header="Detalle del Contacto">
+        <EntityDrawer :nav="nav" header="Detalle del Contacto">
             <div v-if="selectedContact" class="flex flex-col gap-6">
                 <div>
                     <label for="contact-name" class="block font-bold mb-3">Nombre</label>
@@ -179,6 +171,6 @@ async function onToggleOptedOut(contact, value) {
                     <span>{{ formatDate(selectedContact.created_at) }}</span>
                 </div>
             </div>
-        </Drawer>
+        </EntityDrawer>
     </div>
 </template>

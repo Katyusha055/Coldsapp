@@ -1,9 +1,13 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { getTickets, createTicket, updateTicket, updateTicketStatus, deleteTicket } from '@/services/TicketService.js';
-import { getClients } from '@/services/ClientService.js';
+import { useTicketsStore } from '@/stores/tickets.js';
+import { useClientsStore } from '@/stores/clients.js';
+import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
+import EntityDrawer from '@/components/EntityDrawer.vue';
+import PlaceholderCell from '@/components/PlaceholderCell.vue';
+import { formatDate, ticketStatusLabel as statusLabel } from '@/utils/format.js';
 
 const VALID_TRANSITIONS = {
     pending:     ['in_progress', 'cancelled'],
@@ -14,12 +18,12 @@ const VALID_TRANSITIONS = {
 };
 
 const toast = useToast();
+const ticketsStore = useTicketsStore();
+const clientsStore = useClientsStore();
 
-const tickets = ref([]);
-const clients = ref([]);
-const ticketDialog = ref(false);
 const deleteTicketDialog = ref(false);
 const ticket = ref({});
+const ticketToDelete = ref({});
 const submitted = ref(false);
 const errorMessage = ref('');
 const loadError = ref('');
@@ -35,31 +39,20 @@ const filterStatusOptions = [
 ];
 
 const filteredTickets = computed(() => {
-    if (filterStatus.value === 'all') return tickets.value;
-    return tickets.value.filter((t) => t.status === filterStatus.value);
+    if (filterStatus.value === 'all') return ticketsStore.items;
+    return ticketsStore.items.filter((t) => t.status === filterStatus.value);
 });
 
-function formatDate(value) {
-    if (!value) return '';
-    return new Date(value).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
+const nav = useDrawerNavigation(filteredTickets);
 
-function statusLabel(status) {
-    const labels = {
-        pending: 'Pendiente',
-        in_progress: 'En progreso',
-        ready: 'Listo',
-        delivered: 'Entregado',
-        cancelled: 'Cancelado'
-    };
-    return labels[status] ?? status;
-}
+watch(
+    () => [nav.currentId, nav.visible],
+    () => {
+        ticket.value = nav.isNew ? {} : { ...ticketsStore.byId(nav.currentId) };
+        submitted.value = false;
+        errorMessage.value = '';
+    }
+);
 
 function getTransitionOptions(status) {
     return (VALID_TRANSITIONS[status] ?? []).map((s) => ({ label: statusLabel(s), value: s }));
@@ -72,34 +65,13 @@ function handleError(err) {
 
 onMounted(async () => {
     try {
-        const [ticketsData, clientsData] = await Promise.all([getTickets(), getClients()]);
-        tickets.value = ticketsData;
-        clients.value = clientsData;
+        await Promise.all([ticketsStore.load(), clientsStore.load()]);
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = err.message ?? 'Failed to load data.';
     }
 });
 
-function openNew() {
-    ticket.value = {};
-    submitted.value = false;
-    errorMessage.value = '';
-    ticketDialog.value = true;
-}
-
-function editTicket(t) {
-    ticket.value = { ...t };
-    submitted.value = false;
-    errorMessage.value = '';
-    ticketDialog.value = true;
-}
-
-function hideDialog() {
-    ticketDialog.value = false;
-    submitted.value = false;
-    errorMessage.value = '';
-}
 
 async function saveTicket() {
     submitted.value = true;
@@ -110,34 +82,30 @@ async function saveTicket() {
 
     try {
         if (ticket.value.id) {
-            const updated = await updateTicket(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
-            const idx = tickets.value.findIndex((t) => t.id === ticket.value.id);
-            if (idx !== -1) tickets.value[idx] = updated;
+            await ticketsStore.update(ticket.value.id, ticket.value.title.trim(), ticket.value.description);
+            submitted.value = false;
             toast.add({ severity: 'success', summary: 'Actualizado', detail: 'Ticket actualizado correctamente.', life: 3000 });
         } else {
-            const created = await createTicket(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
-            tickets.value.push(created);
+            await ticketsStore.create(ticket.value.client_id, ticket.value.title.trim(), ticket.value.description);
             toast.add({ severity: 'success', summary: 'Creado', detail: 'Ticket creado correctamente.', life: 3000 });
+            nav.close();
         }
-        ticketDialog.value = false;
-        ticket.value = {};
     } catch (err) {
         handleError(err);
     }
 }
 
 function confirmDeleteTicket(t) {
-    ticket.value = t;
+    ticketToDelete.value = t;
     errorMessage.value = '';
     deleteTicketDialog.value = true;
 }
 
 async function doDeleteTicket() {
     try {
-        await deleteTicket(ticket.value.id);
-        tickets.value = tickets.value.filter((t) => t.id !== ticket.value.id);
+        await ticketsStore.remove(ticketToDelete.value.id);
         deleteTicketDialog.value = false;
-        ticket.value = {};
+        ticketToDelete.value = {};
         toast.add({ severity: 'success', summary: 'Eliminado', detail: 'Ticket eliminado correctamente.', life: 3000 });
     } catch (err) {
         deleteTicketDialog.value = false;
@@ -147,9 +115,7 @@ async function doDeleteTicket() {
 
 async function onStatusChange(t, newStatus) {
     try {
-        const updated = await updateTicketStatus(t.id, newStatus);
-        const idx = tickets.value.findIndex((tk) => tk.id === t.id);
-        if (idx !== -1) tickets.value[idx] = updated;
+        const updated = await ticketsStore.setStatus(t.id, newStatus);
         toast.add({ severity: 'success', summary: 'Estado actualizado', detail: `Ticket movido a ${statusLabel(newStatus)}.`, life: 3000 });
 
         if (newStatus === 'ready') {
@@ -175,13 +141,13 @@ async function onStatusChange(t, newStatus) {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo Ticket" icon="pi pi-plus" severity="secondary" @click="openNew" />
+                    <Button label="Nuevo Ticket" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
                 </template>
             </Toolbar>
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :value="filteredTickets" dataKey="id">
+            <DataTable :ref="nav.bindTable" :value="filteredTickets" dataKey="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Tickets</h4>
@@ -192,7 +158,7 @@ async function onStatusChange(t, newStatus) {
                 <Column field="title" header="Título" sortable style="min-width: 16rem"></Column>
                 <Column field="description" header="Descripción" style="min-width: 20rem; max-width: 20rem">
                     <template #body="slotProps">
-                        <span v-tooltip.top="slotProps.data.description" class="block truncate">{{ slotProps.data.description }}</span>
+                        <PlaceholderCell :value="slotProps.data.description" placeholder="Sin descripción" truncate />
                     </template>
                 </Column>
                 <Column header="Estado" style="min-width: 14rem">
@@ -224,23 +190,22 @@ async function onStatusChange(t, newStatus) {
                 </Column>
                 <Column :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editTicket(slotProps.data)" />
+                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="nav.open(slotProps.data.id)" />
                         <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteTicket(slotProps.data)" />
                     </template>
                 </Column>
             </DataTable>
         </div>
 
-        <Toast />
 
-        <Dialog v-model:visible="ticketDialog" :style="{ width: '450px' }" :header="ticket.id ? 'Editar Ticket' : 'Nuevo Ticket'" :modal="true">
+        <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Ticket' : 'Editar Ticket'">
             <div class="flex flex-col gap-6">
-                <div v-if="!ticket.id">
+                <div v-if="nav.isNew">
                     <label for="ticket-client" class="block font-bold mb-3">Cliente</label>
                     <Select
                         id="ticket-client"
                         v-model="ticket.client_id"
-                        :options="clients"
+                        :options="clientsStore.items"
                         optionLabel="name"
                         optionValue="id"
                         placeholder="Seleccionar un cliente"
@@ -251,7 +216,7 @@ async function onStatusChange(t, newStatus) {
                         <template #option="slotProps">
                             <div class="flex flex-col">
                                 <span>{{ slotProps.option.name }}</span>
-                                <small class="text-surface-400">{{ tickets.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
+                                <small class="text-surface-400">{{ ticketsStore.items.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
                             </div>
                         </template>
                     </Select>
@@ -269,15 +234,17 @@ async function onStatusChange(t, newStatus) {
                 <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
             </div>
             <template #footer>
-                <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog" />
-                <Button label="Guardar" icon="pi pi-check" @click="saveTicket" />
+                <div class="flex justify-end gap-2">
+                    <Button label="Cancelar" icon="pi pi-times" text @click="nav.close()" />
+                    <Button label="Guardar" icon="pi pi-check" @click="saveTicket" />
+                </div>
             </template>
-        </Dialog>
+        </EntityDrawer>
 
         <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="ticket">¿Estás seguro de que deseas eliminar <b>{{ ticket.title }}</b>?</span>
+                <span v-if="ticketToDelete">¿Estás seguro de que deseas eliminar <b>{{ ticketToDelete.title }}</b>?</span>
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteTicketDialog = false" />
