@@ -2,23 +2,17 @@ import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
+
 def setup_logging():
-    '''
-    Sets up the logging system for the program 
-    '''
+    """
+    Sets up the logging system for the program
+    """
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
 
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 
-    file_handler = RotatingFileHandler(
-        log_dir / "app.log",
-        maxBytes=1_000_000,
-        backupCount=3,
-        encoding="utf-8"
-    )
+    file_handler = RotatingFileHandler(log_dir / "app.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
 

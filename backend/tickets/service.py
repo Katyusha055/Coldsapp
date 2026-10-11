@@ -7,11 +7,11 @@ from backend.shared.error_handlers import handle_evo_errors
 from backend.tickets.models import TicketResponse
 
 VALID_TRANSITIONS = {
-    "pending":     ["in_progress", "cancelled"],
+    "pending": ["in_progress", "cancelled"],
     "in_progress": ["ready", "cancelled"],
-    "ready":       ["delivered", "cancelled"],
-    "delivered":   [],
-    "cancelled":   []
+    "ready": ["delivered", "cancelled"],
+    "delivered": [],
+    "cancelled": [],
 }
 
 
@@ -106,10 +106,7 @@ async def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketRes
     current_status = current_ticket["status"]
 
     if new_status not in VALID_TRANSITIONS[current_status]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot transition from {current_status} to {new_status}"
-        )
+        raise HTTPException(status_code=400, detail=f"Cannot transition from {current_status} to {new_status}")
 
     ready_at = None
     delivered_at = None

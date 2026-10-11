@@ -7,28 +7,19 @@ def row_to_dict(cursor, row):
 
 def get_user_by_phone(conn, phone: str) -> dict | None:
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, name, phone FROM users WHERE phone = %s",
-            (phone,)
-        )
+        cur.execute("SELECT id, name, phone FROM users WHERE phone = %s", (phone,))
         return row_to_dict(cur, cur.fetchone())
 
 
 def get_user_credentials(conn, phone: str) -> dict | None:
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, password_hash FROM users WHERE phone = %s",
-            (phone,)
-        )
+        cur.execute("SELECT id, password_hash FROM users WHERE phone = %s", (phone,))
         return row_to_dict(cur, cur.fetchone())
 
 
 def get_user_by_id(conn, user_id: int) -> dict | None:
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, name, phone FROM users WHERE id = %s",
-            (user_id,)
-        )
+        cur.execute("SELECT id, name, phone FROM users WHERE id = %s", (user_id,))
         return row_to_dict(cur, cur.fetchone())
 
 
@@ -40,7 +31,7 @@ def create_user(conn, user_data: dict) -> dict:
             VALUES (%s, %s, %s)
             RETURNING id, name, phone
             """,
-            (user_data["name"], user_data["phone"], user_data["password_hash"])
+            (user_data["name"], user_data["phone"], user_data["password_hash"]),
         )
         row = cur.fetchone()
         return row_to_dict(cur, row)

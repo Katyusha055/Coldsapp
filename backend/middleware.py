@@ -26,9 +26,7 @@ def setup_middleware(app: FastAPI) -> None:
         # brick the browser. request.url.scheme reads "https" behind Railway's
         # proxy thanks to uvicorn's --proxy-headers.
         if settings.is_production and request.url.scheme == "https":
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=63072000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
 
         return response
 

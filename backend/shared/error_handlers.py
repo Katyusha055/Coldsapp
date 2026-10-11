@@ -18,6 +18,7 @@ def handle_evo_errors(func):
             raise HTTPException(status_code=503, detail="Evolution API unreachable")
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
     return wrapper
 
 
@@ -30,6 +31,7 @@ def safe_dispatch(feature_name):
     responds 200 regardless of what happened here; the error log is the only
     failure signal.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(instance, payload):
@@ -39,9 +41,13 @@ def safe_dispatch(feature_name):
                 remote_jid = payload.get("data", {}).get("key", {}).get("remoteJid")
                 logger.error(
                     "[webhook:messages.upsert] %s dispatch failed (remote_jid=%s, instance_id=%s)",
-                    feature_name, remote_jid, instance.get("id"),
+                    feature_name,
+                    remote_jid,
+                    instance.get("id"),
                     exc_info=True,
                 )
                 return None
+
         return wrapper
+
     return decorator

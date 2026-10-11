@@ -1,9 +1,7 @@
 import pytest
 
 
-def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_payload(
-    api_client, auth_headers
-):
+def test_post_tickets_endpoint_creates_ticket_validates_db_and_rejects_invalid_payload(api_client, auth_headers):
     from backend.shared.connect import connect
 
     headers = auth_headers()

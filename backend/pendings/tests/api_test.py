@@ -32,6 +32,7 @@ def _create_pending(instance_id, remote_jid="123@s.whatsapp.net", name="Jane", l
 
 # --- GET /whatsapp/pending ---
 
+
 def test_get_pending_contacts_endpoint_returns_empty_then_populated_list(create_user, auth_headers, api_client):
     user = create_user("0999999999")
     headers = auth_headers("0999999999")
@@ -55,6 +56,7 @@ def test_get_pending_contacts_endpoint_returns_empty_then_populated_list(create_
 
 
 # --- PATCH /whatsapp/pending/{id}/status ---
+
 
 def test_update_pending_status_endpoint_updates_status_and_rejects_invalid(create_user, auth_headers, api_client):
     user = create_user("0999999999")
@@ -88,6 +90,7 @@ def test_update_pending_status_endpoint_updates_status_and_rejects_invalid(creat
 
 
 # --- DELETE /whatsapp/pending/{id} ---
+
 
 def test_delete_pending_endpoint_deletes_and_returns_404_when_missing(create_user, auth_headers, api_client):
     user = create_user("0999999999")

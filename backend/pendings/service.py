@@ -50,13 +50,25 @@ def handle_incoming_message(instance, payload):
                 # contact; fall back to treating it as an update.
                 pending = rep.get_pending_by_remote_jid(conn, remote_jid, instance["id"])
             else:
-                result = {"type": "new_pending", "id": created["id"], "remote_jid": remote_jid, "name": name, "message": message}
+                result = {
+                    "type": "new_pending",
+                    "id": created["id"],
+                    "remote_jid": remote_jid,
+                    "name": name,
+                    "message": message,
+                }
 
         if result is None:
             if pending is None or pending["status"] in ("converted", "discarded"):
                 return None
             rep.update_pending_message(conn, pending["id"], message)
-            result = {"type": "pending_update", "id": pending["id"], "remote_jid": remote_jid, "name": name, "message": message}
+            result = {
+                "type": "pending_update",
+                "id": pending["id"],
+                "remote_jid": remote_jid,
+                "name": name,
+                "message": message,
+            }
 
     return result
 

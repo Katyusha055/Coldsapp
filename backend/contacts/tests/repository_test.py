@@ -44,6 +44,7 @@ def _contact_row(remote_jid, instance_id):
 
 # --- repair_and_touch ---
 
+
 def test_repair_and_touch_fills_null_name_and_updates_timestamp(create_user):
     user = create_user("0999999999")
     instance_id = _create_instance(user["id"])

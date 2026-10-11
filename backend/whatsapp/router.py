@@ -13,19 +13,20 @@ from sse_starlette.sse import EventSourceResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix='/whatsapp',
-    tags=['whatsapp'],
+    prefix="/whatsapp",
+    tags=["whatsapp"],
 )
 
 
-@router.get('/', response_model=mdl.QrResponse)
+@router.get("/", response_model=mdl.QrResponse)
 async def get_qr_endpoint(user: CurrentUser):
-    return await ser.get_qr(user['id'])
+    return await ser.get_qr(user["id"])
 
 
-@router.get('/status', response_model=mdl.StatusResponse)
+@router.get("/status", response_model=mdl.StatusResponse)
 async def get_status_endpoint(user: CurrentUser):
-    return await ser.instance_status(user['id'])
+    return await ser.instance_status(user["id"])
+
 
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
@@ -37,10 +38,10 @@ async def whatsapp_webhook(request: Request):
     return {"status": "ok", "event": result}
 
 
-@router.get('/events')
+@router.get("/events")
 async def whatsapp_events(user: CurrentUserFromQuery):
     queue = asyncio.Queue()
-    events.register_queue(user['id'], queue)
+    events.register_queue(user["id"], queue)
 
     async def generate():
         try:
@@ -48,11 +49,11 @@ async def whatsapp_events(user: CurrentUserFromQuery):
                 event = await queue.get()
                 yield json.dumps(event)
         finally:
-            events.deregister_queue(user['id'])
+            events.deregister_queue(user["id"])
 
     return EventSourceResponse(generate())
 
 
-@router.patch('/notifications')
+@router.patch("/notifications")
 async def update_notifications_endpoint(payload: mdl.NotificationsToggle, user: CurrentUser):
-    return ser.set_notifications_enabled(user['id'], payload.enabled)
+    return ser.set_notifications_enabled(user["id"], payload.enabled)

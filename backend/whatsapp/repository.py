@@ -96,7 +96,7 @@ async def create_evolution_instance(instance_name):
                 "webhook": {
                     "enabled": True,
                     "url": WHATSAPP_WEBHOOK_URL,
-                    "events": ["MESSAGES_UPSERT", 'CONNECTION_UPDATE', "QRCODE_UPDATED"],
+                    "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
                 },
             },
         )

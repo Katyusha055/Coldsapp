@@ -18,11 +18,13 @@ async def get_or_create_instance(user_id):
         await rep.create_evolution_instance(instance_name)
         return rep.create_instance(conn, user_id, instance_name)
 
+
 @handle_evo_errors
 async def get_qr(user_id):
     instance = await get_or_create_instance(user_id)
     qr = await rep.get_evolution_qr(instance["instance_name"])
     return {"qr": qr}
+
 
 @handle_evo_errors
 async def instance_status(user_id):
