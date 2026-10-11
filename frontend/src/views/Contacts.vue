@@ -106,7 +106,7 @@ async function onToggleOptedOut(contact, value) {
         </div>
 
         <div class="card">
-            <DataTable :ref="nav.bindTable" :value="filteredContacts" dataKey="id" :rowClass="() => 'cursor-pointer'" @row-click="onRowClick" paginator :rows="30" v-model:first="tableFirst" rowHover>
+            <DataTable :ref="nav.bindTable" v-model:first="tableFirst" :value="filteredContacts" data-key="id" :row-class="() => 'cursor-pointer'" paginator :rows="30" row-hover @row-click="onRowClick">
                 <template #header>
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Contactos Activos</h4>
@@ -142,13 +142,12 @@ async function onToggleOptedOut(contact, value) {
                 <Column field="opted_out" header="Dado de Baja" style="min-width: 8rem">
                     <template #body="slotProps">
                         <div @click.stop>
-                            <Checkbox binary :modelValue="slotProps.data.opted_out" @update:modelValue="(value) => onToggleOptedOut(slotProps.data, value)" />
+                            <Checkbox binary :model-value="slotProps.data.opted_out" @update:model-value="(value) => onToggleOptedOut(slotProps.data, value)" />
                         </div>
                     </template>
                 </Column>
             </DataTable>
         </div>
-
 
         <!-- Contact Detail Drawer -->
         <EntityDrawer :nav="nav" header="Detalle del Contacto">
@@ -165,7 +164,7 @@ async function onToggleOptedOut(contact, value) {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <Checkbox inputId="contact-opted-out" binary :modelValue="selectedContact.opted_out" @update:modelValue="(value) => onToggleOptedOut(selectedContact, value)" />
+                    <Checkbox input-id="contact-opted-out" binary :model-value="selectedContact.opted_out" @update:model-value="(value) => onToggleOptedOut(selectedContact, value)" />
                     <label for="contact-opted-out">Dado de baja</label>
                 </div>
                 <small class="text-surface-500 -mt-4">Los contactos dados de baja no reciben campañas de difusión.</small>

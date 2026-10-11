@@ -35,9 +35,7 @@ onMounted(async () => {
                 <ProgressSpinner style="width: 40px; height: 40px" />
             </div>
             <div v-else class="cursor-pointer" @click="router.push('/whatsapp')">
-                <div v-if="pendingContacts.length === 0" class="text-muted-color text-center py-4">
-                    Sin contactos pendientes
-                </div>
+                <div v-if="pendingContacts.length === 0" class="text-muted-color text-center py-4">Sin contactos pendientes</div>
                 <div v-else class="flex items-center justify-between p-3 border border-surface rounded hover:bg-emphasis transition-colors">
                     <span class="font-semibold">{{ pendingContacts.length }} contacto(s) esperando revisión</span>
                     <i class="pi pi-arrow-right text-muted-color" />

@@ -53,8 +53,8 @@ function confirmLogout() {
             </div>
 
             <button
-                class="layout-topbar-menu-button layout-topbar-action"
                 v-styleclass="{ selector: '@next', enterFromClass: 'hidden', enterActiveClass: 'p-anchored-overlay-enter-active', leaveToClass: 'hidden', leaveActiveClass: 'p-anchored-overlay-leave-active', hideOnOutsideClick: true }"
+                class="layout-topbar-menu-button layout-topbar-action"
             >
                 <i class="pi pi-ellipsis-v"></i>
             </button>
@@ -70,14 +70,14 @@ function confirmLogout() {
         </div>
     </div>
 
-    <Dialog header="Confirmación" v-model:visible="showLogoutDialog" :style="{ width: '350px' }" :modal="true">
+    <Dialog v-model:visible="showLogoutDialog" header="Confirmación" :style="{ width: '350px' }" :modal="true">
         <div class="flex items-center justify-center">
             <i class="pi pi-exclamation-triangle mr-4" style="font-size: 2rem" />
             <span>¿Estás seguro de que deseas cerrar sesión?</span>
         </div>
         <template #footer>
-            <Button label="No" icon="pi pi-times" @click="showLogoutDialog = false" text severity="secondary" />
-            <Button label="Sí" icon="pi pi-check" @click="confirmLogout" severity="danger" outlined autofocus />
+            <Button label="No" icon="pi pi-times" text severity="secondary" @click="showLogoutDialog = false" />
+            <Button label="Sí" icon="pi pi-check" severity="danger" outlined autofocus @click="confirmLogout" />
         </template>
     </Dialog>
 </template>

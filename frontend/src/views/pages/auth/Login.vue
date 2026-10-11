@@ -55,10 +55,10 @@ async function submit() {
 
                     <div>
                         <label for="phone1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Teléfono</label>
-                        <InputText id="phone1" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-8" v-model="phone" />
+                        <InputText id="phone1" v-model="phone" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-8" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Contraseña</label>
-                        <Password id="password1" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
+                        <Password id="password1" v-model="password" placeholder="Contraseña" :toggle-mask="true" class="mb-4" fluid :feedback="false"></Password>
 
                         <small v-if="sessionExpired" class="text-yellow-500 block mb-4 mt-2">Tu sesión ha expirado. Por favor, inicia sesión de nuevo.</small>
                         <small v-if="apiError" class="text-red-500 block mb-4 mt-2">{{ apiError }}</small>

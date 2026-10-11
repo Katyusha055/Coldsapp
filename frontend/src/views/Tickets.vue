@@ -10,11 +10,11 @@ import PlaceholderCell from '@/components/PlaceholderCell.vue';
 import { formatDate, ticketStatusLabel as statusLabel } from '@/utils/format.js';
 
 const VALID_TRANSITIONS = {
-    pending:     ['in_progress', 'cancelled'],
+    pending: ['in_progress', 'cancelled'],
     in_progress: ['ready', 'cancelled'],
-    ready:       ['delivered', 'cancelled'],
-    delivered:   [],
-    cancelled:   []
+    ready: ['delivered', 'cancelled'],
+    delivered: [],
+    cancelled: []
 };
 
 const toast = useToast();
@@ -71,7 +71,6 @@ onMounted(async () => {
         loadError.value = err.message ?? 'Failed to load data.';
     }
 });
-
 
 async function saveTicket() {
     submitted.value = true;
@@ -147,11 +146,11 @@ async function onStatusChange(t, newStatus) {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :ref="nav.bindTable" :value="filteredTickets" dataKey="id">
+            <DataTable :ref="nav.bindTable" :value="filteredTickets" data-key="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Tickets</h4>
-                        <Select v-model="filterStatus" :options="filterStatusOptions" optionLabel="label" optionValue="value" />
+                        <Select v-model="filterStatus" :options="filterStatusOptions" option-label="label" option-value="value" />
                     </div>
                 </template>
 
@@ -168,13 +167,13 @@ async function onStatusChange(t, newStatus) {
                         </span>
                         <Select
                             v-else
-                            :modelValue="null"
+                            :model-value="null"
                             :options="getTransitionOptions(slotProps.data.status)"
-                            optionLabel="label"
-                            optionValue="value"
+                            option-label="label"
+                            option-value="value"
                             :placeholder="statusLabel(slotProps.data.status)"
-                            @change="(e) => onStatusChange(slotProps.data, e.value)"
                             fluid
+                            @change="(e) => onStatusChange(slotProps.data, e.value)"
                         />
                     </template>
                 </Column>
@@ -197,26 +196,15 @@ async function onStatusChange(t, newStatus) {
             </DataTable>
         </div>
 
-
         <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Ticket' : 'Editar Ticket'">
             <div class="flex flex-col gap-6">
                 <div v-if="nav.isNew">
                     <label for="ticket-client" class="block font-bold mb-3">Cliente</label>
-                    <Select
-                        id="ticket-client"
-                        v-model="ticket.client_id"
-                        :options="clientsStore.items"
-                        optionLabel="name"
-                        optionValue="id"
-                        placeholder="Seleccionar un cliente"
-                        filter
-                        :invalid="submitted && !ticket.client_id"
-                        fluid
-                    >
+                    <Select id="ticket-client" v-model="ticket.client_id" :options="clientsStore.items" option-label="name" option-value="id" placeholder="Seleccionar un cliente" filter :invalid="submitted && !ticket.client_id" fluid>
                         <template #option="slotProps">
                             <div class="flex flex-col">
                                 <span>{{ slotProps.option.name }}</span>
-                                <small class="text-surface-400">{{ ticketsStore.items.filter(t => t.client_id === slotProps.option.id).length }} tickets</small>
+                                <small class="text-surface-400">{{ ticketsStore.items.filter((t) => t.client_id === slotProps.option.id).length }} tickets</small>
                             </div>
                         </template>
                     </Select>
@@ -244,7 +232,10 @@ async function onStatusChange(t, newStatus) {
         <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="ticketToDelete">¿Estás seguro de que deseas eliminar <b>{{ ticketToDelete.title }}</b>?</span>
+                <span v-if="ticketToDelete"
+                    >¿Estás seguro de que deseas eliminar <b>{{ ticketToDelete.title }}</b
+                    >?</span
+                >
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteTicketDialog = false" />

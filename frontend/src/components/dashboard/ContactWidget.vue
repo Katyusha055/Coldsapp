@@ -1,5 +1,4 @@
-<script setup>
-</script>
+<script setup></script>
 
 <template>
     <Card>
@@ -11,12 +10,7 @@
                     <span class="text-lg font-medium">+593 000 000 000</span>
                 </div>
                 <div>
-                    <Button
-                        label="Abrir WhatsApp"
-                        icon="pi pi-whatsapp"
-                        :disabled="true"
-                        v-tooltip.right="'Próximamente'"
-                    />
+                    <Button v-tooltip.right="'Próximamente'" label="Abrir WhatsApp" icon="pi pi-whatsapp" :disabled="true" />
                 </div>
             </div>
         </template>

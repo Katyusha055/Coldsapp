@@ -66,7 +66,6 @@ function toggleRow(row) {
     }
 }
 
-
 async function saveClient() {
     submitted.value = true;
     errorMessage.value = '';
@@ -123,7 +122,7 @@ async function doDeleteClient() {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :ref="nav.bindTable" :value="clientsStore.items" dataKey="id" v-model:expandedRows="expandedRows">
+            <DataTable :ref="nav.bindTable" v-model:expanded-rows="expandedRows" :value="clientsStore.items" data-key="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Clientes</h4>
@@ -132,14 +131,7 @@ async function doDeleteClient() {
 
                 <Column style="width: 3rem">
                     <template #body="slotProps">
-                        <Button
-                            :icon="slotProps.data.id in expandedRows ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                            text
-                            rounded
-                            size="small"
-                            v-tooltip.top="'Ver tickets'"
-                            @click="toggleRow(slotProps.data)"
-                        />
+                        <Button v-tooltip.top="'Ver tickets'" :icon="slotProps.data.id in expandedRows ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" text rounded size="small" @click="toggleRow(slotProps.data)" />
                     </template>
                 </Column>
                 <Column field="name" header="Nombre" sortable style="min-width: 16rem"></Column>
@@ -163,13 +155,7 @@ async function doDeleteClient() {
 
                 <template #expansion="slotProps">
                     <div class="p-4">
-                        <DataTable
-                            :value="clientTickets(slotProps.data.id)"
-                            dataKey="id"
-                            emptyMessage="No se encontraron tickets."
-                            :rowClass="() => 'cursor-pointer'"
-                            @row-click="() => router.push('/tickets')"
-                        >
+                        <DataTable :value="clientTickets(slotProps.data.id)" data-key="id" empty-message="No se encontraron tickets." :row-class="() => 'cursor-pointer'" @row-click="() => router.push('/tickets')">
                             <Column field="title" header="Título" style="min-width: 16rem"></Column>
                             <Column field="status" header="Estado" style="min-width: 10rem">
                                 <template #body="ticketSlot">
@@ -186,7 +172,6 @@ async function doDeleteClient() {
                 </template>
             </DataTable>
         </div>
-
 
         <!-- Create / Edit Drawer -->
         <EntityDrawer :nav="nav" :header="nav.isNew ? 'Nuevo Cliente' : 'Editar Cliente'">
@@ -219,7 +204,10 @@ async function doDeleteClient() {
         <Dialog v-model:visible="deleteClientDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="clientToDelete">¿Estás seguro de que deseas eliminar a <b>{{ clientToDelete.name }}</b>?</span>
+                <span v-if="clientToDelete"
+                    >¿Estás seguro de que deseas eliminar a <b>{{ clientToDelete.name }}</b
+                    >?</span
+                >
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteClientDialog = false" />
