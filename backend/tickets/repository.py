@@ -1,8 +1,11 @@
 import httpx
+from psycopg import sql
 from backend.settings import settings
 
 EVO_API_URL = settings.EVO_API_URL
 EVO_API_TOKEN = settings.EVO_API_TOKEN
+
+UPDATABLE_FIELDS = {"title", "description"}
 
 
 def _row_to_ticket_dict(row) -> dict:
@@ -118,28 +121,25 @@ def update_ticket(conn, user_id, ticket_id, data: dict) -> dict:
     """
     Updates one ticket for one user.
 
-    Input dict: {"title": str | None, "description": str | None}
+    Input dict: any subset of UPDATABLE_FIELDS
     Output dict: ResponseTicket-compatible dict, or None if not found
+    Raises ValueError on a key outside UPDATABLE_FIELDS.
     """
-    
-    set_parts = []
-    values = []
+    unknown_fields = data.keys() - UPDATABLE_FIELDS
+    if unknown_fields:
+        raise ValueError(f"Fields not updatable: {sorted(unknown_fields)}")
 
-    for field, value in data.items():
-        set_parts.append(f"{field} = %s")
-        values.append(value)
+    set_parts = [sql.SQL("{} = %s").format(sql.Identifier(field)) for field in data]
+    set_parts.append(sql.SQL("updated_at = NOW()"))
+    values = [*data.values(), ticket_id, user_id]
 
-    set_parts.append("updated_at = NOW()")
-    set_clause = ", ".join(set_parts)
-    values.extend([ticket_id, user_id])
-
-    query = f"""
+    query = sql.SQL("""
     UPDATE tickets
     SET {set_clause}
     WHERE id = %s AND user_id = %s AND deleted_at IS NULL
     RETURNING id, user_id, client_id, title, description, status,
               received_at, ready_at, delivered_at, created_at, updated_at
-    """
+    """).format(set_clause=sql.SQL(", ").join(set_parts))
 
     with conn.cursor() as cur:
         cur.execute(query, values)
@@ -206,27 +206,26 @@ def update_ticket_status(conn, user_id, ticket_id, status, ready_at=None, delive
 
     Output dict: ResponseTicket-compatible dict, or None if not found
     """
-    set_parts = ["status = %s", "updated_at = NOW()"]
+    set_parts = [sql.SQL("status = %s"), sql.SQL("updated_at = NOW()")]
     values = [status]
 
     if ready_at is not None:
-        set_parts.append("ready_at = %s")
+        set_parts.append(sql.SQL("ready_at = %s"))
         values.append(ready_at)
 
     if delivered_at is not None:
-        set_parts.append("delivered_at = %s")
+        set_parts.append(sql.SQL("delivered_at = %s"))
         values.append(delivered_at)
 
-    set_clause = ", ".join(set_parts)
     values.extend([ticket_id, user_id])
 
-    query = f"""
+    query = sql.SQL("""
     UPDATE tickets
     SET {set_clause}
     WHERE id = %s AND user_id = %s AND deleted_at IS NULL
     RETURNING id, user_id, client_id, title, description, status,
               received_at, ready_at, delivered_at, created_at, updated_at
-    """
+    """).format(set_clause=sql.SQL(", ").join(set_parts))
 
     with conn.cursor() as cur:
         cur.execute(query, values)

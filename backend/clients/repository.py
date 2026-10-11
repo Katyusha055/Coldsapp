@@ -1,3 +1,8 @@
+from psycopg import sql
+
+UPDATABLE_FIELDS = {"name", "phone", "description"}
+
+
 def _row_to_client_dict(row: dict) -> dict:
     return {
         "id": row[0],
@@ -69,26 +74,24 @@ def update_client(conn, user_id, client_id, data: dict) -> dict:
     """
     Updates one client for one user.
 
-    Input dict: {"name": str, "phone": str, "description": str | None}
+    Input dict: any subset of UPDATABLE_FIELDS
     Output dict: ResponseClient-compatible dict (empty dict when not found)
+    Raises ValueError on a key outside UPDATABLE_FIELDS.
     """
+    unknown_fields = data.keys() - UPDATABLE_FIELDS
+    if unknown_fields:
+        raise ValueError(f"Fields not updatable: {sorted(unknown_fields)}")
+
     with conn.cursor() as cur:
-        set_parts = []
-        values = []
+        set_parts = [sql.SQL("{} = %s").format(sql.Identifier(field)) for field in data]
+        values = [*data.values(), client_id, user_id]
 
-        for field, value in data.items():
-            set_parts.append(f"{field} = %s")
-            values.append(value)
-
-        set_clause = ", ".join(set_parts)
-        values.extend([client_id, user_id])
-
-        query = f"""
+        query = sql.SQL("""
         UPDATE clients
         SET {set_clause}
         WHERE id = %s AND user_id = %s
         RETURNING id, name, phone, description, created_at, whatsapp_id
-        """
+        """).format(set_clause=sql.SQL(", ").join(set_parts))
 
         cur.execute(query, values)
         row = cur.fetchone()

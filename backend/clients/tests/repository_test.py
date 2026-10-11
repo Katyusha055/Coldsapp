@@ -101,10 +101,20 @@ def test_update_client_1(mocked_conn_and_cursor, sample_row):
 
     cur.execute.assert_called_once()
     query, values = cur.execute.call_args.args
+    query = query.as_string()
     assert "UPDATE clients" in query
-    assert "name = %s" in query
-    assert "description = %s" in query
+    assert '"name" = %s' in query
+    assert '"description" = %s' in query
     assert values == ["Juanita", "Actualizada", 10, 1]
+
+
+def test_update_client_rejects_unknown_field(mocked_conn_and_cursor):
+    conn, cur = mocked_conn_and_cursor
+
+    with pytest.raises(ValueError):
+        rep.update_client(conn, 1, 10, {"name": "Juanita", "user_id": 2})
+
+    cur.execute.assert_not_called()
 
 
 def test_delete_client_happy_path(mocked_conn_and_cursor):

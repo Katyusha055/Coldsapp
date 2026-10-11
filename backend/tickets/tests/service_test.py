@@ -106,14 +106,6 @@ def test_update_ticket_no_fields_to_update():
     assert exc_info.value.detail == "No fields to update"
 
 
-def test_update_ticket_no_valid_fields():
-    data = {"status": "pending"}
-    with pytest.raises(HTTPException) as exc_info:
-        service.update_ticket(1, 1, data)
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "No valid fields provided for update"
-
-
 def test_update_ticket_not_found():
     data = {"title": "New title", "description": None}
     with patch('backend.tickets.service.connect', return_value=MagicMock()), \

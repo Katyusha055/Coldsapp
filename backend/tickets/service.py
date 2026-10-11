@@ -54,18 +54,10 @@ def delete_ticket(user_id, ticket_id) -> None:
 
 
 def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
-    if all(v is None for v in data.values()):
-        raise HTTPException(status_code=400, detail="No fields to update")
-    
-    allowed_fields = ["title", "description"]
-    filtered_data = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields and value is not None
-    }
+    filtered_data = {key: value for key, value in data.items() if value is not None}
 
     if not filtered_data:
-        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+        raise HTTPException(status_code=400, detail="No fields to update")
 
     with connect() as conn:
         ticket = rep.update_ticket(conn, user_id, ticket_id, filtered_data)
