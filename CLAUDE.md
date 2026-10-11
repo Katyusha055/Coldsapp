@@ -42,6 +42,15 @@ El spintax (variación de mensajes) y el rate limiting existen para no reproduci
 
 _(completar con los comandos reales — no inferidos: `docker compose up`, comando de tests, comando de migraciones Alembic, variables de entorno mínimas para levantar local)_
 
+**Lint y formato** (chequeos manuales por ahora; más adelante corren en CI antes de cada merge):
+
+- Backend, desde la raíz (requiere `pip install -r requirements-dev.txt`):
+  - `ruff check` — reglas en `pyproject.toml` (incluye `S608` contra SQL armado con strings: usar `psycopg.sql`).
+  - `ruff format --check` — `ruff format` para aplicar.
+- Frontend, desde `frontend/` (Node 20, igual que el Dockerfile):
+  - `npm run lint:check` — solo reporta.
+  - `npm run lint` — aplica los fixes automáticos.
+
 ## Convenciones
 
 - Preferencia de estilo: directo, sin over-engineering, sin verbosidad. Empujar de vuelta si una propuesta es más compleja de lo que la fase requiere, o si el análisis se exagera.
