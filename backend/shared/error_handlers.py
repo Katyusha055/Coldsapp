@@ -12,12 +12,12 @@ def handle_evo_errors(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Evolution API timeout")
-        except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Evolution API unreachable")
+        except httpx.TimeoutException as e:
+            raise HTTPException(status_code=504, detail="Evolution API timeout") from e
+        except httpx.ConnectError as e:
+            raise HTTPException(status_code=503, detail="Evolution API unreachable") from e
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text) from e
 
     return wrapper
 

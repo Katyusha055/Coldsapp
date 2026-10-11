@@ -217,7 +217,6 @@ def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid
     from backend.shared.connect import connect
 
     headers = auth_headers()
-    user_id = 1
 
     create_payload = {
         "name": "Client Delete Target",

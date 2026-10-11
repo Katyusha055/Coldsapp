@@ -51,7 +51,7 @@ def decode_token(token: str) -> TokenData:
             raise credentials_exception
         return TokenData(user_id=int(user_id))
     except InvalidTokenError:
-        raise credentials_exception
+        raise credentials_exception from None
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:

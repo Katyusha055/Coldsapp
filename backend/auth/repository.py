@@ -2,7 +2,7 @@ def row_to_dict(cursor, row):
     if row is None:
         return None
     columns = [desc[0] for desc in cursor.description]
-    return dict(zip(columns, row))
+    return dict(zip(columns, row, strict=True))
 
 
 def get_user_by_phone(conn, phone: str) -> dict | None:
