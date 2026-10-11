@@ -1,7 +1,8 @@
-import jwt
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-from backend.auth.utils import SECRET_KEY, ALGORITHM
+import jwt
+
+from backend.auth.utils import ALGORITHM, SECRET_KEY
 
 
 def test_request_without_token_returns_401(api_client):
@@ -20,7 +21,7 @@ def test_request_with_invalid_token_returns_401(api_client):
 
 
 def test_request_with_expired_token_returns_401(api_client):
-    payload = {"sub": "999", "exp": datetime.now(timezone.utc) - timedelta(hours=1)}
+    payload = {"sub": "999", "exp": datetime.now(UTC) - timedelta(hours=1)}
     expired_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
     response = api_client.get(

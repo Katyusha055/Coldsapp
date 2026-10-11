@@ -1,8 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from backend.contacts.service import _filter_contacts, _filter_chats, _reconcile
 import backend.contacts.service as service
-
+from backend.contacts.service import _filter_chats, _filter_contacts, _reconcile
 
 # --- _filter_contacts ---
 

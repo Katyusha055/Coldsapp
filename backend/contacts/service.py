@@ -1,5 +1,6 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
 
 import backend.contacts.repository as rep
@@ -81,7 +82,7 @@ def handle_incoming_message(instance, payload):
             remote_jid=remote_jid,
             instance_id=instance["id"],
             push_name=push_name,
-            last_incoming_at=datetime.now(timezone.utc),
+            last_incoming_at=datetime.now(UTC),
         )
 
 

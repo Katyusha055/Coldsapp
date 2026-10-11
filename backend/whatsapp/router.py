@@ -1,14 +1,15 @@
-from fastapi import APIRouter
-import backend.whatsapp.models as mdl
-import backend.whatsapp.service as ser
-import backend.shared.events as events
-import backend.shared.webhook_dispatch as webhook_dispatch
-from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 import asyncio
 import json
 import logging
-from fastapi import Request
+
+from fastapi import APIRouter, Request
 from sse_starlette.sse import EventSourceResponse
+
+import backend.shared.events as events
+import backend.shared.webhook_dispatch as webhook_dispatch
+import backend.whatsapp.models as mdl
+import backend.whatsapp.service as ser
+from backend.auth.utils import CurrentUser, CurrentUserFromQuery
 
 logger = logging.getLogger(__name__)
 

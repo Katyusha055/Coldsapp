@@ -1,5 +1,6 @@
 import httpx
 from psycopg import sql
+
 from backend.settings import settings
 
 EVO_API_URL = settings.EVO_API_URL

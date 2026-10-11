@@ -1,5 +1,7 @@
-import psycopg
 import logging
+
+import psycopg
+
 from backend.settings import settings
 
 logger = logging.getLogger(__name__)

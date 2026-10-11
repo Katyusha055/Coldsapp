@@ -1,8 +1,9 @@
-from backend.shared.connect import connect
+from fastapi import HTTPException, status
+
 from backend.auth import repository
 from backend.auth.models import Token, UserResponse
-from backend.auth.utils import get_password_hash, verify_password, create_access_token, DUMMY_HASH
-from fastapi import HTTPException, status
+from backend.auth.utils import DUMMY_HASH, create_access_token, get_password_hash, verify_password
+from backend.shared.connect import connect
 
 
 def register_user(user_data: dict) -> dict:

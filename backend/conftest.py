@@ -1,12 +1,11 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-
 
 tests_dir = Path(__file__).resolve().parent
 test_env_file = tests_dir / ".env.tests"

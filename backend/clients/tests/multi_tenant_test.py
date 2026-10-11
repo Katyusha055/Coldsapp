@@ -1,7 +1,5 @@
 import pytest
 
-from backend.conftest import api_client, clean_db
-
 
 @pytest.fixture()
 def create_user_two_clients(create_user):

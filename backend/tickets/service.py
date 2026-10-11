@@ -1,7 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
-import backend.tickets.repository as rep
+
 import backend.shared.repository as shared_rep
+import backend.tickets.repository as rep
 from backend.shared.connect import connect
 from backend.shared.error_handlers import handle_evo_errors
 from backend.tickets.models import TicketResponse
@@ -113,12 +115,12 @@ async def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketRes
     notification = None
 
     if new_status == "ready":
-        ready_at = datetime.now(timezone.utc)
+        ready_at = datetime.now(UTC)
         # Notify before persisting: if the Evolution API fails this raises and
         # the status is never saved, so the client can safely retry.
         notification = await notify_ticket_ready(user_id, current_ticket)
     elif new_status == "delivered":
-        delivered_at = datetime.now(timezone.utc)
+        delivered_at = datetime.now(UTC)
 
     with connect() as conn:
         ticket = rep.update_ticket_status(conn, user_id, ticket_id, new_status, ready_at, delivered_at)

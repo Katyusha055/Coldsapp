@@ -1,9 +1,11 @@
+import logging
+
+from fastapi import HTTPException
+
 import backend.pendings.repository as rep
 import backend.shared.repository as shared_rep
 from backend.shared.connect import connect
 from backend.shared.error_handlers import safe_dispatch
-import logging
-from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 

@@ -1,14 +1,16 @@
-from typing_extensions import Annotated
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
+
 import jwt
-from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
-from backend.auth.models import TokenData
-from backend.shared.connect import connect
+
 from backend.auth import repository
+from backend.auth.models import TokenData
 from backend.settings import settings
+from backend.shared.connect import connect
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
@@ -31,7 +33,7 @@ def get_password_hash(password):
 
 def create_access_token(data: dict) -> str:  # here the user_id is passed in the data dict
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    expire = datetime.now(UTC) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

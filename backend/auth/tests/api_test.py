@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_register_endpoint_creates_user_returns_id_name_phone_without_password_hash(api_client):
     response = api_client.post(
         "/auth/register",

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -13,7 +13,7 @@ def sample_row():
         "Juan",
         "1234567890",
         "Cliente frecuente",
-        datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
         "1234567890_wa_id",
     )
 

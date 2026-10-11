@@ -1,9 +1,11 @@
-import backend.whatsapp.repository as rep
+import logging
+
+from fastapi import HTTPException
+
 import backend.shared.repository as shared_rep
+import backend.whatsapp.repository as rep
 from backend.shared.connect import connect
 from backend.shared.error_handlers import handle_evo_errors
-import logging
-from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 

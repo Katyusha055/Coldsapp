@@ -1,9 +1,9 @@
 import logging
 
+import backend.contacts.service as contacts_service
+import backend.pendings.service as pendings_service
 import backend.shared.repository as rep
 import backend.whatsapp.service as whatsapp_service
-import backend.pendings.service as pendings_service
-import backend.contacts.service as contacts_service
 from backend.shared.connect import connect
 from backend.shared.events import push_event
 

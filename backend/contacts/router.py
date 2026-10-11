@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 import backend.contacts.models as mdl
 import backend.contacts.service as ser
 from backend.auth.utils import CurrentUser

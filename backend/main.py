@@ -1,11 +1,12 @@
 import logging
 
-from backend.shared.logging_config import setup_logging
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
 from backend.api.routers import api_router
 from backend.middleware import setup_middleware
 from backend.settings import settings
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from backend.shared.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

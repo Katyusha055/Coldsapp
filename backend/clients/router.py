@@ -1,8 +1,10 @@
+import logging
+
 from fastapi import APIRouter
+
 import backend.clients.models as mdl
 import backend.clients.service as ser
 from backend.auth.utils import CurrentUser
-import logging
 
 logger = logging.getLogger(__name__)
 
