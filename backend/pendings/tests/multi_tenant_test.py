@@ -39,7 +39,9 @@ def create_user_two_pending_contact(create_user):
     }
 
 
-def test_tenant_one_cannot_access_or_modify_tenant_two_pending_contacts(api_client, create_user_two_pending_contact, auth_headers):
+def test_tenant_one_cannot_access_or_modify_tenant_two_pending_contacts(
+    api_client, create_user_two_pending_contact, auth_headers
+):
     seeded = create_user_two_pending_contact
     user_one_id, user_two_id = seeded["user_ids"]
     pending_id = seeded["pending_id"]
@@ -76,6 +78,7 @@ def test_tenant_one_cannot_access_or_modify_tenant_two_pending_contacts(api_clie
     assert notifications_response.status_code == 404
 
     from backend.shared.connect import connect
+
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT status FROM wa_pending_contacts WHERE id = %s", (pending_id,))

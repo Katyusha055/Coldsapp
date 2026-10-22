@@ -1,11 +1,12 @@
 import logging
 
-from backend.shared.logging_config import setup_logging
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
 from backend.api.routers import api_router
 from backend.middleware import setup_middleware
 from backend.settings import settings
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from backend.shared.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ app = FastAPI(
 app.include_router(api_router)
 setup_middleware(app)
 
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """
@@ -30,4 +32,3 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
-

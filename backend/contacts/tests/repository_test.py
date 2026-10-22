@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from backend.shared.connect import connect
 import backend.contacts.repository as rep
+from backend.shared.connect import connect
 
 
 def _create_instance(user_id, instance_name="1_whatsapp"):
@@ -44,11 +44,12 @@ def _contact_row(remote_jid, instance_id):
 
 # --- repair_and_touch ---
 
+
 def test_repair_and_touch_fills_null_name_and_updates_timestamp(create_user):
     user = create_user("0999999999")
     instance_id = _create_instance(user["id"])
     _create_contact(instance_id, remote_jid="111@s.whatsapp.net", name=None)
-    touched_at = datetime.now(timezone.utc)
+    touched_at = datetime.now(UTC)
 
     with connect() as conn:
         rep.repair_and_touch(
@@ -75,7 +76,7 @@ def test_repair_and_touch_never_overwrites_an_already_set_name(create_user):
             remote_jid="111@s.whatsapp.net",
             instance_id=instance_id,
             push_name="A Different Name",
-            last_incoming_at=datetime.now(timezone.utc),
+            last_incoming_at=datetime.now(UTC),
         )
 
     name, last_incoming_at = _contact_row("111@s.whatsapp.net", instance_id)
@@ -94,7 +95,7 @@ def test_repair_and_touch_with_no_push_name_only_touches_timestamp(create_user):
             remote_jid="111@s.whatsapp.net",
             instance_id=instance_id,
             push_name=None,
-            last_incoming_at=datetime.now(timezone.utc),
+            last_incoming_at=datetime.now(UTC),
         )
 
     name, last_incoming_at = _contact_row("111@s.whatsapp.net", instance_id)
@@ -113,7 +114,7 @@ def test_repair_and_touch_no_matching_row_is_a_noop(create_user):
             remote_jid="999@s.whatsapp.net",
             instance_id=instance_id,
             push_name="Nobody",
-            last_incoming_at=datetime.now(timezone.utc),
+            last_incoming_at=datetime.now(UTC),
         )
     # No exception raised is the assertion; nothing was created either.
     with connect() as conn:

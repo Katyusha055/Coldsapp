@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
 
 from backend.clients import repository as rep
+
 
 @pytest.fixture
 def sample_row():
@@ -12,9 +13,10 @@ def sample_row():
         "Juan",
         "1234567890",
         "Cliente frecuente",
-        datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
-        "1234567890_wa_id"
+        datetime(2026, 1, 1, 12, 0, tzinfo=UTC),
+        "1234567890_wa_id",
     )
+
 
 @pytest.fixture
 def mocked_conn_and_cursor():
@@ -25,6 +27,7 @@ def mocked_conn_and_cursor():
     cursor_cm.__exit__.return_value = False
     return conn, cur
 
+
 def test_row_to_client_dict(sample_row):
     result = rep._row_to_client_dict(sample_row)
 
@@ -34,7 +37,7 @@ def test_row_to_client_dict(sample_row):
         "phone": "1234567890",
         "description": "Cliente frecuente",
         "created_at": "2026-01-01 12:00:00+00:00",
-        'whatsapp_id': "1234567890_wa_id"
+        "whatsapp_id": "1234567890_wa_id",
     }
 
 
@@ -45,16 +48,16 @@ def test_get_clients_1(mocked_conn_and_cursor, sample_row):
     result = rep.get_clients(conn, {"user_id": 1})
 
     assert result == [
-            {
-                "id": 10,
-                "name": "Juan",
-                "phone": "1234567890",
-                "description": "Cliente frecuente",
-                "created_at": "2026-01-01 12:00:00+00:00",
-                'whatsapp_id': "1234567890_wa_id"
-            } 
-        ]
-    
+        {
+            "id": 10,
+            "name": "Juan",
+            "phone": "1234567890",
+            "description": "Cliente frecuente",
+            "created_at": "2026-01-01 12:00:00+00:00",
+            "whatsapp_id": "1234567890_wa_id",
+        }
+    ]
+
     cur.execute.assert_called_once()
     query, params = cur.execute.call_args.args
     assert "FROM clients" in query
@@ -101,10 +104,20 @@ def test_update_client_1(mocked_conn_and_cursor, sample_row):
 
     cur.execute.assert_called_once()
     query, values = cur.execute.call_args.args
+    query = query.as_string()
     assert "UPDATE clients" in query
-    assert "name = %s" in query
-    assert "description = %s" in query
+    assert '"name" = %s' in query
+    assert '"description" = %s' in query
     assert values == ["Juanita", "Actualizada", 10, 1]
+
+
+def test_update_client_rejects_unknown_field(mocked_conn_and_cursor):
+    conn, cur = mocked_conn_and_cursor
+
+    with pytest.raises(ValueError):
+        rep.update_client(conn, 1, 10, {"name": "Juanita", "user_id": 2})
+
+    cur.execute.assert_not_called()
 
 
 def test_delete_client_happy_path(mocked_conn_and_cursor):
@@ -144,4 +157,3 @@ def test_get_client_by_id_1(mocked_conn_and_cursor, sample_row):
     cur.execute.assert_called_once()
     _, params = cur.execute.call_args.args
     assert params == (10, 1)
-

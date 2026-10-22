@@ -1,17 +1,19 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
-import backend.tickets.repository as rep
+
 import backend.shared.repository as shared_rep
+import backend.tickets.repository as rep
 from backend.shared.connect import connect
 from backend.shared.error_handlers import handle_evo_errors
 from backend.tickets.models import TicketResponse
 
 VALID_TRANSITIONS = {
-    "pending":     ["in_progress", "cancelled"],
+    "pending": ["in_progress", "cancelled"],
     "in_progress": ["ready", "cancelled"],
-    "ready":       ["delivered", "cancelled"],
-    "delivered":   [],
-    "cancelled":   []
+    "ready": ["delivered", "cancelled"],
+    "delivered": [],
+    "cancelled": [],
 }
 
 
@@ -54,18 +56,10 @@ def delete_ticket(user_id, ticket_id) -> None:
 
 
 def update_ticket(user_id, ticket_id, data: dict) -> TicketResponse:
-    if all(v is None for v in data.values()):
-        raise HTTPException(status_code=400, detail="No fields to update")
-    
-    allowed_fields = ["title", "description"]
-    filtered_data = {
-        key: value
-        for key, value in data.items()
-        if key in allowed_fields and value is not None
-    }
+    filtered_data = {key: value for key, value in data.items() if value is not None}
 
     if not filtered_data:
-        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+        raise HTTPException(status_code=400, detail="No fields to update")
 
     with connect() as conn:
         ticket = rep.update_ticket(conn, user_id, ticket_id, filtered_data)
@@ -114,22 +108,19 @@ async def update_ticket_status(user_id, ticket_id, new_status: str) -> TicketRes
     current_status = current_ticket["status"]
 
     if new_status not in VALID_TRANSITIONS[current_status]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot transition from {current_status} to {new_status}"
-        )
+        raise HTTPException(status_code=400, detail=f"Cannot transition from {current_status} to {new_status}")
 
     ready_at = None
     delivered_at = None
     notification = None
 
     if new_status == "ready":
-        ready_at = datetime.now(timezone.utc)
+        ready_at = datetime.now(UTC)
         # Notify before persisting: if the Evolution API fails this raises and
         # the status is never saved, so the client can safely retry.
         notification = await notify_ticket_ready(user_id, current_ticket)
     elif new_status == "delivered":
-        delivered_at = datetime.now(timezone.utc)
+        delivered_at = datetime.now(UTC)
 
     with connect() as conn:
         ticket = rep.update_ticket_status(conn, user_id, ticket_id, new_status, ready_at, delivered_at)

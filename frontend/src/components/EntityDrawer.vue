@@ -6,14 +6,14 @@ defineProps({
 </script>
 
 <template>
-    <Drawer :visible="nav.visible" position="right" @update:visible="(value) => !value && nav.close()" :style="{ width: '28rem' }">
+    <Drawer :visible="nav.visible" position="right" :style="{ width: '28rem' }" @update:visible="(value) => !value && nav.close()">
         <template #header>
             <div class="flex items-center justify-between w-full gap-4">
                 <span class="font-semibold text-xl">{{ header }}</span>
                 <div v-if="!nav.isNew" class="flex items-center gap-1">
-                    <Button icon="pi pi-chevron-up" text rounded severity="secondary" :disabled="!nav.hasPrev" v-tooltip.bottom="'Anterior'" @click="nav.prev()" />
+                    <Button v-tooltip.bottom="'Anterior'" icon="pi pi-chevron-up" text rounded severity="secondary" :disabled="!nav.hasPrev" @click="nav.prev()" />
                     <small class="text-surface-500 whitespace-nowrap">{{ nav.position }}</small>
-                    <Button icon="pi pi-chevron-down" text rounded severity="secondary" :disabled="!nav.hasNext" v-tooltip.bottom="'Siguiente'" @click="nav.next()" />
+                    <Button v-tooltip.bottom="'Siguiente'" icon="pi pi-chevron-down" text rounded severity="secondary" :disabled="!nav.hasNext" @click="nav.next()" />
                 </div>
             </div>
         </template>

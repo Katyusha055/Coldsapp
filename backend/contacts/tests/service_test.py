@@ -1,10 +1,10 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from backend.contacts.service import _filter_contacts, _filter_chats, _reconcile
 import backend.contacts.service as service
-
+from backend.contacts.service import _filter_chats, _filter_contacts, _reconcile
 
 # --- _filter_contacts ---
+
 
 def test_filter_contacts_keeps_a_real_contact():
     raw = [{"remoteJid": "111@s.whatsapp.net", "pushName": "Alice", "type": "contact"}]
@@ -35,6 +35,7 @@ def test_filter_contacts_drops_the_system_contact():
 
 
 # --- _filter_chats ---
+
 
 def test_filter_chats_keeps_a_direct_net_jid():
     raw = [{"remoteJid": "111@s.whatsapp.net", "pushName": "Alice"}]
@@ -73,6 +74,7 @@ def test_filter_chats_resolves_lid_via_remote_jid_alt():
 
 # --- _reconcile ---
 
+
 def test_reconcile_prefers_contacts_name_when_both_sources_have_one():
     contacts = [{"remote_jid": "111@s.whatsapp.net", "name": "Contacts Name"}]
     chats = [{"remote_jid": "111@s.whatsapp.net", "name": "Chats Name"}]
@@ -102,18 +104,15 @@ def test_reconcile_never_lets_an_empty_name_overwrite_a_non_empty_one():
     """
     contacts_blank = [{"remote_jid": "111@s.whatsapp.net", "name": None}]
     chats_named = [{"remote_jid": "111@s.whatsapp.net", "name": "Chats Name"}]
-    assert _reconcile(contacts_blank, chats_named) == [
-        {"remote_jid": "111@s.whatsapp.net", "name": "Chats Name"}
-    ]
+    assert _reconcile(contacts_blank, chats_named) == [{"remote_jid": "111@s.whatsapp.net", "name": "Chats Name"}]
 
     contacts_named = [{"remote_jid": "222@s.whatsapp.net", "name": "Contacts Name"}]
     chats_blank = [{"remote_jid": "222@s.whatsapp.net", "name": None}]
-    assert _reconcile(contacts_named, chats_blank) == [
-        {"remote_jid": "222@s.whatsapp.net", "name": "Contacts Name"}
-    ]
+    assert _reconcile(contacts_named, chats_blank) == [{"remote_jid": "222@s.whatsapp.net", "name": "Contacts Name"}]
 
 
 # --- handle_incoming_message ---
+
 
 def test_handle_incoming_message_from_me_makes_no_repository_call():
     instance = {"id": 10, "user_id": 1}
@@ -124,8 +123,10 @@ def test_handle_incoming_message_from_me_makes_no_repository_call():
         }
     }
 
-    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
-         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+    with (
+        patch("backend.contacts.service.connect", return_value=MagicMock()),
+        patch("backend.contacts.service.rep.repair_and_touch") as mock_repair,
+    ):
         result = service.handle_incoming_message(instance, payload)
 
     assert result is None
@@ -141,8 +142,10 @@ def test_handle_incoming_message_calls_repair_and_touch_with_normalized_push_nam
         }
     }
 
-    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
-         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+    with (
+        patch("backend.contacts.service.connect", return_value=MagicMock()),
+        patch("backend.contacts.service.rep.repair_and_touch") as mock_repair,
+    ):
         service.handle_incoming_message(instance, payload)
 
     mock_repair.assert_called_once()
@@ -162,8 +165,10 @@ def test_handle_incoming_message_normalizes_whitespace_only_push_name_to_none():
         }
     }
 
-    with patch('backend.contacts.service.connect', return_value=MagicMock()), \
-         patch('backend.contacts.service.rep.repair_and_touch') as mock_repair:
+    with (
+        patch("backend.contacts.service.connect", return_value=MagicMock()),
+        patch("backend.contacts.service.rep.repair_and_touch") as mock_repair,
+    ):
         service.handle_incoming_message(instance, payload)
 
     assert mock_repair.call_args.kwargs["push_name"] is None

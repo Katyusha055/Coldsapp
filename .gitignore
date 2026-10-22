@@ -7,9 +7,10 @@ logs
 app.log
 .env
 .env.tests
-.claude
 setup.cfg
 mutants/
 mutants
 node_modules/
+dist/
 .env.evo
+/plans

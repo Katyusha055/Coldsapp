@@ -1,4 +1,5 @@
 import httpx
+
 from backend.settings import settings
 
 EVO_API_URL = settings.EVO_API_URL
@@ -96,7 +97,7 @@ async def create_evolution_instance(instance_name):
                 "webhook": {
                     "enabled": True,
                     "url": WHATSAPP_WEBHOOK_URL,
-                    "events": ["MESSAGES_UPSERT", 'CONNECTION_UPDATE', "QRCODE_UPDATED"],
+                    "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
                 },
             },
         )

@@ -1,8 +1,4 @@
-import pytest
-
-def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_payload(
-    api_client, auth_headers
-):
+def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_payload(api_client, auth_headers):
     from backend.shared.connect import connect
 
     headers = auth_headers()
@@ -52,9 +48,8 @@ def test_post_clients_endpoint_creates_client_validates_db_and_rejects_invalid_p
     invalid_body = invalid_response.json()
     assert "detail" in invalid_body
 
-def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
-    api_client, auth_headers
-):
+
+def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(api_client, auth_headers):
     from backend.shared.connect import connect
 
     headers = auth_headers()
@@ -148,9 +143,7 @@ def test_get_clients_endpoints_list_by_id_by_phone_and_invalid_missing_id(
     assert "detail" in invalid_get_body
 
 
-def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_payload(
-    api_client, auth_headers
-):
+def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_payload(api_client, auth_headers):
     from backend.shared.connect import connect
 
     headers = auth_headers()
@@ -220,13 +213,10 @@ def test_patch_clients_endpoint_updates_client_validates_db_and_rejects_invalid_
     assert "detail" in invalid_patch_body
 
 
-def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid_payload(
-    api_client, auth_headers
-):
+def test_delete_clients_endpoint_deletes_client_validates_db_and_rejects_invalid_payload(api_client, auth_headers):
     from backend.shared.connect import connect
 
     headers = auth_headers()
-    user_id = 1
 
     create_payload = {
         "name": "Client Delete Target",

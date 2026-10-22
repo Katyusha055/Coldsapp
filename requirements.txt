@@ -5,8 +5,6 @@ psycopg[binary]>=3.1.0
 sqlalchemy>=2.0.0
 alembic>=1.13.0
 pydantic>=2.0.0
-pytest>=7.0.0
-pytest-asyncio
 httpx>=0.23.0
 pwdlib[argon2]
 pyjwt

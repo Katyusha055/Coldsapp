@@ -68,22 +68,22 @@ async function register() {
 
                     <div>
                         <label for="name" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Nombre</label>
-                        <InputText id="name" type="text" placeholder="Nombre completo" class="w-full md:w-[30rem] mb-1" v-model="name" :invalid="!!errors.name" />
+                        <InputText id="name" v-model="name" type="text" placeholder="Nombre completo" class="w-full md:w-[30rem] mb-1" :invalid="!!errors.name" />
                         <small v-if="errors.name" class="text-red-500 block mb-6">{{ errors.name }}</small>
                         <div v-else class="mb-6" />
 
                         <label for="phone" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Teléfono</label>
-                        <InputText id="phone" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-1" v-model="phone" :invalid="!!errors.phone" />
+                        <InputText id="phone" v-model="phone" type="text" placeholder="Número de teléfono" class="w-full md:w-[30rem] mb-1" :invalid="!!errors.phone" />
                         <small v-if="errors.phone" class="text-red-500 block mb-6">{{ errors.phone }}</small>
                         <div v-else class="mb-6" />
 
                         <label for="password" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Contraseña</label>
-                        <Password id="password" v-model="password" placeholder="Contraseña" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.password" />
+                        <Password id="password" v-model="password" placeholder="Contraseña" :toggle-mask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.password" />
                         <small v-if="errors.password" class="text-red-500 block mb-6">{{ errors.password }}</small>
                         <div v-else class="mb-6" />
 
                         <label for="confirmPassword" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Confirmar contraseña</label>
-                        <Password id="confirmPassword" v-model="confirmPassword" placeholder="Repetir contraseña" :toggleMask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.confirmPassword" />
+                        <Password id="confirmPassword" v-model="confirmPassword" placeholder="Repetir contraseña" :toggle-mask="true" class="mb-1" fluid :feedback="false" :invalid="!!errors.confirmPassword" />
                         <small v-if="errors.confirmPassword" class="text-red-500 block mb-4">{{ errors.confirmPassword }}</small>
                         <div v-else class="mb-4" />
 

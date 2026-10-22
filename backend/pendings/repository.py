@@ -142,10 +142,7 @@ def update_pending_status(conn, pending_id, status):
 
 def delete_pending(conn, pending_id):
     with conn.cursor() as cur:
-        cur.execute(
-            "DELETE FROM wa_pending_contacts WHERE id = %s RETURNING id",
-            (pending_id,)
-        )
+        cur.execute("DELETE FROM wa_pending_contacts WHERE id = %s RETURNING id", (pending_id,))
         row = cur.fetchone()
     return {"deleted": row is not None, "id": pending_id}
 

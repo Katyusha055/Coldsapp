@@ -16,6 +16,7 @@ def _create_instance(user_id, instance_name="1_whatsapp", notifications_enabled=
 
 # --- PATCH /whatsapp/notifications ---
 
+
 def test_update_notifications_endpoint_toggles_flag_and_rejects_missing_instance(create_user, auth_headers, api_client):
     user = create_user("0999999999")
     headers = auth_headers("0999999999")

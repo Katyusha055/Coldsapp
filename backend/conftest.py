@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 import pytest
 from alembic import command
@@ -7,9 +7,8 @@ from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 
-
 tests_dir = Path(__file__).resolve().parent
-test_env_file = tests_dir / '.env.tests'
+test_env_file = tests_dir / ".env.tests"
 
 # Loaded at module import (before pytest imports any test module, hence before
 # backend.settings is imported and reads env vars once). override=True so the
@@ -17,21 +16,21 @@ test_env_file = tests_dir / '.env.tests'
 # than in a fixture, otherwise settings would freeze the dev DB values first.
 if not test_env_file.exists():
     raise FileNotFoundError(f"Test environment file not found: {test_env_file}")
-if 'test' not in test_env_file.read_text():
+if "test" not in test_env_file.read_text():
     raise ValueError(
         f"Test environment file does not contain 'test' keyword in the database name: {os.getenv('DB_NAME')}"
     )
 load_dotenv(dotenv_path=test_env_file, override=True)
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def run_migrations():
     """
     Applies Alembic migrations to the test database once per test session,
     replacing the old lifespan-triggered schema.py/init_db() setup.
     """
-    alembic_cfg = Config(str(tests_dir / 'alembic.ini'))
-    command.upgrade(alembic_cfg, 'head')
+    alembic_cfg = Config(str(tests_dir / "alembic.ini"))
+    command.upgrade(alembic_cfg, "head")
 
 
 @pytest.fixture()

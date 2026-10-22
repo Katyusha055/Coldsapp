@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,8 +16,9 @@ def sample_instance():
     }
 
 
-def _upsert_payload(instance_name, remote_jid="123@s.whatsapp.net", name="Jane",
-                     from_me=False, conversation="Hola", extended_text=None):
+def _upsert_payload(
+    instance_name, remote_jid="123@s.whatsapp.net", name="Jane", from_me=False, conversation="Hola", extended_text=None
+):
     message = {}
     if extended_text is not None:
         message["extendedTextMessage"] = {"text": extended_text}
@@ -37,10 +38,13 @@ def _upsert_payload(instance_name, remote_jid="123@s.whatsapp.net", name="Jane",
 
 # --- handle_incoming_message ---
 
+
 def test_handle_incoming_message_from_me_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], from_me=True)
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id') as mock_get_client:
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id") as mock_get_client,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
@@ -49,11 +53,13 @@ def test_handle_incoming_message_from_me_is_ignored(sample_instance):
 
 def test_handle_incoming_message_group_message_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123456@g.us")
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id') as mock_get_client, \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending, \
-         patch('backend.pendings.service.rep.create_pending') as mock_create, \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id") as mock_get_client,
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid") as mock_get_pending,
+        patch("backend.pendings.service.rep.create_pending") as mock_create,
+        patch("backend.pendings.service.rep.update_pending_message") as mock_update_message,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
@@ -69,9 +75,11 @@ def test_handle_incoming_message_group_message_does_not_touch_an_existing_pendin
     pending contact that already exists for a different (1:1) remote_jid.
     """
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123456@g.us")
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending, \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid") as mock_get_pending,
+        patch("backend.pendings.service.rep.update_pending_message") as mock_update_message,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
@@ -82,9 +90,11 @@ def test_handle_incoming_message_group_message_does_not_touch_an_existing_pendin
 def test_handle_incoming_message_known_client_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"])
     existing_client = {"id": 5, "name": "Jane", "whatsapp_id": "123@s.whatsapp.net"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=existing_client), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid') as mock_get_pending:
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=existing_client),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid") as mock_get_pending,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
@@ -92,13 +102,23 @@ def test_handle_incoming_message_known_client_is_ignored(sample_instance):
 
 
 def test_handle_incoming_message_new_contact_creates_pending(sample_instance):
-    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", name="Jane", conversation="Hola")
-    created = {"id": 99, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
-               "name": "Jane", "last_message": "Hola", "status": "pending"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=None), \
-         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create:
+    payload = _upsert_payload(
+        sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", name="Jane", conversation="Hola"
+    )
+    created = {
+        "id": 99,
+        "instance_id": sample_instance["id"],
+        "remote_jid": "123@s.whatsapp.net",
+        "name": "Jane",
+        "last_message": "Hola",
+        "status": "pending",
+    }
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=None),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid", return_value=None),
+        patch("backend.pendings.service.rep.create_pending", return_value=created) as mock_create,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     mock_create.assert_called_once()
@@ -117,14 +137,24 @@ def test_handle_incoming_message_concurrent_insert_falls_back_to_update(sample_i
     and inserted the row first; the handler should re-fetch it and treat this
     delivery as an update instead of failing.
     """
-    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", conversation="Segundo mensaje")
-    existing_pending = {"id": 99, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
-                         "name": "Jane", "last_message": "Hola", "status": "pending"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid', side_effect=[None, existing_pending]), \
-         patch('backend.pendings.service.rep.create_pending', return_value=None), \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+    payload = _upsert_payload(
+        sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", conversation="Segundo mensaje"
+    )
+    existing_pending = {
+        "id": 99,
+        "instance_id": sample_instance["id"],
+        "remote_jid": "123@s.whatsapp.net",
+        "name": "Jane",
+        "last_message": "Hola",
+        "status": "pending",
+    }
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=None),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid", side_effect=[None, existing_pending]),
+        patch("backend.pendings.service.rep.create_pending", return_value=None),
+        patch("backend.pendings.service.rep.update_pending_message") as mock_update_message,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     mock_update_message.assert_called_once()
@@ -140,14 +170,24 @@ def test_handle_incoming_message_concurrent_insert_falls_back_to_update(sample_i
 
 
 def test_handle_incoming_message_existing_pending_is_updated(sample_instance):
-    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", conversation="Otra vez")
-    existing_pending = {"id": 42, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
-                         "name": "Jane", "last_message": "Hola", "status": "pending"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=existing_pending), \
-         patch('backend.pendings.service.rep.create_pending') as mock_create, \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+    payload = _upsert_payload(
+        sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", conversation="Otra vez"
+    )
+    existing_pending = {
+        "id": 42,
+        "instance_id": sample_instance["id"],
+        "remote_jid": "123@s.whatsapp.net",
+        "name": "Jane",
+        "last_message": "Hola",
+        "status": "pending",
+    }
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=None),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid", return_value=existing_pending),
+        patch("backend.pendings.service.rep.create_pending") as mock_create,
+        patch("backend.pendings.service.rep.update_pending_message") as mock_update_message,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     mock_create.assert_not_called()
@@ -163,12 +203,20 @@ def test_handle_incoming_message_existing_pending_is_updated(sample_instance):
 
 def test_handle_incoming_message_converted_pending_is_ignored(sample_instance):
     payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net")
-    converted_pending = {"id": 42, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
-                          "name": "Jane", "last_message": "Hola", "status": "converted"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=converted_pending), \
-         patch('backend.pendings.service.rep.update_pending_message') as mock_update_message:
+    converted_pending = {
+        "id": 42,
+        "instance_id": sample_instance["id"],
+        "remote_jid": "123@s.whatsapp.net",
+        "name": "Jane",
+        "last_message": "Hola",
+        "status": "converted",
+    }
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=None),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid", return_value=converted_pending),
+        patch("backend.pendings.service.rep.update_pending_message") as mock_update_message,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert result is None
@@ -176,14 +224,23 @@ def test_handle_incoming_message_converted_pending_is_ignored(sample_instance):
 
 
 def test_handle_incoming_message_extended_text_message_fallback(sample_instance):
-    payload = _upsert_payload(sample_instance["instance_name"], remote_jid="123@s.whatsapp.net",
-                               extended_text="Mensaje largo con formato")
-    created = {"id": 1, "instance_id": sample_instance["id"], "remote_jid": "123@s.whatsapp.net",
-               "name": "Jane", "last_message": "Mensaje largo con formato", "status": "pending"}
-    with patch('backend.pendings.service.connect', return_value=MagicMock()), \
-         patch('backend.pendings.service.rep.get_client_by_whatsapp_id', return_value=None), \
-         patch('backend.pendings.service.rep.get_pending_by_remote_jid', return_value=None), \
-         patch('backend.pendings.service.rep.create_pending', return_value=created) as mock_create:
+    payload = _upsert_payload(
+        sample_instance["instance_name"], remote_jid="123@s.whatsapp.net", extended_text="Mensaje largo con formato"
+    )
+    created = {
+        "id": 1,
+        "instance_id": sample_instance["id"],
+        "remote_jid": "123@s.whatsapp.net",
+        "name": "Jane",
+        "last_message": "Mensaje largo con formato",
+        "status": "pending",
+    }
+    with (
+        patch("backend.pendings.service.connect", return_value=MagicMock()),
+        patch("backend.pendings.service.rep.get_client_by_whatsapp_id", return_value=None),
+        patch("backend.pendings.service.rep.get_pending_by_remote_jid", return_value=None),
+        patch("backend.pendings.service.rep.create_pending", return_value=created) as mock_create,
+    ):
         result = service.handle_incoming_message(sample_instance, payload)
 
     assert mock_create.call_args.args[4] == "Mensaje largo con formato"

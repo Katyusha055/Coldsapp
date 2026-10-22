@@ -1,5 +1,5 @@
-from functools import wraps
 import logging
+from functools import wraps
 
 import httpx
 from fastapi import HTTPException
@@ -12,12 +12,13 @@ def handle_evo_errors(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="Evolution API timeout")
-        except httpx.ConnectError:
-            raise HTTPException(status_code=503, detail="Evolution API unreachable")
+        except httpx.TimeoutException as e:
+            raise HTTPException(status_code=504, detail="Evolution API timeout") from e
+        except httpx.ConnectError as e:
+            raise HTTPException(status_code=503, detail="Evolution API unreachable") from e
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text) from e
+
     return wrapper
 
 
@@ -30,6 +31,7 @@ def safe_dispatch(feature_name):
     responds 200 regardless of what happened here; the error log is the only
     failure signal.
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(instance, payload):
@@ -39,9 +41,13 @@ def safe_dispatch(feature_name):
                 remote_jid = payload.get("data", {}).get("key", {}).get("remoteJid")
                 logger.error(
                     "[webhook:messages.upsert] %s dispatch failed (remote_jid=%s, instance_id=%s)",
-                    feature_name, remote_jid, instance.get("id"),
+                    feature_name,
+                    remote_jid,
+                    instance.get("id"),
                     exc_info=True,
                 )
                 return None
+
         return wrapper
+
     return decorator

@@ -51,6 +51,7 @@ def _mock_evolution(contacts_response, chats_response):
 
 # --- POST /contacts/import ---
 
+
 def test_import_contacts_endpoint_reconciles_and_upserts_contacts(create_user, auth_headers, api_client):
     user = create_user("0999999999")
     headers = auth_headers("0999999999")
@@ -123,6 +124,7 @@ def test_import_contacts_endpoint_reimport_does_not_blank_an_existing_name(creat
 
 # --- GET /contacts/ ---
 
+
 def test_list_contacts_endpoint_returns_all_contacts_regardless_of_opted_out(create_user, auth_headers, api_client):
     """
     The active/blacklist split is a frontend-only concern (the Pinia store's
@@ -167,6 +169,7 @@ def test_list_contacts_endpoint_preserves_null_name(create_user, auth_headers, a
 
 # --- PATCH /contacts/{id}/name ---
 
+
 def test_update_contact_name_endpoint_renames_and_rejects_missing(create_user, auth_headers, api_client):
     user = create_user("0999999999")
     headers = auth_headers("0999999999")
@@ -203,6 +206,7 @@ def test_update_contact_name_endpoint_allows_empty_string(create_user, auth_head
 
 
 # --- PATCH /contacts/{id}/opted_out ---
+
 
 def test_update_contact_opted_out_endpoint_toggles_and_rejects_missing(create_user, auth_headers, api_client):
     user = create_user("0999999999")

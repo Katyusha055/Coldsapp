@@ -76,7 +76,7 @@ def test_safe_dispatch_logs_feature_name_and_payload_context():
         raise RuntimeError("kaboom")
 
     payload = {"data": {"key": {"remoteJid": "111@s.whatsapp.net"}}}
-    with patch('backend.shared.error_handlers.logger') as mock_logger:
+    with patch("backend.shared.error_handlers.logger") as mock_logger:
         boom({"id": 7}, payload)
 
     mock_logger.error.assert_called_once()

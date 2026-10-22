@@ -123,9 +123,7 @@ async function doDeletePending() {
 }
 
 function notifyPhoneNotFilled(remoteJid) {
-    const detail = remoteJid?.endsWith('@lid')
-        ? 'WhatsApp oculta el número de este contacto. Ingresa el teléfono manualmente.'
-        : 'El número no es de Ecuador. Ingresa el teléfono manualmente.';
+    const detail = remoteJid?.endsWith('@lid') ? 'WhatsApp oculta el número de este contacto. Ingresa el teléfono manualmente.' : 'El número no es de Ecuador. Ingresa el teléfono manualmente.';
     toast.add({ severity: 'info', summary: 'Teléfono no completado', detail, life: 5000 });
 }
 
@@ -153,8 +151,8 @@ async function convertToClient() {
     if (!isPhoneValid.value) return;
 
     try {
-        const payload = { 
-            name: convertForm.value.name.trim(), 
+        const payload = {
+            name: convertForm.value.name.trim(),
             whatsapp_id: pending.value.remote_jid
         };
         if (convertForm.value.phone?.trim()) payload.phone = convertForm.value.phone.trim();
@@ -187,7 +185,7 @@ async function convertToClient() {
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2">
                         <label for="notif-toggle" class="text-sm font-medium">Notificaciones automáticas</label>
-                        <ToggleSwitch inputId="notif-toggle" v-model="notificationsEnabled" @change="onNotificationsToggle" />
+                        <ToggleSwitch v-model="notificationsEnabled" input-id="notif-toggle" @change="onNotificationsToggle" />
                     </div>
                     <Button label="Generar QR" icon="pi pi-qrcode" :disabled="isConnected" :loading="qrLoading" @click="generateQR" />
                 </div>
@@ -198,7 +196,7 @@ async function convertToClient() {
         </div>
 
         <div class="card">
-            <DataTable :value="pendingsStore.items" dataKey="id">
+            <DataTable :value="pendingsStore.items" data-key="id">
                 <template #header>
                     <div class="flex items-center justify-between">
                         <h4 class="m-0">Posibles Clientes Nuevos</h4>
@@ -229,7 +227,6 @@ async function convertToClient() {
                 </Column>
             </DataTable>
         </div>
-
 
         <!-- QR Dialog -->
         <Dialog v-model:visible="qrDialog" :style="{ width: '350px' }" header="Código QR" :modal="true">
@@ -267,7 +264,10 @@ async function convertToClient() {
         <Dialog v-model:visible="deleteDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
                 <i class="pi pi-exclamation-triangle text-3xl!" />
-                <span v-if="pending">¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || formatPhone(pending.remote_jid) }}</b>?</span>
+                <span v-if="pending"
+                    >¿Estás seguro de que deseas eliminar el contacto <b>{{ pending.name || formatPhone(pending.remote_jid) }}</b
+                    >?</span
+                >
             </div>
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteDialog = false" />

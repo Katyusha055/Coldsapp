@@ -1,14 +1,16 @@
-from typing_extensions import Annotated
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
+
 import jwt
-from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
-from backend.auth.models import TokenData
-from backend.shared.connect import connect
+
 from backend.auth import repository
+from backend.auth.models import TokenData
 from backend.settings import settings
+from backend.shared.connect import connect
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
@@ -20,17 +22,21 @@ DUMMY_HASH = password_hash.hash("dummypassword")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
+
 def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password):
     return password_hash.hash(password)
 
-def create_access_token(data: dict) -> str: #here the user_id is passed in the data dict
+
+def create_access_token(data: dict) -> str:  # here the user_id is passed in the data dict
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    expire = datetime.now(UTC) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_token(token: str) -> TokenData:
     credentials_exception = HTTPException(
@@ -45,7 +51,8 @@ def decode_token(token: str) -> TokenData:
             raise credentials_exception
         return TokenData(user_id=int(user_id))
     except InvalidTokenError:
-        raise credentials_exception
+        raise credentials_exception from None
+
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     token_data = decode_token(token)
@@ -55,11 +62,13 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"}
+                headers={"WWW-Authenticate": "Bearer"},
             )
         return user
 
+
 CurrentUser = Annotated[dict, Depends(get_current_user)]
+
 
 def get_current_user_from_query(token: str = Query(...)) -> dict:
     """Resolve the current user from a `?token=` query param.
@@ -69,5 +78,6 @@ def get_current_user_from_query(token: str = Query(...)) -> dict:
     since the browser EventSource API cannot send custom headers.
     """
     return get_current_user(token)
+
 
 CurrentUserFromQuery = Annotated[dict, Depends(get_current_user_from_query)]

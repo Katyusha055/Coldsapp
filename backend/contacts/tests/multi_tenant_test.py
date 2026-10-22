@@ -52,7 +52,9 @@ def test_tenant_one_cannot_access_or_modify_tenant_two_contacts(api_client, crea
     assert name_response.status_code == 404
 
     # PATCH .../opted_out should not blacklist tenant two's contact.
-    opted_out_response = api_client.patch(f"/contacts/{contact_id}/opted_out", json={"opted_out": True}, headers=headers)
+    opted_out_response = api_client.patch(
+        f"/contacts/{contact_id}/opted_out", json={"opted_out": True}, headers=headers
+    )
     assert opted_out_response.status_code == 404
 
     with connect() as conn:

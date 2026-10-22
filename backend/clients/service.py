@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+
 import backend.clients.repository as rep
 from backend.shared.connect import connect
 
@@ -15,13 +16,7 @@ def create_client_service(data):
 
 def update_client_service(user_id, client_id, data):
     with connect() as conn:
-        allowed_fields = ["name", "phone", "description"]
-
-        filtered_data = {
-            key: value
-            for key, value in data.items()
-            if key in allowed_fields and value is not None
-        }
+        filtered_data = {key: value for key, value in data.items() if value is not None}
 
         if not filtered_data:
             raise HTTPException(status_code=422, detail="No valid fields provided for update")

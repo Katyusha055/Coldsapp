@@ -32,9 +32,7 @@ class Settings:
         # Environment
         self.ENV = os.getenv("ENV", "development")
         if self.ENV not in _ALLOWED_ENVS:
-            raise RuntimeError(
-                f"ENV must be one of {sorted(_ALLOWED_ENVS)}, got {self.ENV!r}"
-            )
+            raise RuntimeError(f"ENV must be one of {sorted(_ALLOWED_ENVS)}, got {self.ENV!r}")
         # Docs are exposed everywhere except production.
         self.DOCS_ENABLED = self.ENV != "production"
 
@@ -57,11 +55,7 @@ class Settings:
 
         # CORS. Comma-separated in the environment; missing/empty yields an
         # empty (i.e. restrictive) list rather than falling back to a default.
-        self.CORS_ORIGINS = [
-            origin.strip()
-            for origin in os.getenv("CORS_ORIGINS", "").split(",")
-            if origin.strip()
-        ]
+        self.CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]
 
     @property
     def is_production(self) -> bool:

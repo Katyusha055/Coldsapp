@@ -1,11 +1,13 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
 
 import backend.contacts.repository as rep
 import backend.shared.repository as shared_rep
 from backend.shared.connect import connect
 from backend.shared.error_handlers import handle_evo_errors, safe_dispatch
+
 
 @handle_evo_errors
 async def import_contacts(user_id: int) -> dict:
@@ -80,7 +82,7 @@ def handle_incoming_message(instance, payload):
             remote_jid=remote_jid,
             instance_id=instance["id"],
             push_name=push_name,
-            last_incoming_at=datetime.now(timezone.utc),
+            last_incoming_at=datetime.now(UTC),
         )
 
 
@@ -121,7 +123,9 @@ def _filter_contacts(raw: list[dict]) -> list[dict]:
         remote_jid = entry.get("remoteJid") or ""
         if entry.get("type") != "contact":
             continue
-        if not remote_jid.endswith("@s.whatsapp.net") or remote_jid.startswith("0@"): #The "0@" is the whatsapp official number, so we do not want that in the DB
+        if not remote_jid.endswith("@s.whatsapp.net") or remote_jid.startswith(
+            "0@"
+        ):  # The "0@" is the whatsapp official number, so we do not want that in the DB
             continue
         filtered.append({"remote_jid": remote_jid, "name": entry.get("pushName") or None})
     return filtered

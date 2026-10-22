@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -31,4 +32,3 @@ class TicketResponse(BaseModel):
     updated_at: datetime
     whatsapp_notification_sent: bool | None = None
     whatsapp_notification_error: str | None = None
-
