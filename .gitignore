@@ -13,3 +13,4 @@ mutants
 node_modules/
 dist/
 .env.evo
+/plans

@@ -2,7 +2,7 @@
 
 CRM SaaS multi-tenant que automatiza notificaciones de WhatsApp y gestión de clientes para talleres de reparación pequeños (electrónica, electrodomésticos, PCs) en Ecuador y Latinoamérica. Desarrollo solo, part-time.
 
-**Filosofía del producto:** construir solo la capa de automatización de WhatsApp (el diferenciador real). Todo lo demás se integra, no se construye: inventario vía InvenTree/Inventoros, facturación electrónica vía Datil/Facturero. Sin integración directa al SRI, sin builds custom de cosas ya resueltas.
+**Filosofía del producto:** construir solo la capa de automatización de WhatsApp (el diferenciador real). Todo lo demás se integra, no se construye en tanto sea posible. Sin integración directa al SRI, sin builds custom de cosas ya resueltas.
 
 ## Stack
 
@@ -56,5 +56,6 @@ _(completar con los comandos reales — no inferidos: `docker compose up`, coman
 - Preferencia de estilo: directo, sin over-engineering, sin verbosidad. Empujar de vuelta si una propuesta es más compleja de lo que la fase requiere, o si el análisis se exagera.
 - Validación empírica antes de decidir arquitectura: probar el comportamiento real de la API (Evolution API, etc.) contra datos vivos antes de fijar decisiones de diseño.
 - Alinear versiones de dependencias entre dev y prod explícitamente — un mismatch de versión de Evolution API (v2.1.1 vs v2.3.7) ya causó una diferencia silenciosa en el shape de las respuestas que parecía pérdida de datos.
+- Los planes de PR no incluyen tests. Los tests se diseñan después de implementar el plan y probarlo manualmente, porque la implementación puede cambiar respecto al plan. No agregar secciones de tests ni commits de tests a un plan.
  
 IMPORTANTE: Aunque el documento este en español, siempre responde en ingles si el usuario te habla en ingles, y si te habla en español, respondes en español. 
