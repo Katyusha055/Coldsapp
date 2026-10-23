@@ -65,7 +65,8 @@ def create_item(user_id, data: dict) -> dict:
             rep.insert_movement(conn, user_id, item_id, data["quantity"], "initial")
         if code is not None:
             _link_code_or_409(conn, user_id, item_id, code)
-        return _get_item_or_404(conn, user_id, item_id)
+        created_item = _get_item_or_404(conn, user_id, item_id)
+    return created_item
 
 
 def update_item(user_id, item_id, data: dict) -> dict:
@@ -78,7 +79,8 @@ def update_item(user_id, item_id, data: dict) -> dict:
     with connect() as conn:
         if not rep.update_item(conn, user_id, item_id, data):
             raise HTTPException(status_code=404, detail="Item not found")
-        return _get_item_or_404(conn, user_id, item_id)
+        updated_item = _get_item_or_404(conn, user_id, item_id)
+    return updated_item
 
 
 def deactivate_item(user_id, item_id) -> None:
@@ -98,9 +100,10 @@ def add_movement(user_id, item_id, movement_type, quantity, note=None) -> dict:
     """
     signed_quantity = -quantity if movement_type == "out" else quantity
     with connect() as conn:
-        _get_item_or_404(conn, user_id, item_id)
-        rep.insert_movement(conn, user_id, item_id, signed_quantity, movement_type, note)
-        return _get_item_or_404(conn, user_id, item_id)
+        item_before = _get_item_or_404(conn, user_id, item_id)
+        rep.insert_movement(conn, user_id, item_before["id"], signed_quantity, movement_type, note)
+        item_after = _get_item_or_404(conn, user_id, item_id)
+    return item_after
 
 
 def count_item(user_id, item_id, counted) -> dict:
@@ -115,7 +118,8 @@ def count_item(user_id, item_id, counted) -> dict:
             raise HTTPException(status_code=404, detail="Item not found")
         if counted != current:
             rep.insert_movement(conn, user_id, item_id, counted - current, "adjustment")
-        return _get_item_or_404(conn, user_id, item_id)
+        counted_item = _get_item_or_404(conn, user_id, item_id)
+    return counted_item
 
 
 def list_movements(user_id, item_id) -> list[dict]:
@@ -136,9 +140,10 @@ def get_item_by_code(user_id, raw_code) -> dict:
 def link_code(user_id, item_id, raw_code) -> dict:
     code = _normalize_code(raw_code)
     with connect() as conn:
-        _get_item_or_404(conn, user_id, item_id)
-        _link_code_or_409(conn, user_id, item_id, code)
-        return _get_item_or_404(conn, user_id, item_id)
+        item_before = _get_item_or_404(conn, user_id, item_id)
+        _link_code_or_409(conn, user_id, item_before["id"], code)
+        item_after = _get_item_or_404(conn, user_id, item_id)
+    return item_after
 
 
 def unlink_code(user_id, item_id, raw_code) -> None:
