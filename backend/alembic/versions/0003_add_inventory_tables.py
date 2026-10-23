@@ -75,9 +75,9 @@ def upgrade() -> None:
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
             CONSTRAINT stock_movements_sign_check CHECK (
-                (type = 'in' AND quantity > 0) OR
+                (type IN ('in', 'initial') AND quantity > 0) OR
                 (type = 'out' AND quantity < 0) OR
-                type IN ('initial', 'adjustment')
+                type = 'adjustment'
             ),
             CONSTRAINT fk_stock_movements_user
                 FOREIGN KEY (user_id)
