@@ -6,23 +6,23 @@ UPDATABLE_FIELDS = {"name", "low_stock_threshold"}
 # the whole list comes back in one query. Joining both raw tables onto items
 # directly would multiply rows (an item with 2 codes would sum its stock twice).
 _ITEM_SELECT = """
-    SELECT i.id, i.name, i.low_stock_threshold, i.created_at,
-           COALESCE(m.stock, 0) AS stock,
-           COALESCE(c.codes, ARRAY[]::text[]) AS codes
-    FROM items i
+    SELECT items.id, items.name, items.low_stock_threshold, items.created_at,
+           COALESCE(movement_totals.stock, 0) AS stock,
+           COALESCE(item_code_lists.codes, ARRAY[]::text[]) AS codes
+    FROM items
     LEFT JOIN (
         SELECT item_id, SUM(quantity) AS stock
         FROM stock_movements
         WHERE user_id = %(user_id)s
         GROUP BY item_id
-    ) m ON m.item_id = i.id
+    ) movement_totals ON movement_totals.item_id = items.id
     LEFT JOIN (
         SELECT item_id, array_agg(code::text ORDER BY code) AS codes
         FROM item_codes
         WHERE user_id = %(user_id)s
         GROUP BY item_id
-    ) c ON c.item_id = i.id
-    WHERE i.user_id = %(user_id)s AND i.deleted_at IS NULL
+    ) item_code_lists ON item_code_lists.item_id = items.id
+    WHERE items.user_id = %(user_id)s AND items.deleted_at IS NULL
 """
 
 
@@ -54,7 +54,7 @@ def list_items(conn, user_id) -> list[dict]:
     Output: list of item dicts
     """
     with conn.cursor() as cur:
-        cur.execute(_ITEM_SELECT + " ORDER BY i.name ASC, i.id ASC", {"user_id": user_id})
+        cur.execute(_ITEM_SELECT + " ORDER BY items.name ASC, items.id ASC", {"user_id": user_id})
         rows = cur.fetchall()
     return [_row_to_item_dict(row) for row in rows]
 
@@ -66,7 +66,7 @@ def get_item(conn, user_id, item_id) -> dict | None:
     Output dict: item dict (None when missing, deactivated or not the user's)
     """
     with conn.cursor() as cur:
-        cur.execute(_ITEM_SELECT + " AND i.id = %(item_id)s", {"user_id": user_id, "item_id": item_id})
+        cur.execute(_ITEM_SELECT + " AND items.id = %(item_id)s", {"user_id": user_id, "item_id": item_id})
         row = cur.fetchone()
     if row is None:
         return None
@@ -218,10 +218,10 @@ def get_item_id_by_code(conn, user_id, code) -> int | None:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT c.item_id
-            FROM item_codes c
-            JOIN items i ON i.id = c.item_id AND i.user_id = c.user_id
-            WHERE c.user_id = %s AND c.code = %s AND i.deleted_at IS NULL
+            SELECT item_codes.item_id
+            FROM item_codes
+            JOIN items ON items.id = item_codes.item_id AND items.user_id = item_codes.user_id
+            WHERE item_codes.user_id = %s AND item_codes.code = %s AND items.deleted_at IS NULL
             """,
             (user_id, code),
         )
