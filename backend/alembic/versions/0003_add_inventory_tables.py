@@ -69,15 +69,15 @@ def upgrade() -> None:
             item_id INTEGER NOT NULL,
             quantity INTEGER NOT NULL CHECK (quantity <> 0),
             type VARCHAR(20) NOT NULL
-                CHECK (type IN ('initial', 'in', 'out', 'adjustment')),
+                CHECK (type IN ('initial_adjustment', 'entry', 'exit', 'manual_adjustment')),
             note TEXT,
 
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
             CONSTRAINT stock_movements_sign_check CHECK (
-                (type IN ('in', 'initial') AND quantity > 0) OR
-                (type = 'out' AND quantity < 0) OR
-                type = 'adjustment'
+                (type IN ('entry', 'initial_adjustment') AND quantity > 0) OR
+                (type = 'exit' AND quantity < 0) OR
+                type = 'manual_adjustment'
             ),
             CONSTRAINT fk_stock_movements_user
                 FOREIGN KEY (user_id)

@@ -55,14 +55,14 @@ def get_item(user_id, item_id) -> dict:
 
 def create_item(user_id, data: dict) -> dict:
     """
-    Quick add, in one transaction: the item, an 'initial' movement when the
+    Quick add, in one transaction: the item, an 'initial_adjustment' movement when the
     quantity is above 0, and the code when one is given.
     """
     code = _normalize_code(data["code"]) if data.get("code") is not None else None
     with connect() as conn:
         item_id = rep.create_item(conn, user_id, data["name"], data.get("low_stock_threshold"))
         if data["quantity"] > 0:
-            rep.insert_movement(conn, user_id, item_id, data["quantity"], "initial")
+            rep.insert_movement(conn, user_id, item_id, data["quantity"], "initial_adjustment")
         if code is not None:
             _link_code_or_409(conn, user_id, item_id, code)
         created_item = _get_item_or_404(conn, user_id, item_id)
@@ -95,10 +95,10 @@ def deactivate_item(user_id, item_id) -> None:
 
 def add_movement(user_id, item_id, movement_type, quantity, note=None) -> dict:
     """
-    Records an 'in' or 'out' of a positive quantity; 'out' is stored
+    Records an 'entry' or 'exit' of a positive quantity; 'exit' is stored
     negative. Stock is allowed to go negative.
     """
-    signed_quantity = -quantity if movement_type == "out" else quantity
+    signed_quantity = -quantity if movement_type == "exit" else quantity
     with connect() as conn:
         item_before = _get_item_or_404(conn, user_id, item_id)
         rep.insert_movement(conn, user_id, item_before["id"], signed_quantity, movement_type, note)
@@ -110,14 +110,14 @@ def count_item(user_id, item_id, counted) -> dict:
     """
     Quick count: the client sends the quantity it physically counted. The
     item row is locked so two counts can't both read the same stock, and an
-    'adjustment' for the difference is inserted only when there is one.
+    'manual_adjustment' for the difference is inserted only when there is one.
     """
     with connect() as conn:
         current = rep.lock_item_stock(conn, user_id, item_id)
         if current is None:
             raise HTTPException(status_code=404, detail="Item not found")
         if counted != current:
-            rep.insert_movement(conn, user_id, item_id, counted - current, "adjustment")
+            rep.insert_movement(conn, user_id, item_id, counted - current, "manual_adjustment")
         counted_item = _get_item_or_404(conn, user_id, item_id)
     return counted_item
 

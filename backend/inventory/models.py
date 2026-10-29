@@ -27,7 +27,7 @@ class ItemUpdate(BaseModel):
 
 
 class MovementCreate(BaseModel):
-    type: Literal["in", "out"]
+    type: Literal["entry", "exit"]
     quantity: int = Field(gt=0)
     note: str | None = None
 
