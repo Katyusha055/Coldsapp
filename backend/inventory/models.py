@@ -8,6 +8,11 @@ from pydantic import BaseModel, Field, StrictInt, StringConstraints, field_valid
 # keeps a typo from landing (or overflowing the INTEGER column as a 500).
 MAX_QUANTITY = 5000
 
+# Raw barcode text is untrusted input: capped before it's normalized, so an
+# oversized string is rejected without being processed. Normalization then
+# narrows it to the 13-digit canonical form.
+MAX_CODE_INPUT_LENGTH = 64
+
 ItemName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
 
@@ -15,7 +20,7 @@ class ItemCreate(BaseModel):
     name: ItemName
     quantity: StrictInt = Field(ge=0, le=MAX_QUANTITY)
     low_stock_threshold: StrictInt | None = Field(default=None, ge=0, le=MAX_QUANTITY)
-    code: str | None = None
+    code: str | None = Field(default=None, max_length=MAX_CODE_INPUT_LENGTH)
 
 
 class ItemUpdate(BaseModel):
@@ -42,7 +47,7 @@ class ItemCount(BaseModel):
 
 
 class CodeLink(BaseModel):
-    code: str
+    code: str = Field(max_length=MAX_CODE_INPUT_LENGTH)
 
 
 class ItemResponse(BaseModel):

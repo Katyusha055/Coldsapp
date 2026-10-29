@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Path, Response
 
 import backend.inventory.models as mdl
 import backend.inventory.service as ser
 from backend.auth.utils import CurrentUser
+
+CodePath = Annotated[str, Path(max_length=mdl.MAX_CODE_INPUT_LENGTH)]
 
 router = APIRouter(
     prefix="/items",
@@ -22,7 +26,7 @@ def create_item_endpoint(payload: mdl.ItemCreate, user: CurrentUser):
 
 # Declared before the /{item_id} routes so "by-code" is never read as an id.
 @router.get("/by-code/{code}", response_model=mdl.ItemResponse)
-def get_item_by_code_endpoint(code: str, user: CurrentUser):
+def get_item_by_code_endpoint(code: CodePath, user: CurrentUser):
     return ser.get_item_by_code(user["id"], code)
 
 
@@ -64,6 +68,6 @@ def link_code_endpoint(item_id: int, payload: mdl.CodeLink, user: CurrentUser):
 
 
 @router.delete("/{item_id}/codes/{code}", status_code=204)
-def unlink_code_endpoint(item_id: int, code: str, user: CurrentUser):
+def unlink_code_endpoint(item_id: int, code: CodePath, user: CurrentUser):
     ser.unlink_code(user["id"], item_id, code)
     return Response(status_code=204)
