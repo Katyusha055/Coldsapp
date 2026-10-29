@@ -1,21 +1,26 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import BaseModel, Field, StrictInt, StringConstraints, field_validator
+
+# Upper bound for any single quantity, count or threshold in one request. A
+# small repair shop never moves thousands of one part at once, and the cap
+# keeps a typo from landing (or overflowing the INTEGER column as a 500).
+MAX_QUANTITY = 5000
 
 ItemName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
 
 class ItemCreate(BaseModel):
     name: ItemName
-    quantity: int = Field(ge=0)
-    low_stock_threshold: int | None = Field(default=None, ge=0)
+    quantity: StrictInt = Field(ge=0, le=MAX_QUANTITY)
+    low_stock_threshold: StrictInt | None = Field(default=None, ge=0, le=MAX_QUANTITY)
     code: str | None = None
 
 
 class ItemUpdate(BaseModel):
     name: ItemName | None = None
-    low_stock_threshold: int | None = Field(default=None, ge=0)
+    low_stock_threshold: StrictInt | None = Field(default=None, ge=0, le=MAX_QUANTITY)
 
     @field_validator("name")
     @classmethod
@@ -28,12 +33,12 @@ class ItemUpdate(BaseModel):
 
 class MovementCreate(BaseModel):
     type: Literal["entry", "exit"]
-    quantity: int = Field(gt=0)
+    quantity: StrictInt = Field(gt=0, le=MAX_QUANTITY)
     note: str | None = None
 
 
 class ItemCount(BaseModel):
-    counted: int = Field(ge=0)
+    counted: StrictInt = Field(ge=0, le=MAX_QUANTITY)
 
 
 class CodeLink(BaseModel):
