@@ -267,6 +267,28 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 
 ---
 
+## Inventory module
+
+### Built natively instead of integrating InvenTree/Inventoros
+**Decision:** Inventory is a small native feature (`backend/inventory/`, tables `items`, `item_codes`, `stock_movements`) scoped by `user_id` like clients and tickets. InvenTree has no built-in multi-tenancy (its maintainers suggest one containerized instance and database per tenant) and covers far more than a repair shop needs (purchase, sales, build orders). Inventoros is AGPL-3.0 and adds a PHP + cron stack. A shop that today counts parts by hand in an Excel needs a stock number it can trust, not a warehouse system. Tenancy is `user_id`, not `instance_id`: inventory has nothing to do with WhatsApp.
+**Trade-offs accepted:** Inventory features beyond the basics (purchase orders, suppliers, multi-warehouse, costs) would have to be built if ever needed. All of those are explicitly out of scope: this is stock control, not sales.
+**Future ideas:** Revisit integration only if a customer needs real warehouse features.
+
+### Stock as an append-only ledger, not a column
+**Decision:** There is no `stock` column. Stock is `SUM(quantity)` over `stock_movements`, which are only ever inserted (types `initial_adjustment`, `entry`, `exit`, `manual_adjustment`), never edited or deleted. Corrections are new `manual_adjustment` rows. The "quick count" takes the quantity physically counted and inserts the difference itself; the server does this under a `SELECT ... FOR UPDATE` on the item row, so two simultaneous counts can't both read the same stock. Negative stock is allowed and shown as a drift signal. Items are deactivated (`deleted_at`), never deleted, and a hard delete of an item with movements is rejected by the database.
+**Trade-offs accepted:** Every stock read is an aggregate. The list query pre-aggregates movements and codes per item before a `LEFT JOIN`, so it stays a single query. Joining both raw tables onto `items` directly would multiply rows: an item with 2 codes would sum its stock twice. Allowing negative stock means the system never stops a wrong entry; it makes it visible instead. Blocking it would push the user to stop recording movements, which is the failure the feature exists to fix.
+**Future ideas:** A cached stock column only if the aggregate becomes a measured bottleneck. Moving from a column to a ledger later would have meant migrating real data, which is why the ledger came first.
+
+### Barcodes: EAN-13 and UPC-A only, stored canonically
+**Decision:** Codes are stored as 13 digits (a 12-digit UPC-A is the same code with a leading `0`), with the check digit validated, by the pure `_normalize_code` on every write and every lookup. Several codes can link to one item, but a code is unique per user. Unlinking is a hard delete: nothing references a code row, so there is no history to keep. Deactivating an item deletes its codes, freeing them for reuse. Composite FKs on `(user_id, item_id)` make the database itself reject a code or movement of one user pointing at another user's item.
+**Trade-offs accepted:** Other symbologies (Code 128 on part labels, QR) are rejected outright. Two formats cover retail packaging, and a narrow set keeps normalization trivial and cuts camera false positives later. If parts turn out to carry only Code 128, this has to widen. The customer has no USB scanner, so until camera scanning ships, codes can only be typed by hand.
+**Future ideas:** Browser camera scanning (`zxing-wasm`) uses the same lookup/link endpoints, so it is a frontend-only addition. It ships only if a camera test on the customer's real parts and phone passes.
+
+### Optional thresholds: NULL means no alert
+**Decision:** `low_stock_threshold` is nullable. `NULL` means "never alert" and `0` means "alert when it runs out". PATCH uses `model_dump(exclude_unset=True)`, so an omitted field is left alone and an explicit `null` turns the alert off.
+**Trade-offs accepted:** The client has to distinguish "omit" from "send null". This is the one PATCH in the codebase where null is a meaningful value (the others drop `None` fields).
+**Future ideas:** No change planned.
+
 ## General architecture
 
 ### Router → service → repository layering
@@ -293,6 +315,11 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 **Decision:** Service-layer tests run against a real PostgreSQL database rather than mocks. This covers the full `service → repository → DB` chain and catches issues that mock-based tests miss (constraint violations, query correctness, transaction behavior). Mutation testing with `mutmut` runs at 93.6% — the remaining 6.4% is a conscious decision, not an oversight.
 **Trade-offs accepted:** Tests require a running database and are slower than unit tests with mocks. Test fixtures use a factory pattern (`create_user`, `auth_headers` in `conftest.py`) to keep setup readable.
 **Future ideas:** No change to the real-DB philosophy. If test suite duration becomes a bottleneck, parallelize with `pytest-xdist` before considering mocks.
+
+### Per-feature `conftest.py` (new with inventory; older tests don't use it)
+**Decision:** Pytest stacks `conftest.py` files by directory: `backend/conftest.py` is visible to every test, and a `conftest.py` inside a feature's `tests/` folder adds fixtures only for that folder, on top of the root ones. Inventory is the first feature to use this. `backend/inventory/tests/conftest.py` holds `tenants` (users A and B, each with an item, a code and a movement) and `tenant_headers`, built on the root's `create_user` and `api_client`. Three of inventory's four test files use them, and they create data through `backend.inventory.service`, so they don't belong in the root conftest, which every feature's tests load.
+**Trade-offs accepted:** It's a new pattern, so the codebase is inconsistent for now. The older features (clients, tickets, whatsapp, pendings, contacts) were written before this was known, and define their fixtures inside the test file itself (e.g. `create_user_two_contact` in `contacts/tests/multi_tenant_test.py`), even when similar setup repeats across files. They work as they are and were deliberately not migrated in the inventory PR.
+**Future ideas:** When an older feature's tests are next reworked, move fixtures shared by several of its test files into a `conftest.py` in its `tests/` folder. Fixtures used by a single file can stay in that file.
 
 ### `backend/shared/` for domain-free infrastructure
 **Decision:** New top-level `shared/` package, for infrastructure with no domain knowledge, regardless of which layer calls it — this revises an earlier, stricter framing that said only `repository.py`-layer code could be shared, which wrongly excluded things like an Evolution-API error-handling decorator that wraps `service.py` functions but is itself pure infrastructure. Two things moved in: `get_instance_by_user_id` (`shared/repository.py`) — it had reached three verbatim copies (`whatsapp/`, `tickets/`, `contacts/`), crossing the "three is the threshold" bar set when the first duplication was accepted — and `handle_evo_errors` (`shared/error_handlers.py`), the httpx→`HTTPException` mapping that was a byte-identical decorator in `whatsapp/service.py` and `contacts/service.py`, plus the same mapping inlined a third time in `tickets/service.py`. Neither has any validation or domain-specific decision-making — pure data access and pure exception translation. `get_client_by_id` (`clients/` + `tickets/`, two copies) stays duplicated: still under the threshold, and more domain-flavored (a client record) than an instance lookup — a deliberate line, not an oversight.
