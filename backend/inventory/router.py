@@ -24,7 +24,6 @@ def create_item_endpoint(payload: mdl.ItemCreate, user: CurrentUser):
     return ser.create_item(user["id"], payload.model_dump())
 
 
-# Declared before the /{item_id} routes so "by-code" is never read as an id.
 @router.get("/by-code/{code}", response_model=mdl.ItemResponse)
 def get_item_by_code_endpoint(code: CodePath, user: CurrentUser):
     return ser.get_item_by_code(user["id"], code)
