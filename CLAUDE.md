@@ -57,6 +57,5 @@ _(completar con los comandos reales — no inferidos: `docker compose up`, coman
 - Validación empírica antes de decidir arquitectura: probar el comportamiento real de la API (Evolution API, etc.) contra datos vivos antes de fijar decisiones de diseño.
 - Alinear versiones de dependencias entre dev y prod explícitamente — un mismatch de versión de Evolution API (v2.1.1 vs v2.3.7) ya causó una diferencia silenciosa en el shape de las respuestas que parecía pérdida de datos.
 - Nombres descriptivos, nunca abreviaturas que obliguen a buscar qué significan. En SQL: sin alias de una letra (`i`, `m`, `c`). Una tabla se referencia por su nombre (`items.id`); una subconsulta, que sí necesita alias, lleva un nombre que diga qué contiene (`movement_totals`, `item_code_lists`).
-- Los planes de PR no incluyen tests. Los tests se diseñan después de implementar el plan y probarlo manualmente, porque la implementación puede cambiar respecto al plan. No agregar secciones de tests ni commits de tests a un plan.
- 
+
 IMPORTANTE: Aunque el documento este en español, siempre responde en ingles si el usuario te habla en ingles, y si te habla en español, respondes en español. 
