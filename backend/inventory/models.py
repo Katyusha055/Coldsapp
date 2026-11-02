@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StrictInt, StringConstraints, field_validator
+from pydantic import AfterValidator, BaseModel, Field, StrictInt, StringConstraints, field_validator
 
 # Upper bound for any single quantity, count or threshold in one request. A
 # small repair shop never moves thousands of one part at once, and the cap
@@ -13,7 +13,22 @@ MAX_QUANTITY = 5000
 # narrows it to the 13-digit canonical form.
 MAX_CODE_INPUT_LENGTH = 64
 
-ItemName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+MAX_NOTE_LENGTH = 500
+
+
+def _reject_nul_characters(value: str) -> str:
+    # Postgres text can't hold NUL bytes; without this they'd surface as a 500.
+    if "\x00" in value:
+        raise ValueError("text cannot contain NUL characters")
+    return value
+
+
+ItemName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=200),
+    AfterValidator(_reject_nul_characters),
+]
+MovementNote = Annotated[str, StringConstraints(max_length=MAX_NOTE_LENGTH), AfterValidator(_reject_nul_characters)]
 
 
 class ItemCreate(BaseModel):
@@ -39,7 +54,7 @@ class ItemUpdate(BaseModel):
 class MovementCreate(BaseModel):
     type: Literal["entry", "exit"]
     quantity: StrictInt = Field(gt=0, le=MAX_QUANTITY)
-    note: str | None = None
+    note: MovementNote | None = None
 
 
 class ItemCount(BaseModel):

@@ -13,7 +13,8 @@ def _normalize_code(raw: str) -> str:
     Raises HTTPException(422) for anything that isn't a valid EAN-13/UPC-A.
     """
     code = raw.strip()
-    if not code.isdigit() or len(code) not in (12, 13):
+    # isascii: isdigit alone also accepts Unicode digits such as Arabic-Indic or superscripts.
+    if not (code.isascii() and code.isdigit()) or len(code) not in (12, 13):
         raise HTTPException(status_code=422, detail="Code must be a 12-digit UPC-A or 13-digit EAN-13")
     if len(code) == 12:
         code = "0" + code
