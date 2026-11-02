@@ -160,12 +160,12 @@ def insert_movement(conn, user_id, item_id, quantity, movement_type, note=None) 
         )
 
 
-def lock_item_stock(conn, user_id, item_id) -> int | None:
+def lock_item(conn, user_id, item_id) -> bool:
     """
     Locks one active item row of a user (FOR UPDATE, held until the
-    transaction ends) and returns its current stock.
+    transaction ends).
 
-    Output: current stock (None when missing, deactivated or not the user's)
+    Output: True if locked, False when missing, deactivated or not the user's
     """
     with conn.cursor() as cur:
         cur.execute(
@@ -176,8 +176,19 @@ def lock_item_stock(conn, user_id, item_id) -> int | None:
             """,
             (item_id, user_id),
         )
-        if cur.fetchone() is None:
-            return None
+        return cur.fetchone() is not None
+
+
+def lock_item_stock(conn, user_id, item_id) -> int | None:
+    """
+    Locks one active item row of a user (see lock_item) and returns its
+    current stock.
+
+    Output: current stock (None when missing, deactivated or not the user's)
+    """
+    if not lock_item(conn, user_id, item_id):
+        return None
+    with conn.cursor() as cur:
         cur.execute(
             """
             SELECT COALESCE(SUM(quantity), 0)

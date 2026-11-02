@@ -139,12 +139,17 @@ def get_item_by_code(user_id, raw_code) -> dict:
 
 
 def link_code(user_id, item_id, raw_code) -> dict:
+    """
+    The item row is locked so a concurrent deactivation can't miss the new
+    code in its cleanup and leave it stuck on a deactivated item.
+    """
     code = _normalize_code(raw_code)
     with connect() as conn:
-        item_before = _get_item_or_404(conn, user_id, item_id)
-        _link_code_or_409(conn, user_id, item_before["id"], code)
-        item_after = _get_item_or_404(conn, user_id, item_id)
-    return item_after
+        if not rep.lock_item(conn, user_id, item_id):
+            raise HTTPException(status_code=404, detail="Item not found")
+        _link_code_or_409(conn, user_id, item_id, code)
+        linked_item = _get_item_or_404(conn, user_id, item_id)
+    return linked_item
 
 
 def unlink_code(user_id, item_id, raw_code) -> None:

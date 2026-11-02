@@ -1,3 +1,5 @@
+import threading
+
 import pytest
 from fastapi import HTTPException
 
@@ -330,6 +332,27 @@ def test_link_code_rejects_a_conflict_an_invalid_code_or_a_missing_item(tenants)
     assert _status_of(lambda: service.link_code(user_id, other["id"], tenants["a"]["code"])) == 409
     assert _status_of(lambda: service.link_code(user_id, item_id, BAD_CHECK_DIGIT_CODE)) == 422
     assert _status_of(lambda: service.link_code(user_id, UNKNOWN_ITEM_ID, UNLINKED_CODE)) == 404
+
+
+def test_link_code_waits_for_a_deactivation_in_progress_and_then_rejects_it(tenants):
+    user_id, item_id = tenants["a"]["user_id"], tenants["a"]["item_id"]
+    statuses = []
+    link_attempt = threading.Thread(
+        target=lambda: statuses.append(_status_of(lambda: service.link_code(user_id, item_id, UNLINKED_CODE)))
+    )
+
+    with connect() as deactivation:
+        deactivation.execute("UPDATE items SET deleted_at = NOW() WHERE id = %s", (item_id,))
+        deactivation.execute("DELETE FROM item_codes WHERE item_id = %s", (item_id,))
+        link_attempt.start()
+        link_attempt.join(timeout=1)
+        waited_for_the_deactivation = link_attempt.is_alive()
+    link_attempt.join(timeout=5)
+
+    assert waited_for_the_deactivation
+    assert statuses == [404]
+    with connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM item_codes WHERE item_id = %s", (item_id,)).fetchone()[0] == 0
 
 
 def test_link_code_to_the_item_it_is_already_on_changes_nothing(tenants):
