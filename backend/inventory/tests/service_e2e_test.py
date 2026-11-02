@@ -340,6 +340,19 @@ def test_link_code_to_the_item_it_is_already_on_changes_nothing(tenants):
     assert relinked["codes"] == [code]
 
 
+@pytest.mark.parametrize("unicode_digits", ["٤٠٠٦٣٨١٣٣٣٩٣١", "²" * 13])
+def test_codes_with_non_ascii_digits_are_rejected_not_a_server_error(tenants, unicode_digits):
+    """
+    Very rare edge case: str.isdigit() also accepts Arabic-Indic digits and
+    superscripts, which used to reach the DB's CHECK or int() and become a 500.
+    """
+    user_id, item_id, code = tenants["a"]["user_id"], tenants["a"]["item_id"], tenants["a"]["code"]
+
+    assert _status_of(lambda: service.link_code(user_id, item_id, unicode_digits)) == 422
+    assert _status_of(lambda: service.get_item_by_code(user_id, unicode_digits)) == 422
+    assert service.get_item(user_id, item_id)["codes"] == [code]
+
+
 # --- DELETE /items/{id}/codes/{code} ---
 
 

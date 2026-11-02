@@ -393,6 +393,28 @@ def test_link_code_endpoint_accepts_a_code_at_the_length_limit(api_client, user)
     assert mocked.call_args.args[2] == raw_code
 
 
+@pytest.mark.parametrize(
+    ("function_name", "path", "body"),
+    [
+        ("create_item", "/items/", {"name": "a\u0000b", "quantity": 1}),
+        ("update_item", f"/items/{ITEM_ID}", {"name": "a\u0000b"}),
+        ("add_movement", f"/items/{ITEM_ID}/movements", {"type": "entry", "quantity": 1, "note": "a\u0000b"}),
+        ("add_movement", f"/items/{ITEM_ID}/movements", {"type": "entry", "quantity": 1, "note": "n" * 501}),
+    ],
+)
+def test_text_postgres_cannot_store_or_an_oversized_note_is_rejected(api_client, user, function_name, path, body):
+    """
+    Very rare edge case: Postgres text can't hold NUL bytes, which would become
+    a 500 if they got past validation. Also covers the 500-character note limit.
+    """
+    method = api_client.patch if function_name == "update_item" else api_client.post
+    with _mock(function_name) as mocked:
+        response = method(path, json=body, headers=user["headers"])
+
+    assert response.status_code == 422
+    mocked.assert_not_called()
+
+
 # --- DELETE /items/{id}/codes/{code} ---
 
 
