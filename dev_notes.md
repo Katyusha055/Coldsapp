@@ -280,7 +280,7 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 **Future ideas:** A cached stock column only if the aggregate becomes a measured bottleneck. Moving from a column to a ledger later would have meant migrating real data, which is why the ledger came first.
 
 ### Barcodes: EAN-13 and UPC-A only, stored canonically
-**Decision:** Codes are stored as 13 digits (a 12-digit UPC-A is the same code with a leading `0`), with the check digit validated, by the pure `_normalize_code` on every write and every lookup. Several codes can link to one item, but a code is unique per user. Unlinking is a hard delete: nothing references a code row, so there is no history to keep. Deactivating an item deletes its codes, freeing them for reuse. Composite FKs on `(user_id, item_id)` make the database itself reject a code or movement of one user pointing at another user's item.
+**Decision:** Codes are stored as 13 digits (a 12-digit UPC-A is the same code with a leading `0`), with the check digit validated, by the pure `_normalize_code` on every write and every lookup. Several codes can link to one item, but a code is unique per user. Unlinking is a hard delete: nothing references a code row, so there is no history to keep. Deactivating an item deletes its codes, freeing them for reuse; linking a code locks the item row (`SELECT ... FOR UPDATE`), so a simultaneous deactivation can't miss the new code and leave it stuck on a deactivated item. Composite FKs on `(user_id, item_id)` make the database itself reject a code or movement of one user pointing at another user's item.
 **Trade-offs accepted:** Other symbologies (Code 128 on part labels, QR) are rejected outright. Two formats cover retail packaging, and a narrow set keeps normalization trivial and cuts camera false positives later. If parts turn out to carry only Code 128, this has to widen. The customer has no USB scanner, so until camera scanning ships, codes can only be typed by hand.
 **Future ideas:** Browser camera scanning (`zxing-wasm`) uses the same lookup/link endpoints, so it is a frontend-only addition. It ships only if a camera test on the customer's real parts and phone passes.
 
@@ -288,6 +288,11 @@ Local ran v2.1.1, prod v2.3.7 — different response shapes. Code correct for v2
 **Decision:** `low_stock_threshold` is nullable. `NULL` means "never alert" and `0` means "alert when it runs out". PATCH uses `model_dump(exclude_unset=True)`, so an omitted field is left alone and an explicit `null` turns the alert off.
 **Trade-offs accepted:** The client has to distinguish "omit" from "send null". This is the one PATCH in the codebase where null is a meaningful value (the others drop `None` fields).
 **Future ideas:** No change planned.
+
+### Left out on purpose: tickets integration and two schema trims
+**Decision:** No tickets integration in the inventory PRs: neither a data link between tickets and items, nor a navigation link from the ticket view. The schema also has no `origen` column on `stock_movements` and no `UNIQUE (user_id, id)` on that table. Movements record only their `type`, and nothing references a movement row, so a composite FK target isn't needed (`items` has that constraint because codes and movements point at it).
+**Trade-offs accepted:** Using a part on a repair doesn't change stock by itself; it has to be recorded as a separate `exit` movement. A movement doesn't say where it came from beyond its `type` and optional `note`.
+**Future ideas:** Tickets integration stays out of scope until requested. Add `origen` or the constraint only if something comes to need them. This has been ruled out because it would add too much complexity for the moment.
 
 ## General architecture
 
