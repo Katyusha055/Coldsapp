@@ -46,7 +46,9 @@ def _insert_movement(user_id, item_id, quantity, movement_type):
 
 def _new_bare_item(user_id, name):
     with connect() as conn:
-        return conn.execute("INSERT INTO items (user_id, name) VALUES (%s, %s) RETURNING id", (user_id, name)).fetchone()[0]
+        return conn.execute(
+            "INSERT INTO items (user_id, name) VALUES (%s, %s) RETURNING id", (user_id, name)
+        ).fetchone()[0]
 
 
 # --- composite foreign keys ---
@@ -63,9 +65,10 @@ def test_a_code_cannot_pair_one_user_with_another_users_item(tenants):
     )
 
     assert error.diag.constraint_name == "fk_item_codes_item"
-    assert _scalar(
-        "SELECT COUNT(*) FROM item_codes WHERE user_id = %s AND item_id = %s", (a["user_id"], b["item_id"])
-    ) == 0
+    assert (
+        _scalar("SELECT COUNT(*) FROM item_codes WHERE user_id = %s AND item_id = %s", (a["user_id"], b["item_id"]))
+        == 0
+    )
 
 
 def test_a_movement_cannot_pair_one_user_with_another_users_item(tenants):
@@ -79,9 +82,12 @@ def test_a_movement_cannot_pair_one_user_with_another_users_item(tenants):
     )
 
     assert error.diag.constraint_name == "fk_stock_movements_item"
-    assert _scalar(
-        "SELECT COUNT(*) FROM stock_movements WHERE user_id = %s AND item_id = %s", (a["user_id"], b["item_id"])
-    ) == 0
+    assert (
+        _scalar(
+            "SELECT COUNT(*) FROM stock_movements WHERE user_id = %s AND item_id = %s", (a["user_id"], b["item_id"])
+        )
+        == 0
+    )
 
 
 # --- code uniqueness and format ---
@@ -98,9 +104,7 @@ def test_a_user_cannot_hold_the_same_code_twice(tenants):
     )
 
     assert error.diag.constraint_name == "item_codes_user_id_code_key"
-    assert _scalar(
-        "SELECT COUNT(*) FROM item_codes WHERE user_id = %s AND code = %s", (a["user_id"], a["code"])
-    ) == 1
+    assert _scalar("SELECT COUNT(*) FROM item_codes WHERE user_id = %s AND code = %s", (a["user_id"], a["code"])) == 1
 
 
 @pytest.mark.parametrize("bad_code", ["12345", "ABCDEFGHIJKLM", "012345678905"])
@@ -223,10 +227,14 @@ def test_an_item_with_a_movement_or_a_code_cannot_be_deleted(tenants, attached):
 
     assert error.diag.constraint_name == expected_constraint
     assert _scalar("SELECT COUNT(*) FROM items WHERE id = %s", (item_id,)) == 1
-    assert _scalar(
-        "SELECT (SELECT COUNT(*) FROM stock_movements WHERE item_id = %s) + (SELECT COUNT(*) FROM item_codes WHERE item_id = %s)",
-        (item_id, item_id),
-    ) == 1
+    assert (
+        _scalar(
+            "SELECT (SELECT COUNT(*) FROM stock_movements WHERE item_id = %s) "
+            "+ (SELECT COUNT(*) FROM item_codes WHERE item_id = %s)",
+            (item_id, item_id),
+        )
+        == 1
+    )
 
 
 def test_deleting_a_user_cascades_through_items_codes_and_movements(tenants):
