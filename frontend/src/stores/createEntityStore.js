@@ -6,7 +6,9 @@ const registry = [];
 // write the previous session's rows into the freshly reset store.
 let generation = 0;
 
-export function createEntityStore(name, { fetchAll, getters = {}, actions = {} }) {
+// state: extra fields next to the base ones. It's a function so every
+// $reset() (logout included) builds fresh values for them too.
+export function createEntityStore(name, { fetchAll, state = () => ({}), getters = {}, actions = {} }) {
     let inFlight = null;
 
     const useStore = defineStore(name, {
@@ -14,7 +16,8 @@ export function createEntityStore(name, { fetchAll, getters = {}, actions = {} }
             items: [],
             loaded: false,
             loading: false,
-            error: null
+            error: null,
+            ...state()
         }),
 
         getters: {
