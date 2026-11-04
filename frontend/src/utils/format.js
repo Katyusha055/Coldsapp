@@ -21,6 +21,17 @@ export function ticketStatusLabel(status) {
     return TICKET_STATUS_LABELS[status] ?? status;
 }
 
+const MOVEMENT_TYPE_LABELS = {
+    initial_adjustment: 'Carga inicial',
+    entry: 'Entrada',
+    exit: 'Salida',
+    manual_adjustment: 'Ajuste por conteo'
+};
+
+export function movementTypeLabel(type) {
+    return MOVEMENT_TYPE_LABELS[type] ?? type;
+}
+
 // Ecuadorian mobile JIDs only: 593 + 9 digits becomes the 10-digit local
 // form clients are stored in. Anything else (foreign numbers, @lid privacy
 // ids) has no correct local form, so it returns ''.

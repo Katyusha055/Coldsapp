@@ -5,6 +5,7 @@ import { useTicketsStore } from '@/stores/tickets.js';
 import PendingWhatsappWidget from '@/components/dashboard/PendingWhatsappWidget.vue';
 import TopClientsWidget from '@/components/dashboard/TopClientsWidget.vue';
 import PendingTicketsWidget from '@/components/dashboard/PendingTicketsWidget.vue';
+import InventoryAlertsWidget from '@/components/dashboard/InventoryAlertsWidget.vue';
 
 const clientsStore = useClientsStore();
 const ticketsStore = useTicketsStore();
@@ -71,6 +72,9 @@ onMounted(async () => {
         </div>
         <div class="col-span-12 xl:col-span-4">
             <PendingTicketsWidget />
+        </div>
+        <div class="col-span-12 xl:col-span-4">
+            <InventoryAlertsWidget />
         </div>
     </div>
 </template>

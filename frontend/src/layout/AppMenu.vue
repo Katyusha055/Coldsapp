@@ -27,6 +27,11 @@ const model = ref([
                 to: '/tickets'
             },
             {
+                label: 'Inventario',
+                icon: 'pi pi-fw pi-box',
+                to: '/inventory'
+            },
+            {
                 label: 'WhatsApp',
                 icon: 'pi pi-fw pi-whatsapp',
                 to: '/whatsapp'

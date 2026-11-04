@@ -4,6 +4,7 @@ import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useTicketsStore } from '@/stores/tickets.js';
 import { useClientsStore } from '@/stores/clients.js';
+import { useInventoryStore } from '@/stores/inventory.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
 import PlaceholderCell from '@/components/PlaceholderCell.vue';
@@ -20,6 +21,7 @@ const VALID_TRANSITIONS = {
 const toast = useToast();
 const ticketsStore = useTicketsStore();
 const clientsStore = useClientsStore();
+const inventoryStore = useInventoryStore();
 
 const deleteTicketDialog = ref(false);
 const ticket = ref({});
@@ -71,6 +73,81 @@ onMounted(async () => {
         loadError.value = err.message ?? 'Failed to load data.';
     }
 });
+
+// --- Parts used: exit movements recorded from the ticket drawer ---
+// Purely visual: nothing links the ticket and the items beyond the note.
+
+const CLOSED_STATUSES = ['delivered', 'cancelled'];
+const MAX_QUANTITY = 5000;
+
+const partsDialog = ref(false);
+const partLines = ref([]);
+const partsNote = ref('');
+const partsSaving = ref(false);
+const partsLoadError = ref('');
+
+const currentTicketClosed = computed(() => CLOSED_STATUSES.includes(ticketsStore.byId(nav.currentId)?.status));
+
+function newPartLine() {
+    return { itemId: null, quantity: 1, error: '' };
+}
+
+async function openPartsDialog() {
+    partLines.value = [newPartLine()];
+    partsNote.value = `Ticket #${nav.currentId}`;
+    partsLoadError.value = '';
+    partsDialog.value = true;
+    try {
+        await inventoryStore.load();
+    } catch (err) {
+        if (handleAuthError(err)) return;
+        partsLoadError.value = err.message ?? 'No se pudo cargar el inventario.';
+    }
+}
+
+// An item already on another line can't be picked again.
+function itemOptionsFor(line) {
+    const takenIds = new Set(partLines.value.filter((other) => other !== line).map((other) => other.itemId));
+    return inventoryStore.items.filter((item) => !takenIds.has(item.id));
+}
+
+function isPartLineValid(line) {
+    return line.itemId !== null && Number.isInteger(line.quantity) && line.quantity >= 1 && line.quantity <= MAX_QUANTITY;
+}
+
+function partErrorMessageFor(err) {
+    if (err.status === 404) return 'El artículo no existe o fue desactivado.';
+    if (err.status === 422) return `Cantidad no válida: debe ser un número entero entre 1 y ${MAX_QUANTITY}.`;
+    return err.message ?? 'Ocurrió un error inesperado.';
+}
+
+// One exit per line, one after another: there is no batch endpoint, so a
+// failure leaves the earlier lines saved. Saved lines leave the popup and
+// failed ones stay with their error.
+async function savePartsUsed() {
+    if (partLines.value.length === 0 || !partLines.value.every(isPartLineValid)) return;
+    partsSaving.value = true;
+    const note = partsNote.value.trim() || null;
+    const total = partLines.value.length;
+    const failedLines = [];
+    for (const line of partLines.value) {
+        try {
+            await inventoryStore.addMovement(line.itemId, 'exit', line.quantity, note);
+        } catch (err) {
+            if (handleAuthError(err)) return;
+            failedLines.push({ ...line, error: partErrorMessageFor(err) });
+        }
+    }
+    partsSaving.value = false;
+    partLines.value = failedLines;
+    const saved = total - failedLines.length;
+    if (failedLines.length === 0) {
+        partsDialog.value = false;
+        toast.add({ severity: 'success', summary: 'Repuestos registrados', detail: `${saved} ${saved === 1 ? 'salida registrada' : 'salidas registradas'} en el inventario.`, life: 3000 });
+    } else {
+        toast.add({ severity: 'warn', summary: 'Registro incompleto', detail: `Se registraron ${saved} de ${total}. Revisa los artículos que fallaron.`, life: 4000 });
+    }
+}
 
 async function saveTicket() {
     submitted.value = true;
@@ -219,6 +296,10 @@ async function onStatusChange(t, newStatus) {
                     <label for="ticket-description" class="block font-bold mb-3">Descripción</label>
                     <Textarea id="ticket-description" v-model="ticket.description" rows="3" fluid />
                 </div>
+                <div v-if="!nav.isNew">
+                    <Button label="Registrar repuestos usados" icon="pi pi-box" severity="secondary" outlined fluid :disabled="currentTicketClosed" @click="openPartsDialog" />
+                    <small v-if="currentTicketClosed" class="text-surface-500 block mt-2">No disponible para tickets entregados o cancelados.</small>
+                </div>
                 <small v-if="errorMessage" class="text-red-500">{{ errorMessage }}</small>
             </div>
             <template #footer>
@@ -228,6 +309,49 @@ async function onStatusChange(t, newStatus) {
                 </div>
             </template>
         </EntityDrawer>
+
+        <Dialog v-model:visible="partsDialog" :style="{ width: '560px' }" header="Registrar repuestos usados" :modal="true" :closable="!partsSaving">
+            <div class="flex flex-col gap-4">
+                <small v-if="partsLoadError" class="text-red-500">{{ partsLoadError }}</small>
+                <div v-for="(line, index) in partLines" :key="index" class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <Select
+                            v-model="line.itemId"
+                            :options="itemOptionsFor(line)"
+                            option-label="name"
+                            option-value="id"
+                            placeholder="Seleccionar un artículo"
+                            filter
+                            :disabled="partsSaving"
+                            :invalid="!!line.error"
+                            class="flex-1 min-w-0"
+                        >
+                            <template #option="slotProps">
+                                <div class="flex items-center justify-between w-full gap-4">
+                                    <span>{{ slotProps.option.name }}</span>
+                                    <small class="text-surface-400 whitespace-nowrap">Stock: {{ slotProps.option.stock }}</small>
+                                </div>
+                            </template>
+                        </Select>
+                        <InputNumber v-model="line.quantity" :min="1" @input="(event) => (line.quantity = event.value)" :max="MAX_QUANTITY" :use-grouping="false" :disabled="partsSaving" :aria-label="`Cantidad de la línea ${index + 1}`" input-class="w-20 text-center" />
+                        <Button v-tooltip.top="'Quitar'" icon="pi pi-times" text rounded severity="secondary" :disabled="partsSaving || partLines.length === 1" @click="partLines.splice(index, 1)" />
+                    </div>
+                    <small v-if="line.error" class="text-red-500">{{ line.error }}</small>
+                </div>
+                <div>
+                    <Button label="Agregar artículo" icon="pi pi-plus" text :disabled="partsSaving" @click="partLines.push(newPartLine())" />
+                </div>
+                <div>
+                    <label for="parts-note" class="block font-bold mb-3">Nota</label>
+                    <InputText id="parts-note" v-model="partsNote" :maxlength="500" :disabled="partsSaving" fluid />
+                    <small class="text-surface-500 block mt-2">Se guarda en cada salida del historial del artículo.</small>
+                </div>
+            </div>
+            <template #footer>
+                <Button label="Cancelar" icon="pi pi-times" text :disabled="partsSaving" @click="partsDialog = false" />
+                <Button label="Registrar salidas" icon="pi pi-check" :loading="partsSaving" :disabled="partLines.length === 0 || !partLines.every(isPartLineValid)" @click="savePartsUsed" />
+            </template>
+        </Dialog>
 
         <Dialog v-model:visible="deleteTicketDialog" :style="{ width: '450px' }" header="Confirmar" :modal="true">
             <div class="flex items-center gap-4">
