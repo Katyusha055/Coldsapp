@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
-import { useInventoryStore } from '@/stores/inventory.js';
+import { useInventoryStore, isNegativeStock, isLowStock, hasStockAlert } from '@/stores/inventory.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
 import { formatDate, movementTypeLabel } from '@/utils/format.js';
@@ -11,6 +12,7 @@ import { formatDate, movementTypeLabel } from '@/utils/format.js';
 const MAX_QUANTITY = 5000;
 
 const toast = useToast();
+const route = useRoute();
 const store = useInventoryStore();
 
 const loadError = ref('');
@@ -28,21 +30,45 @@ const filteredItems = computed(() => {
     return store.items.filter((item) => item.name.toLowerCase().includes(query));
 });
 
-const nav = useDrawerNavigation(filteredItems);
+// "Mostrar alertas" sorts rather than filters: alerts first (negative, then
+// low, then by name), and the rest below in the backend's name order. The
+// dashboard widget links here with ?alerts=1 to open it already on.
+const showAlerts = ref(false);
+
+watch(
+    () => route.query.alerts,
+    (alerts) => {
+        showAlerts.value = alerts === '1';
+    },
+    { immediate: true }
+);
+
+function alertRank(item) {
+    if (isNegativeStock(item)) return 0;
+    if (isLowStock(item)) return 1;
+    return 2;
+}
+
+const displayedItems = computed(() => {
+    if (!showAlerts.value) return filteredItems.value;
+    return [...filteredItems.value].sort((a, b) => alertRank(a) - alertRank(b) || a.name.localeCompare(b.name));
+});
+
+watch(showAlerts, () => {
+    tableFirst.value = 0;
+});
+
+const nav = useDrawerNavigation(displayedItems);
 const selectedItem = computed(() => store.byId(nav.currentId));
 
-function isNegative(item) {
-    return item.stock < 0;
-}
-
-function isLow(item) {
-    return item.low_stock_threshold !== null && item.stock <= item.low_stock_threshold;
-}
-
 function stockSeverity(item) {
-    if (isNegative(item)) return 'danger';
-    if (isLow(item)) return 'warn';
+    if (isNegativeStock(item)) return 'danger';
+    if (isLowStock(item)) return 'warn';
     return null;
+}
+
+function rowClass(item) {
+    return hasStockAlert(item) ? 'cursor-pointer stock-alert-row' : 'cursor-pointer';
 }
 
 function errorMessageFor(err) {
@@ -242,11 +268,20 @@ async function doDeactivate() {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :ref="nav.bindTable" v-model:first="tableFirst" :value="filteredItems" data-key="id" :row-class="() => 'cursor-pointer'" paginator :rows="30" row-hover @row-click="onRowClick">
+            <DataTable :ref="nav.bindTable" v-model:first="tableFirst" :value="displayedItems" data-key="id" :row-class="rowClass" paginator :rows="30" row-hover @row-click="onRowClick">
                 <template #header>
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Inventario</h4>
-                        <InputText v-model="searchQuery" placeholder="Buscar por nombre..." />
+                        <div class="flex items-center gap-4">
+                            <Button
+                                :label="`Mostrar alertas (${store.alertItems.length})`"
+                                icon="pi pi-exclamation-triangle"
+                                severity="danger"
+                                :outlined="!showAlerts"
+                                @click="showAlerts = !showAlerts"
+                            />
+                            <InputText v-model="searchQuery" placeholder="Buscar por nombre..." />
+                        </div>
                     </div>
                 </template>
 
@@ -378,3 +413,9 @@ async function doDeactivate() {
         </Dialog>
     </div>
 </template>
+
+<style scoped>
+:deep(.p-datatable-tbody > tr.stock-alert-row) {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--p-red-500) 22%, transparent), transparent 75%);
+}
+</style>

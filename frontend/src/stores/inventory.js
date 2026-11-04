@@ -1,8 +1,25 @@
 import { createEntityStore } from '@/stores/createEntityStore.js';
 import { getItems, createItem, updateItem, deactivateItem, addMovement, getMovements, countItem } from '@/services/InventoryService.js';
 
+export function isNegativeStock(item) {
+    return item.stock < 0;
+}
+
+// A NULL threshold means the item never alerts; 0 alerts when it runs out.
+export function isLowStock(item) {
+    return item.low_stock_threshold !== null && item.stock <= item.low_stock_threshold;
+}
+
+export function hasStockAlert(item) {
+    return isNegativeStock(item) || isLowStock(item);
+}
+
 export const useInventoryStore = createEntityStore('inventory', {
     fetchAll: getItems,
+
+    getters: {
+        alertItems: (state) => state.items.filter(hasStockAlert)
+    },
 
     // History per item id, fetched the first time an item's history is opened.
     // A movement drops that item's entry: the API returns the item, not the
