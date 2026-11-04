@@ -333,7 +333,7 @@ async function onStatusChange(t, newStatus) {
                                 </div>
                             </template>
                         </Select>
-                        <InputNumber v-model="line.quantity" :min="1" :max="MAX_QUANTITY" :use-grouping="false" :disabled="partsSaving" :aria-label="`Cantidad de la línea ${index + 1}`" input-class="w-20 text-center" />
+                        <InputNumber v-model="line.quantity" :min="1" @input="(event) => (line.quantity = event.value)" :max="MAX_QUANTITY" :use-grouping="false" :disabled="partsSaving" :aria-label="`Cantidad de la línea ${index + 1}`" input-class="w-20 text-center" />
                         <Button v-tooltip.top="'Quitar'" icon="pi pi-times" text rounded severity="secondary" :disabled="partsSaving || partLines.length === 1" @click="partLines.splice(index, 1)" />
                     </div>
                     <small v-if="line.error" class="text-red-500">{{ line.error }}</small>

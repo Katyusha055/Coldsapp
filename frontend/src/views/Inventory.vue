@@ -293,7 +293,7 @@ async function doDeactivate() {
                 <Column field="name" header="Nombre" sortable style="min-width: 16rem"></Column>
                 <Column field="stock" header="Stock" sortable style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Tag v-if="stockSeverity(slotProps.data)" :value="String(slotProps.data.stock)" :severity="stockSeverity(slotProps.data)" class="text-base" />
+                        <Tag v-if="stockSeverity(slotProps.data)" :severity="stockSeverity(slotProps.data)"><span class="text-base font-semibold">{{ slotProps.data.stock }}</span></Tag>
                         <span v-else class="text-base font-semibold">{{ slotProps.data.stock }}</span>
                     </template>
                 </Column>
@@ -307,6 +307,7 @@ async function doDeactivate() {
                     <template #body="slotProps">
                         <div class="flex items-center gap-2" @click.stop>
                             <Button v-tooltip.top="'Restar'" icon="pi pi-minus" outlined rounded severity="secondary" :disabled="!isStepValid(slotProps.data) || busyItemIds.has(slotProps.data.id)" @click="applyMovement(slotProps.data, 'exit')" />
+                            <!-- InputNumber only commits its value on blur; @input keeps it current while typing, so buttons enabled by the value react right away. -->
                             <InputNumber
                                 :model-value="stepFor(slotProps.data)"
                                 :min="1"
@@ -315,6 +316,7 @@ async function doDeactivate() {
                                 :aria-label="`Cantidad para ${slotProps.data.name}`"
                                 input-class="w-16 text-center"
                                 @update:model-value="(value) => setStep(slotProps.data, value)"
+                                @input="(event) => setStep(slotProps.data, event.value)"
                             />
                             <Button v-tooltip.top="'Sumar'" icon="pi pi-plus" outlined rounded severity="secondary" :disabled="!isStepValid(slotProps.data) || busyItemIds.has(slotProps.data.id)" @click="applyMovement(slotProps.data, 'entry')" />
                             <Button label="Contar" icon="pi pi-calculator" text class="ml-4" :disabled="busyItemIds.has(slotProps.data.id)" @click="(event) => openCount(event, slotProps.data)" />
@@ -329,7 +331,7 @@ async function doDeactivate() {
                 <span class="font-semibold">{{ countTarget.name }}</span>
                 <small class="text-surface-500">Stock actual: {{ countTarget.stock }}</small>
                 <label for="counted-quantity" class="font-bold">Cantidad contada</label>
-                <InputNumber v-model="countedQuantity" input-id="counted-quantity" :min="0" :max="MAX_QUANTITY" :use-grouping="false" autofocus fluid @keydown.enter="saveCount" />
+                <InputNumber v-model="countedQuantity" input-id="counted-quantity" @input="(event) => (countedQuantity = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" autofocus fluid @keydown.enter="saveCount" />
                 <small class="text-surface-500">Máximo {{ MAX_QUANTITY }} por conteo.</small>
                 <Button label="Guardar" icon="pi pi-check" :disabled="!Number.isInteger(countedQuantity)" @click="saveCount" />
             </div>
@@ -344,7 +346,7 @@ async function doDeactivate() {
                 </div>
                 <div>
                     <label for="item-new-quantity" class="block font-bold mb-3">Cantidad inicial</label>
-                    <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" :min="0" :max="MAX_QUANTITY" :use-grouping="false" :invalid="submitted && !Number.isInteger(newItem.quantity)" fluid />
+                    <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" @input="(event) => (newItem.quantity = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" :invalid="submitted && !Number.isInteger(newItem.quantity)" fluid />
                     <small v-if="submitted && !Number.isInteger(newItem.quantity)" class="text-red-500">La cantidad es requerida.</small>
                 </div>
             </div>
@@ -352,7 +354,7 @@ async function doDeactivate() {
             <div v-else-if="selectedItem" class="flex flex-col gap-6">
                 <div>
                     <label class="block font-bold mb-3">Stock actual</label>
-                    <Tag v-if="stockSeverity(selectedItem)" :value="String(selectedItem.stock)" :severity="stockSeverity(selectedItem)" class="text-base" />
+                    <Tag v-if="stockSeverity(selectedItem)" :severity="stockSeverity(selectedItem)"><span class="text-base font-semibold">{{ selectedItem.stock }}</span></Tag>
                     <span v-else class="text-base font-semibold">{{ selectedItem.stock }}</span>
                 </div>
 
@@ -364,7 +366,7 @@ async function doDeactivate() {
 
                 <div>
                     <label for="item-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
-                    <InputNumber v-model="editableThreshold" input-id="item-threshold" :min="0" :max="MAX_QUANTITY" :use-grouping="false" placeholder="Sin alerta" fluid @keydown.enter="saveThreshold" />
+                    <InputNumber v-model="editableThreshold" input-id="item-threshold" @input="(event) => (editableThreshold = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" placeholder="Sin alerta" fluid @keydown.enter="saveThreshold" />
                     <small class="text-surface-500 block mt-2">Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                     <Button label="Guardar" icon="pi pi-check" class="mt-3" :disabled="!isThresholdDirty" @click="saveThreshold" />
                 </div>
