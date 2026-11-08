@@ -13,6 +13,8 @@ import { formatDate, movementTypeLabel } from '@/utils/format.js';
 // on blur and Enter, so a typed 6000 would be saved as 5000. A value over the
 // cap is shown as an error and blocks saving instead.
 const MAX_QUANTITY = 5000;
+// Same limit as the backend's item name.
+const MAX_NAME_LENGTH = 200;
 
 function isQuantityInRange(value, min) {
     return Number.isInteger(value) && value >= min && value <= MAX_QUANTITY;
@@ -95,7 +97,7 @@ function rowClass(item) {
 
 function errorMessageFor(err) {
     if (err.status === 404) return 'El artículo no existe o fue desactivado.';
-    if (err.status === 422) return `Datos no válidos. Las cantidades deben ser números enteros entre 0 y ${MAX_QUANTITY}.`;
+    if (err.status === 422) return 'Datos no válidos. Revisa los campos e intenta de nuevo.';
     return err.message ?? 'Ocurrió un error inesperado.';
 }
 
@@ -363,7 +365,7 @@ async function doDeactivate() {
             <div v-if="nav.isNew" class="flex flex-col gap-6">
                 <div>
                     <label for="item-new-name" class="block font-bold mb-3">Nombre</label>
-                    <InputText id="item-new-name" v-model="newItem.name" autofocus :invalid="submitted && !newItem.name.trim()" fluid />
+                    <InputText id="item-new-name" v-model="newItem.name" :maxlength="MAX_NAME_LENGTH" autofocus :invalid="submitted && !newItem.name.trim()" fluid />
                     <small v-if="submitted && !newItem.name.trim()" class="text-red-500">El nombre es requerido.</small>
                 </div>
                 <div>
@@ -389,7 +391,7 @@ async function doDeactivate() {
 
                 <div>
                     <label for="item-name" class="block font-bold mb-3">Nombre</label>
-                    <InputText id="item-name" v-model="editableName" fluid @keyup.enter="saveName" />
+                    <InputText id="item-name" v-model="editableName" :maxlength="MAX_NAME_LENGTH" fluid @keyup.enter="saveName" />
                     <Button label="Guardar" icon="pi pi-check" class="mt-3" :disabled="!isNameDirty" @click="saveName" />
                 </div>
 
