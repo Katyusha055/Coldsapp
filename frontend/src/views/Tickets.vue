@@ -280,7 +280,19 @@ async function onStatusChange(t, newStatus) {
             <div class="flex flex-col gap-6">
                 <div v-if="nav.isNew">
                     <label for="ticket-client" class="block font-bold mb-3">Cliente</label>
-                    <Select id="ticket-client" v-model="ticket.client_id" :options="clientsStore.items" option-label="name" option-value="id" placeholder="Seleccionar un cliente" filter :invalid="submitted && !ticket.client_id" fluid>
+                    <Select
+                        id="ticket-client"
+                        v-model="ticket.client_id"
+                        :options="clientsStore.items"
+                        option-label="name"
+                        option-value="id"
+                        placeholder="Seleccionar un cliente"
+                        filter
+                        empty-message="No hay clientes. Crea uno en la sección Clientes."
+                        empty-filter-message="Ningún cliente coincide con la búsqueda."
+                        :invalid="submitted && !ticket.client_id"
+                        fluid
+                    >
                         <template #option="slotProps">
                             <div class="flex flex-col">
                                 <span>{{ slotProps.option.name }}</span>
@@ -318,7 +330,19 @@ async function onStatusChange(t, newStatus) {
                 <small v-if="partsLoadError" class="text-red-500">{{ partsLoadError }}</small>
                 <div v-for="(line, index) in partLines" :key="index" class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
-                        <Select v-model="line.itemId" :options="itemOptionsFor(line)" option-label="name" option-value="id" placeholder="Seleccionar un artículo" filter :disabled="partsSaving" :invalid="!!line.error" class="flex-1 min-w-0">
+                        <Select
+                            v-model="line.itemId"
+                            :options="itemOptionsFor(line)"
+                            option-label="name"
+                            option-value="id"
+                            placeholder="Seleccionar un artículo"
+                            filter
+                            empty-message="No hay artículos en el inventario."
+                            empty-filter-message="Ningún artículo coincide con la búsqueda."
+                            :disabled="partsSaving"
+                            :invalid="!!line.error"
+                            class="flex-1 min-w-0"
+                        >
                             <template #option="slotProps">
                                 <div class="flex items-center justify-between w-full gap-4">
                                     <span>{{ slotProps.option.name }}</span>
