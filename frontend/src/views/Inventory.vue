@@ -65,8 +65,19 @@ const displayedItems = computed(() => {
     return [...filteredItems.value].sort((a, b) => alertRank(a) - alertRank(b) || a.name.localeCompare(b.name));
 });
 
-watch(showAlerts, () => {
+// A column sort set from a header overrides the order of :value, so the two
+// orders take turns: turning alerts on clears the column sort, and sorting a
+// column turns alerts off.
+const sortField = ref(null);
+const sortOrder = ref(null);
+
+watch(showAlerts, (on) => {
     tableFirst.value = 0;
+    if (on) sortField.value = null;
+});
+
+watch(sortField, (field) => {
+    if (field) showAlerts.value = false;
 });
 
 const nav = useDrawerNavigation(displayedItems);
@@ -279,7 +290,7 @@ async function doDeactivate() {
 
             <small v-if="loadError" class="text-red-500 block mb-4">{{ loadError }}</small>
 
-            <DataTable :ref="nav.bindTable" v-model:first="tableFirst" :value="displayedItems" data-key="id" :row-class="rowClass" paginator :rows="30" row-hover @row-click="onRowClick">
+            <DataTable :ref="nav.bindTable" v-model:first="tableFirst" v-model:sort-field="sortField" v-model:sort-order="sortOrder" :value="displayedItems" data-key="id" :row-class="rowClass" paginator :rows="30" row-hover @row-click="onRowClick">
                 <template #header>
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Inventario</h4>
