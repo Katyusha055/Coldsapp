@@ -95,7 +95,9 @@ function newPartLine() {
 
 async function openPartsDialog() {
     partLines.value = [newPartLine()];
-    partsNote.value = `Ticket #${nav.currentId}`;
+    // The title, not the id: the id is shown nowhere else in the app, so it
+    // wouldn't tell the owner which repair a movement in the history was for.
+    partsNote.value = `Ticket: ${ticketsStore.byId(nav.currentId)?.title ?? ''}`.slice(0, 500);
     partsLoadError.value = '';
     partsDialog.value = true;
     try {
