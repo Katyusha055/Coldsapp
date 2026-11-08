@@ -8,6 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 def handle_evo_errors(func):
+    """
+    Maps Evolution API failures to gateway errors. An error status from Evo is
+    never passed through: a 401 there means Evo rejected the backend's API key,
+    and passed through it would read as an expired user session (the frontend
+    logs the user out on any 401). Evo's status and body are logged instead.
+    """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -17,7 +24,10 @@ def handle_evo_errors(func):
         except httpx.ConnectError as e:
             raise HTTPException(status_code=503, detail="Evolution API unreachable") from e
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text) from e
+            logger.error("Evolution API returned %s: %s", e.response.status_code, e.response.text)
+            raise HTTPException(
+                status_code=502, detail=f"Evolution API error (status {e.response.status_code})"
+            ) from e
 
     return wrapper
 

@@ -307,7 +307,7 @@ async def test_notify_ticket_ready_evolution_connect_error_raises_503(sample_tic
 
 
 @pytest.mark.asyncio
-async def test_notify_ticket_ready_evolution_http_status_error_propagates_status(sample_ticket):
+async def test_notify_ticket_ready_evolution_http_status_error_maps_to_502(sample_ticket):
     client = {"id": 5, "name": "Jane", "phone": "0987654321"}
     request = httpx.Request("POST", "http://evo.example/message/sendText/my-instance")
     response = httpx.Response(422, request=request, text="invalid number")
@@ -320,8 +320,8 @@ async def test_notify_ticket_ready_evolution_http_status_error_propagates_status
     ):
         with pytest.raises(HTTPException) as exc_info:
             await service.notify_ticket_ready(1, sample_ticket)
-    assert exc_info.value.status_code == 422
-    assert exc_info.value.detail == "invalid number"
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Evolution API error (status 422)"
 
 
 # --- _format_ecuador_phone ---
