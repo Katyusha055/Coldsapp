@@ -318,17 +318,7 @@ async function onStatusChange(t, newStatus) {
                 <small v-if="partsLoadError" class="text-red-500">{{ partsLoadError }}</small>
                 <div v-for="(line, index) in partLines" :key="index" class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
-                        <Select
-                            v-model="line.itemId"
-                            :options="itemOptionsFor(line)"
-                            option-label="name"
-                            option-value="id"
-                            placeholder="Seleccionar un artículo"
-                            filter
-                            :disabled="partsSaving"
-                            :invalid="!!line.error"
-                            class="flex-1 min-w-0"
-                        >
+                        <Select v-model="line.itemId" :options="itemOptionsFor(line)" option-label="name" option-value="id" placeholder="Seleccionar un artículo" filter :disabled="partsSaving" :invalid="!!line.error" class="flex-1 min-w-0">
                             <template #option="slotProps">
                                 <div class="flex items-center justify-between w-full gap-4">
                                     <span>{{ slotProps.option.name }}</span>
@@ -336,7 +326,16 @@ async function onStatusChange(t, newStatus) {
                                 </div>
                             </template>
                         </Select>
-                        <InputNumber v-model="line.quantity" :min="1" @input="(event) => (line.quantity = event.value)" :use-grouping="false" :invalid="line.quantity > MAX_QUANTITY" :disabled="partsSaving" :aria-label="`Cantidad de la línea ${index + 1}`" input-class="w-20 text-center" />
+                        <InputNumber
+                            v-model="line.quantity"
+                            :min="1"
+                            :use-grouping="false"
+                            :invalid="line.quantity > MAX_QUANTITY"
+                            :disabled="partsSaving"
+                            :aria-label="`Cantidad de la línea ${index + 1}`"
+                            input-class="w-20 text-center"
+                            @input="(event) => (line.quantity = event.value)"
+                        />
                         <Button v-tooltip.top="'Quitar'" icon="pi pi-times" text rounded severity="secondary" :disabled="partsSaving || partLines.length === 1" @click="partLines.splice(index, 1)" />
                     </div>
                     <small v-if="line.quantity > MAX_QUANTITY" class="text-red-500">Máximo {{ MAX_QUANTITY }} por artículo.</small>

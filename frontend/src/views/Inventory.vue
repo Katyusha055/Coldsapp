@@ -299,13 +299,7 @@ async function doDeactivate() {
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h4 class="m-0">Inventario</h4>
                         <div class="flex items-center gap-4">
-                            <Button
-                                :label="`Mostrar alertas (${store.alertItems.length})`"
-                                icon="pi pi-exclamation-triangle"
-                                severity="danger"
-                                :outlined="!showAlerts"
-                                @click="showAlerts = !showAlerts"
-                            />
+                            <Button :label="`Mostrar alertas (${store.alertItems.length})`" icon="pi pi-exclamation-triangle" severity="danger" :outlined="!showAlerts" @click="showAlerts = !showAlerts" />
                             <InputText v-model="searchQuery" placeholder="Buscar por nombre..." />
                         </div>
                     </div>
@@ -319,7 +313,9 @@ async function doDeactivate() {
                 <Column field="name" header="Nombre" sortable style="min-width: 16rem"></Column>
                 <Column field="stock" header="Stock" sortable style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Tag v-if="stockSeverity(slotProps.data)" :severity="stockSeverity(slotProps.data)"><span class="text-base font-semibold">{{ slotProps.data.stock }}</span></Tag>
+                        <Tag v-if="stockSeverity(slotProps.data)" :severity="stockSeverity(slotProps.data)"
+                            ><span class="text-base font-semibold">{{ slotProps.data.stock }}</span></Tag
+                        >
                         <span v-else class="text-base font-semibold">{{ slotProps.data.stock }}</span>
                     </template>
                 </Column>
@@ -357,7 +353,7 @@ async function doDeactivate() {
                 <span class="font-semibold">{{ countTarget.name }}</span>
                 <small class="text-surface-500">Stock actual: {{ countTarget.stock }}</small>
                 <label for="counted-quantity" class="font-bold">Cantidad contada</label>
-                <InputNumber v-model="countedQuantity" input-id="counted-quantity" @input="(event) => (countedQuantity = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(countedQuantity)" autofocus fluid @keydown.enter="saveCount" />
+                <InputNumber v-model="countedQuantity" input-id="counted-quantity" :min="0" :use-grouping="false" :invalid="isOverCap(countedQuantity)" autofocus fluid @input="(event) => (countedQuantity = event.value)" @keydown.enter="saveCount" />
                 <small :class="isOverCap(countedQuantity) ? 'text-red-500' : 'text-surface-500'">Máximo {{ MAX_QUANTITY }} por conteo.</small>
                 <Button label="Guardar" icon="pi pi-check" :disabled="!isQuantityInRange(countedQuantity, 0)" @click="saveCount" />
             </div>
@@ -372,13 +368,30 @@ async function doDeactivate() {
                 </div>
                 <div>
                     <label for="item-new-quantity" class="block font-bold mb-3">Cantidad inicial</label>
-                    <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" @input="(event) => (newItem.quantity = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(newItem.quantity) || (submitted && !Number.isInteger(newItem.quantity))" fluid />
+                    <InputNumber
+                        v-model="newItem.quantity"
+                        input-id="item-new-quantity"
+                        :min="0"
+                        :use-grouping="false"
+                        :invalid="isOverCap(newItem.quantity) || (submitted && !Number.isInteger(newItem.quantity))"
+                        fluid
+                        @input="(event) => (newItem.quantity = event.value)"
+                    />
                     <small v-if="isOverCap(newItem.quantity)" class="text-red-500">Máximo {{ MAX_QUANTITY }}.</small>
                     <small v-else-if="submitted && !Number.isInteger(newItem.quantity)" class="text-red-500">La cantidad es requerida.</small>
                 </div>
                 <div>
                     <label for="item-new-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
-                    <InputNumber v-model="newItem.lowStockThreshold" input-id="item-new-threshold" @input="(event) => (newItem.lowStockThreshold = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(newItem.lowStockThreshold)" placeholder="Sin alerta" fluid />
+                    <InputNumber
+                        v-model="newItem.lowStockThreshold"
+                        input-id="item-new-threshold"
+                        :min="0"
+                        :use-grouping="false"
+                        :invalid="isOverCap(newItem.lowStockThreshold)"
+                        placeholder="Sin alerta"
+                        fluid
+                        @input="(event) => (newItem.lowStockThreshold = event.value)"
+                    />
                     <small v-if="isOverCap(newItem.lowStockThreshold)" class="text-red-500 block mt-2">Máximo {{ MAX_QUANTITY }}.</small>
                     <small class="text-surface-500 block mt-2">Opcional. Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                 </div>
@@ -387,7 +400,9 @@ async function doDeactivate() {
             <div v-else-if="selectedItem" class="flex flex-col gap-6">
                 <div>
                     <label class="block font-bold mb-3">Stock actual</label>
-                    <Tag v-if="stockSeverity(selectedItem)" :severity="stockSeverity(selectedItem)"><span class="text-base font-semibold">{{ selectedItem.stock }}</span></Tag>
+                    <Tag v-if="stockSeverity(selectedItem)" :severity="stockSeverity(selectedItem)"
+                        ><span class="text-base font-semibold">{{ selectedItem.stock }}</span></Tag
+                    >
                     <span v-else class="text-base font-semibold">{{ selectedItem.stock }}</span>
                 </div>
 
@@ -399,7 +414,17 @@ async function doDeactivate() {
 
                 <div>
                     <label for="item-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
-                    <InputNumber v-model="editableThreshold" input-id="item-threshold" @input="(event) => (editableThreshold = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(editableThreshold)" placeholder="Sin alerta" fluid @keydown.enter="saveThreshold" />
+                    <InputNumber
+                        v-model="editableThreshold"
+                        input-id="item-threshold"
+                        :min="0"
+                        :use-grouping="false"
+                        :invalid="isOverCap(editableThreshold)"
+                        placeholder="Sin alerta"
+                        fluid
+                        @input="(event) => (editableThreshold = event.value)"
+                        @keydown.enter="saveThreshold"
+                    />
                     <small v-if="isOverCap(editableThreshold)" class="text-red-500 block mt-2">Máximo {{ MAX_QUANTITY }}.</small>
                     <small class="text-surface-500 block mt-2">Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                     <Button label="Guardar" icon="pi pi-check" class="mt-3" :disabled="!isThresholdDirty" @click="saveThreshold" />
