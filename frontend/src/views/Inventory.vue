@@ -9,7 +9,18 @@ import EntityDrawer from '@/components/EntityDrawer.vue';
 import { formatDate, movementTypeLabel } from '@/utils/format.js';
 
 // Same cap the backend applies to every quantity, count and threshold.
+// The number fields have no :max on purpose: InputNumber silently clamps to it
+// on blur and Enter, so a typed 6000 would be saved as 5000. A value over the
+// cap is shown as an error and blocks saving instead.
 const MAX_QUANTITY = 5000;
+
+function isQuantityInRange(value, min) {
+    return Number.isInteger(value) && value >= min && value <= MAX_QUANTITY;
+}
+
+function isOverCap(value) {
+    return Number.isInteger(value) && value > MAX_QUANTITY;
+}
 
 const toast = useToast();
 const route = useRoute();
@@ -112,7 +123,7 @@ function setStep(item, value) {
 }
 
 function isStepValid(item) {
-    return Number.isInteger(stepFor(item)) && stepFor(item) >= 1 && stepFor(item) <= MAX_QUANTITY;
+    return isQuantityInRange(stepFor(item), 1);
 }
 
 async function runRowAction(item, action) {
@@ -149,7 +160,7 @@ function openCount(event, item) {
 async function saveCount() {
     const item = countTarget.value;
     const counted = countedQuantity.value;
-    if (!item || !Number.isInteger(counted) || counted < 0 || counted > MAX_QUANTITY) return;
+    if (!item || !isQuantityInRange(counted, 0)) return;
     countPopover.value.hide();
     await runRowAction(item, async () => {
         await store.count(item.id, counted);
@@ -182,7 +193,7 @@ const isNameDirty = computed(() => {
 });
 
 const isThresholdDirty = computed(() => {
-    if (!selectedItem.value) return false;
+    if (!selectedItem.value || isOverCap(editableThreshold.value)) return false;
     return (editableThreshold.value ?? null) !== selectedItem.value.low_stock_threshold;
 });
 
@@ -190,7 +201,7 @@ async function createItem() {
     submitted.value = true;
     const name = newItem.value.name.trim();
     const quantity = newItem.value.quantity;
-    if (!name || !Number.isInteger(quantity)) return;
+    if (!name || !isQuantityInRange(quantity, 0) || isOverCap(newItem.value.lowStockThreshold)) return;
     try {
         await store.create(name, quantity, newItem.value.lowStockThreshold ?? null);
         toast.add({ severity: 'success', summary: 'Creado', detail: 'Artículo creado correctamente.', life: 3000 });
@@ -311,8 +322,8 @@ async function doDeactivate() {
                             <InputNumber
                                 :model-value="stepFor(slotProps.data)"
                                 :min="1"
-                                :max="MAX_QUANTITY"
                                 :use-grouping="false"
+                                :invalid="!isStepValid(slotProps.data)"
                                 :aria-label="`Cantidad para ${slotProps.data.name}`"
                                 input-class="w-16 text-center"
                                 @update:model-value="(value) => setStep(slotProps.data, value)"
@@ -331,9 +342,9 @@ async function doDeactivate() {
                 <span class="font-semibold">{{ countTarget.name }}</span>
                 <small class="text-surface-500">Stock actual: {{ countTarget.stock }}</small>
                 <label for="counted-quantity" class="font-bold">Cantidad contada</label>
-                <InputNumber v-model="countedQuantity" input-id="counted-quantity" @input="(event) => (countedQuantity = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" autofocus fluid @keydown.enter="saveCount" />
-                <small class="text-surface-500">Máximo {{ MAX_QUANTITY }} por conteo.</small>
-                <Button label="Guardar" icon="pi pi-check" :disabled="!Number.isInteger(countedQuantity)" @click="saveCount" />
+                <InputNumber v-model="countedQuantity" input-id="counted-quantity" @input="(event) => (countedQuantity = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(countedQuantity)" autofocus fluid @keydown.enter="saveCount" />
+                <small :class="isOverCap(countedQuantity) ? 'text-red-500' : 'text-surface-500'">Máximo {{ MAX_QUANTITY }} por conteo.</small>
+                <Button label="Guardar" icon="pi pi-check" :disabled="!isQuantityInRange(countedQuantity, 0)" @click="saveCount" />
             </div>
         </Popover>
 
@@ -346,12 +357,14 @@ async function doDeactivate() {
                 </div>
                 <div>
                     <label for="item-new-quantity" class="block font-bold mb-3">Cantidad inicial</label>
-                    <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" @input="(event) => (newItem.quantity = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" :invalid="submitted && !Number.isInteger(newItem.quantity)" fluid />
-                    <small v-if="submitted && !Number.isInteger(newItem.quantity)" class="text-red-500">La cantidad es requerida.</small>
+                    <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" @input="(event) => (newItem.quantity = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(newItem.quantity) || (submitted && !Number.isInteger(newItem.quantity))" fluid />
+                    <small v-if="isOverCap(newItem.quantity)" class="text-red-500">Máximo {{ MAX_QUANTITY }}.</small>
+                    <small v-else-if="submitted && !Number.isInteger(newItem.quantity)" class="text-red-500">La cantidad es requerida.</small>
                 </div>
                 <div>
                     <label for="item-new-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
-                    <InputNumber v-model="newItem.lowStockThreshold" input-id="item-new-threshold" @input="(event) => (newItem.lowStockThreshold = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" placeholder="Sin alerta" fluid />
+                    <InputNumber v-model="newItem.lowStockThreshold" input-id="item-new-threshold" @input="(event) => (newItem.lowStockThreshold = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(newItem.lowStockThreshold)" placeholder="Sin alerta" fluid />
+                    <small v-if="isOverCap(newItem.lowStockThreshold)" class="text-red-500 block mt-2">Máximo {{ MAX_QUANTITY }}.</small>
                     <small class="text-surface-500 block mt-2">Opcional. Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                 </div>
             </div>
@@ -371,7 +384,8 @@ async function doDeactivate() {
 
                 <div>
                     <label for="item-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
-                    <InputNumber v-model="editableThreshold" input-id="item-threshold" @input="(event) => (editableThreshold = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" placeholder="Sin alerta" fluid @keydown.enter="saveThreshold" />
+                    <InputNumber v-model="editableThreshold" input-id="item-threshold" @input="(event) => (editableThreshold = event.value)" :min="0" :use-grouping="false" :invalid="isOverCap(editableThreshold)" placeholder="Sin alerta" fluid @keydown.enter="saveThreshold" />
+                    <small v-if="isOverCap(editableThreshold)" class="text-red-500 block mt-2">Máximo {{ MAX_QUANTITY }}.</small>
                     <small class="text-surface-500 block mt-2">Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                     <Button label="Guardar" icon="pi pi-check" class="mt-3" :disabled="!isThresholdDirty" @click="saveThreshold" />
                 </div>
