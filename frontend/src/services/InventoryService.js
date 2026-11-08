@@ -7,11 +7,11 @@ export async function getItems() {
     return handleResponse(response);
 }
 
-export async function createItem(name, quantity) {
+export async function createItem(name, quantity, lowStockThreshold = null) {
     const response = await fetch(`${BASE_URL}/items/`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ name, quantity })
+        body: JSON.stringify({ name, quantity, low_stock_threshold: lowStockThreshold })
     });
     return handleResponse(response);
 }

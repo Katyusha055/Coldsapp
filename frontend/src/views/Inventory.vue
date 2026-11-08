@@ -159,7 +159,7 @@ async function saveCount() {
 
 // --- Drawer ---
 
-const newItem = ref({ name: '', quantity: 0 });
+const newItem = ref({ name: '', quantity: 0, lowStockThreshold: null });
 const submitted = ref(false);
 const editableName = ref('');
 const editableThreshold = ref(null);
@@ -167,7 +167,7 @@ const editableThreshold = ref(null);
 watch(
     () => [nav.currentId, nav.visible],
     () => {
-        newItem.value = { name: '', quantity: 0 };
+        newItem.value = { name: '', quantity: 0, lowStockThreshold: null };
         submitted.value = false;
         editableName.value = selectedItem.value?.name ?? '';
         editableThreshold.value = selectedItem.value?.low_stock_threshold ?? null;
@@ -192,7 +192,7 @@ async function createItem() {
     const quantity = newItem.value.quantity;
     if (!name || !Number.isInteger(quantity)) return;
     try {
-        await store.create(name, quantity);
+        await store.create(name, quantity, newItem.value.lowStockThreshold ?? null);
         toast.add({ severity: 'success', summary: 'Creado', detail: 'Artículo creado correctamente.', life: 3000 });
         nav.close();
     } catch (err) {
@@ -348,6 +348,11 @@ async function doDeactivate() {
                     <label for="item-new-quantity" class="block font-bold mb-3">Cantidad inicial</label>
                     <InputNumber v-model="newItem.quantity" input-id="item-new-quantity" @input="(event) => (newItem.quantity = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" :invalid="submitted && !Number.isInteger(newItem.quantity)" fluid />
                     <small v-if="submitted && !Number.isInteger(newItem.quantity)" class="text-red-500">La cantidad es requerida.</small>
+                </div>
+                <div>
+                    <label for="item-new-threshold" class="block font-bold mb-3">Umbral de stock bajo</label>
+                    <InputNumber v-model="newItem.lowStockThreshold" input-id="item-new-threshold" @input="(event) => (newItem.lowStockThreshold = event.value)" :min="0" :max="MAX_QUANTITY" :use-grouping="false" placeholder="Sin alerta" fluid />
+                    <small class="text-surface-500 block mt-2">Opcional. Si lo dejas vacío, este artículo no tendrá alerta de stock bajo.</small>
                 </div>
             </div>
 

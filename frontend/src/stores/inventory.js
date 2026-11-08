@@ -27,8 +27,8 @@ export const useInventoryStore = createEntityStore('inventory', {
     state: () => ({ movementsByItemId: {} }),
 
     actions: {
-        async create(name, quantity) {
-            const created = await createItem(name, quantity);
+        async create(name, quantity, lowStockThreshold = null) {
+            const created = await createItem(name, quantity, lowStockThreshold);
             this.upsertOne(created);
             return created;
         },
