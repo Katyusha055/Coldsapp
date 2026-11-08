@@ -39,19 +39,23 @@ async def test_handle_evo_errors_maps_connect_error_to_503():
 
 
 @pytest.mark.asyncio
-async def test_handle_evo_errors_propagates_evo_status_and_detail():
+@pytest.mark.parametrize("evo_status", [401, 403, 404, 422, 500])
+async def test_handle_evo_errors_maps_any_evo_error_status_to_502(evo_status):
     request = httpx.Request("GET", "http://evo.example/instance/connect/1_whatsapp")
-    response = httpx.Response(422, request=request, text="invalid instance")
+    response = httpx.Response(evo_status, request=request, text="invalid instance")
     error = httpx.HTTPStatusError("bad request", request=request, response=response)
 
     @handle_evo_errors
     async def bad_status():
         raise error
 
-    with pytest.raises(HTTPException) as exc_info:
+    with patch("backend.shared.error_handlers.logger") as mock_logger, pytest.raises(HTTPException) as exc_info:
         await bad_status()
-    assert exc_info.value.status_code == 422
-    assert exc_info.value.detail == "invalid instance"
+    # Never Evo's own status: a passed-through 401 would log the user out.
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == f"Evolution API error (status {evo_status})"
+    assert "invalid instance" not in exc_info.value.detail
+    mock_logger.error.assert_called_once_with("Evolution API returned %s: %s", evo_status, "invalid instance")
 
 
 def test_safe_dispatch_passes_through_successful_result():
