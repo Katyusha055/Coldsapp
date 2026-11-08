@@ -37,14 +37,16 @@ watch(searchQuery, () => {
     tableFirst.value = 0;
 });
 
+// Always in name order: a newly created item is appended to the store, so
+// the backend's order alone would show it at the end until a reload.
 const filteredItems = computed(() => {
     const query = searchQuery.value.trim().toLowerCase();
-    if (!query) return store.items;
-    return store.items.filter((item) => item.name.toLowerCase().includes(query));
+    const matches = query ? store.items.filter((item) => item.name.toLowerCase().includes(query)) : store.items;
+    return [...matches].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
 });
 
 // "Mostrar alertas" sorts rather than filters: alerts first (negative, then
-// low, then by name), and the rest below in the backend's name order. The
+// low, then by name), and the rest below in name order. The
 // dashboard widget links here with ?alerts=1 to open it already on.
 const showAlerts = ref(false);
 
@@ -151,13 +153,13 @@ async function runRowAction(item, action) {
     }
 }
 
-function applyMovement(item, type) {
+async function applyMovement(item, type) {
     if (!isStepValid(item)) return;
     const quantity = stepFor(item);
-    return runRowAction(item, async () => {
-        await store.addMovement(item.id, type, quantity);
-        delete stepByItemId.value[item.id];
-    });
+    await runRowAction(item, () => store.addMovement(item.id, type, quantity));
+    // Back to 1 even when the movement failed, so a retry can't reuse the
+    // typed quantity without the owner typing it again.
+    delete stepByItemId.value[item.id];
 }
 
 const countPopover = ref();
