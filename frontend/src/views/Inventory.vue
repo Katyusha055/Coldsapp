@@ -131,6 +131,17 @@ function openItemFromQuery() {
     else toast.add({ severity: 'warn', summary: 'No encontrado', detail: 'El artículo no existe o fue desactivado.', life: 3000 });
 }
 
+// For a page left open while the phone recorded changes: entering the page
+// reloads, but an open page doesn't update by itself.
+async function refreshInventory() {
+    try {
+        await store.refresh();
+        loadError.value = '';
+    } catch (err) {
+        handleError(err);
+    }
+}
+
 function onRowClick(event) {
     nav.open(event.data.id);
 }
@@ -314,6 +325,12 @@ async function doDeactivate() {
                     <div class="flex flex-wrap gap-2">
                         <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
                         <Button label="Escanear código" icon="pi pi-camera" severity="secondary" @click="router.push({ name: 'inventoryScan' })" />
+                    </div>
+                </template>
+                <template #end>
+                    <div class="flex items-center gap-3">
+                        <small class="text-surface-500">¿Registraste cambios desde el celular? Pulsa Actualizar para verlos aquí.</small>
+                        <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="store.loading" @click="refreshInventory" />
                     </div>
                 </template>
             </Toolbar>
