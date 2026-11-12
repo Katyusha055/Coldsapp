@@ -7,11 +7,14 @@ export async function getItems() {
     return handleResponse(response);
 }
 
-export async function createItem(name, quantity, lowStockThreshold = null) {
+// code is optional: when given, the item is created already linked to it.
+export async function createItem(name, quantity, lowStockThreshold = null, code = null) {
+    const body = { name, quantity, low_stock_threshold: lowStockThreshold };
+    if (code !== null) body.code = code;
     const response = await fetch(`${BASE_URL}/items/`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ name, quantity, low_stock_threshold: lowStockThreshold })
+        body: JSON.stringify(body)
     });
     return handleResponse(response);
 }

@@ -1,5 +1,6 @@
 import { createEntityStore } from '@/stores/createEntityStore.js';
 import { getItems, createItem, updateItem, deactivateItem, addMovement, getMovements, countItem } from '@/services/InventoryService.js';
+import { linkCode, unlinkCode } from '@/services/BarcodeService.js';
 
 export function isNegativeStock(item) {
     return item.stock < 0;
@@ -27,10 +28,24 @@ export const useInventoryStore = createEntityStore('inventory', {
     state: () => ({ movementsByItemId: {} }),
 
     actions: {
-        async create(name, quantity, lowStockThreshold = null) {
-            const created = await createItem(name, quantity, lowStockThreshold);
+        async create(name, quantity, lowStockThreshold = null, code = null) {
+            const created = await createItem(name, quantity, lowStockThreshold, code);
             this.upsertOne(created);
             return created;
+        },
+
+        async linkCode(id, code) {
+            const updated = await linkCode(id, code);
+            this.upsertOne(updated);
+            return updated;
+        },
+
+        // The API answers 204 with no item, so the code is dropped from the
+        // cached one. code is the normalized form taken from item.codes.
+        async unlinkCode(id, code) {
+            await unlinkCode(id, code);
+            const item = this.byId(id);
+            if (item) item.codes = item.codes.filter((linked) => linked !== code);
         },
 
         async update(id, data) {
