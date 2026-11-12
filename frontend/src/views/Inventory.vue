@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useInventoryStore, isNegativeStock, isLowStock, hasStockAlert } from '@/stores/inventory.js';
@@ -26,6 +26,7 @@ function isOverCap(value) {
 
 const toast = useToast();
 const route = useRoute();
+const router = useRouter();
 const store = useInventoryStore();
 
 const loadError = ref('');
@@ -308,7 +309,10 @@ async function doDeactivate() {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
+                    <div class="flex flex-wrap gap-2">
+                        <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
+                        <Button label="Escanear código" icon="pi pi-camera" severity="secondary" @click="router.push({ name: 'inventoryScan' })" />
+                    </div>
                 </template>
             </Toolbar>
 
