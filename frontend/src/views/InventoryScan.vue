@@ -59,8 +59,10 @@ function errorMessageFor(err) {
 
 onMounted(async () => {
     scanner.start();
+    // Always from the server on entering: the cached list could be missing
+    // changes made from another device.
     try {
-        await store.load();
+        await store.refresh();
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = 'No se pudo cargar el inventario.';

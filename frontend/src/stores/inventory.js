@@ -34,6 +34,14 @@ export const useInventoryStore = createEntityStore('inventory', {
             return created;
         },
 
+        // Fetches the items again even if already loaded, since stock may have
+        // changed from another device (the phone's scan view). Cached histories
+        // are dropped too: they would be just as stale.
+        async refresh() {
+            this.movementsByItemId = {};
+            await this.load(true);
+        },
+
         async linkCode(id, code) {
             const updated = await linkCode(id, code);
             this.upsertOne(updated);

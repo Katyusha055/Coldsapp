@@ -109,9 +109,11 @@ function handleError(err) {
     toast.add({ severity: 'error', summary: 'Error', detail: errorMessageFor(err), life: 3000 });
 }
 
+// Always from the server on entering the page: the cached list could be
+// missing changes made from another device.
 onMounted(async () => {
     try {
-        await store.load();
+        await store.refresh();
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = errorMessageFor(err);
