@@ -114,8 +114,19 @@ onMounted(async () => {
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = errorMessageFor(err);
+        return;
     }
+    openItemFromQuery();
 });
+
+// The scan view's "Ver en inventario" links here with ?item=<id> to open that
+// item's drawer. A deactivated item is no longer in the store.
+function openItemFromQuery() {
+    if (!route.query.item) return;
+    const id = Number(route.query.item);
+    if (store.byId(id)) nav.open(id);
+    else toast.add({ severity: 'warn', summary: 'No encontrado', detail: 'El artículo no existe o fue desactivado.', life: 3000 });
+}
 
 function onRowClick(event) {
     nav.open(event.data.id);
@@ -184,6 +195,15 @@ async function saveCount() {
 }
 
 // --- Drawer ---
+
+// code is the normalized form from item.codes. Shares the row's busy flag, so
+// the row actions wait too.
+async function removeCode(item, code) {
+    await runRowAction(item, async () => {
+        await store.unlinkCode(item.id, code);
+        toast.add({ severity: 'success', summary: 'Código quitado', detail: `${code} ya no está vinculado a ${item.name}.`, life: 3000 });
+    });
+}
 
 const newItem = ref({ name: '', quantity: 0, lowStockThreshold: null });
 const submitted = ref(false);
@@ -404,6 +424,17 @@ async function doDeactivate() {
                         ><span class="text-base font-semibold">{{ selectedItem.stock }}</span></Tag
                     >
                     <span v-else class="text-base font-semibold">{{ selectedItem.stock }}</span>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-3">Códigos</label>
+                    <span v-if="selectedItem.codes.length === 0" class="italic text-surface-500">Sin códigos.</span>
+                    <ul v-else class="flex flex-col gap-2 m-0 p-0 list-none">
+                        <li v-for="code in selectedItem.codes" :key="code" class="flex items-center justify-between gap-4">
+                            <span class="font-mono">{{ code }}</span>
+                            <Button label="Quitar" icon="pi pi-times" text severity="danger" :disabled="busyItemIds.has(selectedItem.id)" @click="removeCode(selectedItem, code)" />
+                        </li>
+                    </ul>
                 </div>
 
                 <div>
