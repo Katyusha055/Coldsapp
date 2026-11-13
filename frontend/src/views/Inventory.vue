@@ -332,8 +332,8 @@ async function doDeactivate() {
             <Toolbar class="mb-6">
                 <template #start>
                     <div class="flex flex-wrap gap-2">
-                        <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
-                        <Button label="Escanear código" icon="pi pi-camera" severity="secondary" @click="openScanner" />
+                        <Button label="Nuevo artículo" icon="pi pi-plus" @click="nav.openNew()" />
+                        <Button label="Escanear código" icon="pi pi-camera" @click="openScanner" />
                     </div>
                 </template>
                 <template #end>
