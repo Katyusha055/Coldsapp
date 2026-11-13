@@ -220,7 +220,7 @@ async function onStatusChange(t, newStatus) {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo Ticket" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
+                    <Button label="Nuevo Ticket" icon="pi pi-plus" @click="nav.openNew()" />
                 </template>
             </Toolbar>
 

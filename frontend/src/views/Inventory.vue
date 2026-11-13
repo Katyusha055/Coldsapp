@@ -339,7 +339,7 @@ async function doDeactivate() {
                 <template #end>
                     <div class="flex items-center gap-3">
                         <small class="text-surface-500">¿Registraste cambios desde el celular? Pulsa Actualizar para verlos aquí.</small>
-                        <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="store.loading" @click="refreshInventory" />
+                        <Button label="Actualizar" icon="pi pi-refresh" :loading="store.loading" @click="refreshInventory" />
                     </div>
                 </template>
             </Toolbar>
