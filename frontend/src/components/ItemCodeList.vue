@@ -17,6 +17,16 @@ const emit = defineEmits(['remove']);
 const toast = useToast();
 const renderingCode = ref(null);
 
+// "Quitar" asks first: it sits right next to the copy buttons, and if the
+// label is worn, this list may be the only place the number was written down.
+const codePendingRemoval = ref(null);
+
+function confirmRemove() {
+    const code = codePendingRemoval.value;
+    codePendingRemoval.value = null;
+    if (code) emit('remove', code);
+}
+
 async function copyNumber(code) {
     try {
         await navigator.clipboard.writeText(code);
@@ -68,8 +78,21 @@ async function copyImage(code) {
             <div class="flex items-center gap-1">
                 <Button v-tooltip.top="'Copiar número'" icon="pi pi-copy" text rounded severity="secondary" aria-label="Copiar número" @click="copyNumber(code)" />
                 <Button v-tooltip.top="'Copiar imagen del código'" icon="pi pi-image" text rounded severity="secondary" aria-label="Copiar imagen del código" :loading="renderingCode === code" @click="copyImage(code)" />
-                <Button v-tooltip.top="'Quitar'" icon="pi pi-times" text rounded severity="danger" aria-label="Quitar código" :disabled="busy" @click="emit('remove', code)" />
+                <Button v-tooltip.top="'Quitar'" icon="pi pi-times" text rounded severity="danger" aria-label="Quitar código" :disabled="busy" @click="codePendingRemoval = code" />
             </div>
         </li>
     </ul>
+
+    <Dialog :visible="codePendingRemoval !== null" header="Confirmar" :modal="true" :style="{ width: '26rem', maxWidth: '90vw' }" @update:visible="(value) => !value && (codePendingRemoval = null)">
+        <div class="flex items-center gap-4">
+            <i class="pi pi-exclamation-triangle text-3xl!" />
+            <span
+                >¿Quitar el código <b class="font-mono">{{ codePendingRemoval }}</b> de este artículo? Si la etiqueta ya no se puede leer, anota o copia el número antes de quitarlo.</span
+            >
+        </div>
+        <template #footer>
+            <Button label="No" icon="pi pi-times" text @click="codePendingRemoval = null" />
+            <Button label="Sí, quitar" icon="pi pi-check" severity="danger" @click="confirmRemove" />
+        </template>
+    </Dialog>
 </template>
