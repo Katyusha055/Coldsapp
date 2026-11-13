@@ -38,6 +38,10 @@ export function useBarcodeScanner(videoElement) {
     // Bumped by every start and stop: a loop or a pending start from an older
     // run sees the change and ends, so a closed camera never comes back.
     let runId = 0;
+    // Set when the view unmounts. A start requested after that (for example
+    // by a failed lookup that comes back late) must not open the camera: no
+    // unmount hook would ever close it again.
+    let disposed = false;
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { willReadFrequently: true });
@@ -55,6 +59,7 @@ export function useBarcodeScanner(videoElement) {
     }
 
     async function start(deviceId = null) {
+        if (disposed) return;
         stop();
         const thisRun = ++runId;
         error.value = '';
@@ -78,7 +83,7 @@ export function useBarcodeScanner(videoElement) {
             }
             return;
         }
-        if (thisRun !== runId) {
+        if (thisRun !== runId || disposed) {
             newStream.getTracks().forEach((mediaTrack) => mediaTrack.stop());
             return;
         }
@@ -189,6 +194,7 @@ export function useBarcodeScanner(videoElement) {
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     onBeforeUnmount(() => {
+        disposed = true;
         document.removeEventListener('visibilitychange', onVisibilityChange);
         stop();
     });
