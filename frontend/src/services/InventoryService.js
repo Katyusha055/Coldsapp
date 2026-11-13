@@ -7,6 +7,15 @@ export async function getItems() {
     return handleResponse(response);
 }
 
+// One item's current state, used to resync the cached copy after a 404 shows
+// it changed on another device.
+export async function getItem(id) {
+    const response = await fetch(`${BASE_URL}/items/${id}`, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+}
+
 // code is optional: when given, the item is created already linked to it.
 export async function createItem(name, quantity, lowStockThreshold = null, code = null) {
     const body = { name, quantity, low_stock_threshold: lowStockThreshold };

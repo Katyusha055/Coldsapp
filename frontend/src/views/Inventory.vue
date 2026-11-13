@@ -90,6 +90,12 @@ watch(sortField, (field) => {
 const nav = useDrawerNavigation(displayedItems);
 const selectedItem = computed(() => store.byId(nav.currentId));
 
+// An item that leaves the store while its drawer is open (found deactivated
+// on another device) closes the drawer instead of leaving it empty.
+watch(selectedItem, (item) => {
+    if (!item && nav.visible && !nav.isNew) nav.close();
+});
+
 function stockSeverity(item) {
     if (isNegativeStock(item)) return 'danger';
     if (isLowStock(item)) return 'warn';
@@ -101,6 +107,7 @@ function rowClass(item) {
 }
 
 function errorMessageFor(err) {
+    if (err.alreadyUnlinked) return 'Ese código ya se había quitado, quizás desde otro dispositivo. La lista ya está actualizada.';
     if (err.status === 404) return 'El artículo no existe o fue desactivado.';
     if (err.status === 422) return 'Datos no válidos. Revisa los campos e intenta de nuevo.';
     return err.message ?? 'Ocurrió un error inesperado.';

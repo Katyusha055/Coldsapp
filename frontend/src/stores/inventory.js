@@ -1,5 +1,5 @@
 import { createEntityStore } from '@/stores/createEntityStore.js';
-import { getItems, createItem, updateItem, deactivateItem, addMovement, getMovements, countItem } from '@/services/InventoryService.js';
+import { getItems, getItem, createItem, updateItem, deactivateItem, addMovement, getMovements, countItem } from '@/services/InventoryService.js';
 import { linkCode, unlinkCode } from '@/services/BarcodeService.js';
 
 export function isNegativeStock(item) {
@@ -50,8 +50,27 @@ export const useInventoryStore = createEntityStore('inventory', {
 
         // The API answers 204 with no item, so the code is dropped from the
         // cached one. code is the normalized form taken from item.codes.
+        //
+        // A 404 means the cached item is stale: the code was already unlinked,
+        // or the item deactivated, on another device. The item is fetched
+        // again so the view shows its current state, then the error is
+        // rethrown with err.alreadyUnlinked or err.itemGone for the message.
         async unlinkCode(id, code) {
-            await unlinkCode(id, code);
+            try {
+                await unlinkCode(id, code);
+            } catch (err) {
+                if (err.status !== 404) throw err;
+                try {
+                    this.upsertOne(await getItem(id));
+                    err.alreadyUnlinked = true;
+                } catch (refetchErr) {
+                    if (refetchErr.status !== 404) throw err;
+                    this.removeOne(id);
+                    delete this.movementsByItemId[id];
+                    err.itemGone = true;
+                }
+                throw err;
+            }
             const item = this.byId(id);
             if (item) item.codes = item.codes.filter((linked) => linked !== code);
         },

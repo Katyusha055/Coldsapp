@@ -54,6 +54,7 @@ function stockSeverity(target) {
 }
 
 function errorMessageFor(err) {
+    if (err.alreadyUnlinked) return 'Ese código ya se había quitado, quizás desde otro dispositivo. La lista ya está actualizada.';
     if (err.status === 404) return 'El artículo no existe o fue desactivado.';
     if (err.status === 422) return 'Datos no válidos. Revisa los campos e intenta de nuevo.';
     return err.message ?? 'Ocurrió un error inesperado.';
