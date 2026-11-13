@@ -28,6 +28,23 @@ export const useInventoryStore = createEntityStore('inventory', {
     state: () => ({ movementsByItemId: {} }),
 
     actions: {
+        // Runs a request about one item. On these endpoints a 404 can only
+        // mean the item was deactivated (on another device), so it leaves the
+        // store: every view showing it updates, and open drawers close.
+        async _forItem(id, request) {
+            try {
+                return await request();
+            } catch (err) {
+                if (err.status === 404) this._forget(id);
+                throw err;
+            }
+        },
+
+        _forget(id) {
+            this.removeOne(id);
+            delete this.movementsByItemId[id];
+        },
+
         async create(name, quantity, lowStockThreshold = null, code = null) {
             const created = await createItem(name, quantity, lowStockThreshold, code);
             this.upsertOne(created);
@@ -43,7 +60,7 @@ export const useInventoryStore = createEntityStore('inventory', {
         },
 
         async linkCode(id, code) {
-            const updated = await linkCode(id, code);
+            const updated = await this._forItem(id, () => linkCode(id, code));
             this.upsertOne(updated);
             return updated;
         },
@@ -65,8 +82,7 @@ export const useInventoryStore = createEntityStore('inventory', {
                     err.alreadyUnlinked = true;
                 } catch (refetchErr) {
                     if (refetchErr.status !== 404) throw err;
-                    this.removeOne(id);
-                    delete this.movementsByItemId[id];
+                    this._forget(id);
                     err.itemGone = true;
                 }
                 throw err;
@@ -76,26 +92,25 @@ export const useInventoryStore = createEntityStore('inventory', {
         },
 
         async update(id, data) {
-            const updated = await updateItem(id, data);
+            const updated = await this._forItem(id, () => updateItem(id, data));
             this.upsertOne(updated);
             return updated;
         },
 
         async deactivate(id) {
-            await deactivateItem(id);
-            this.removeOne(id);
-            delete this.movementsByItemId[id];
+            await this._forItem(id, () => deactivateItem(id));
+            this._forget(id);
         },
 
         async addMovement(id, type, quantity, note = null) {
-            const updated = await addMovement(id, type, quantity, note);
+            const updated = await this._forItem(id, () => addMovement(id, type, quantity, note));
             this.upsertOne(updated);
             delete this.movementsByItemId[id];
             return updated;
         },
 
         async count(id, counted) {
-            const updated = await countItem(id, counted);
+            const updated = await this._forItem(id, () => countItem(id, counted));
             this.upsertOne(updated);
             delete this.movementsByItemId[id];
             return updated;
@@ -103,7 +118,7 @@ export const useInventoryStore = createEntityStore('inventory', {
 
         async loadMovements(id) {
             if (this.movementsByItemId[id]) return;
-            const movements = await getMovements(id);
+            const movements = await this._forItem(id, () => getMovements(id));
             // After a logout reset the item is gone, so a late response is dropped.
             if (this.byId(id)) this.movementsByItemId[id] = movements;
         }

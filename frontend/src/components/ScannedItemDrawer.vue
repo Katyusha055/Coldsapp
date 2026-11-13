@@ -39,6 +39,13 @@ watch(
     }
 );
 
+// The item leaves the store when an action finds it deactivated on another
+// device: the drawer closes (and the scan view resumes scanning) instead of
+// staying open on an item that no longer exists. The error toast still shows.
+watch(item, (current) => {
+    if (!current && props.itemId !== null) emit('close');
+});
+
 function isQuantityInRange(value, min) {
     return Number.isInteger(value) && value >= min && value <= MAX_QUANTITY;
 }
