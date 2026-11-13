@@ -1,4 +1,4 @@
-import { createEntityStore } from '@/stores/createEntityStore.js';
+import { createEntityStore, currentGeneration } from '@/stores/createEntityStore.js';
 import { getItems, getItem, createItem, updateItem, deactivateItem, addMovement, getMovements, countItem } from '@/services/InventoryService.js';
 import { linkCode, unlinkCode } from '@/services/BarcodeService.js';
 
@@ -77,14 +77,20 @@ export const useInventoryStore = createEntityStore('inventory', {
                 await unlinkCode(id, code);
             } catch (err) {
                 if (err.status !== 404) throw err;
+                // A logout during the refetch resets the store: the previous
+                // account's item must not be written back into it.
+                const startedAt = currentGeneration();
+                let current;
                 try {
-                    this.upsertOne(await getItem(id));
-                    err.alreadyUnlinked = true;
+                    current = await getItem(id);
                 } catch (refetchErr) {
                     if (refetchErr.status !== 404) throw err;
-                    this._forget(id);
+                    if (startedAt === currentGeneration()) this._forget(id);
                     err.itemGone = true;
+                    throw err;
                 }
+                if (startedAt === currentGeneration()) this.upsertOne(current);
+                err.alreadyUnlinked = true;
                 throw err;
             }
             const item = this.byId(id);

@@ -5,6 +5,7 @@ import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { getItemByCode } from '@/services/BarcodeService.js';
 import { useInventoryStore } from '@/stores/inventory.js';
+import { currentGeneration } from '@/stores/createEntityStore.js';
 import { useBarcodeScanner } from '@/composables/useBarcodeScanner.js';
 import ScannedItemDrawer from '@/components/ScannedItemDrawer.vue';
 import { hasTouchScreen } from '@/utils/device.js';
@@ -104,8 +105,12 @@ async function lookup(code) {
     lookupError.value = '';
     foundItemId.value = null;
     unknownCode.value = null;
+    const startedAt = currentGeneration();
     try {
         const item = await getItemByCode(code);
+        // A logout during the request reset the store: the previous account's
+        // item must not be written into it.
+        if (startedAt !== currentGeneration()) return;
         // The store is loaded once; an item created on another device since
         // then is added here so the drawer can read it.
         store.upsertOne(item);

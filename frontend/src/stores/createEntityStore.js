@@ -83,6 +83,12 @@ export function createEntityStore(name, { fetchAll, state = () => ({}), getters 
     return useStore;
 }
 
+// For requests made outside load(): read it before the request and compare
+// after, and drop the response if a logout happened in between.
+export function currentGeneration() {
+    return generation;
+}
+
 export function resetAllStores() {
     generation += 1;
     registry.forEach((useStore) => useStore().$reset());
