@@ -16,7 +16,8 @@
         "primevue": "^4.5.4",
         "tailwindcss-primeui": "^0.6.0",
         "vue": "^3.4.34",
-        "vue-router": "^4.4.0"
+        "vue-router": "^4.4.0",
+        "zxing-wasm": "3.1.5"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

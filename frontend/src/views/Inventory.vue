@@ -1,12 +1,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useInventoryStore, isNegativeStock, isLowStock, hasStockAlert } from '@/stores/inventory.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
+import ItemCodeList from '@/components/ItemCodeList.vue';
 import { formatDate, movementTypeLabel } from '@/utils/format.js';
+import { hasTouchScreen } from '@/utils/device.js';
 
 // Same cap the backend applies to every quantity, count and threshold.
 // The number fields have no :max on purpose: InputNumber silently clamps to it
@@ -26,6 +28,7 @@ function isOverCap(value) {
 
 const toast = useToast();
 const route = useRoute();
+const router = useRouter();
 const store = useInventoryStore();
 
 const loadError = ref('');
@@ -87,6 +90,12 @@ watch(sortField, (field) => {
 const nav = useDrawerNavigation(displayedItems);
 const selectedItem = computed(() => store.byId(nav.currentId));
 
+// An item that leaves the store while its drawer is open (found deactivated
+// on another device) closes the drawer instead of leaving it empty.
+watch(selectedItem, (item) => {
+    if (!item && nav.visible && !nav.isNew) nav.close();
+});
+
 function stockSeverity(item) {
     if (isNegativeStock(item)) return 'danger';
     if (isLowStock(item)) return 'warn';
@@ -98,6 +107,7 @@ function rowClass(item) {
 }
 
 function errorMessageFor(err) {
+    if (err.alreadyUnlinked) return 'Ese código ya se había quitado, quizás desde otro dispositivo. La lista ya está actualizada.';
     if (err.status === 404) return 'El artículo no existe o fue desactivado.';
     if (err.status === 422) return 'Datos no válidos. Revisa los campos e intenta de nuevo.';
     return err.message ?? 'Ocurrió un error inesperado.';
@@ -108,14 +118,46 @@ function handleError(err) {
     toast.add({ severity: 'error', summary: 'Error', detail: errorMessageFor(err), life: 3000 });
 }
 
+// Always from the server on entering the page: the cached list could be
+// missing changes made from another device.
 onMounted(async () => {
     try {
-        await store.load();
+        await store.refresh();
     } catch (err) {
         if (handleAuthError(err)) return;
         loadError.value = errorMessageFor(err);
+        return;
     }
+    openItemFromQuery();
 });
+
+// The scan view's "Ver en inventario" links here with ?item=<id> to open that
+// item's drawer. A deactivated item is no longer in the store.
+function openItemFromQuery() {
+    if (!route.query.item) return;
+    const id = Number(route.query.item);
+    if (store.byId(id)) nav.open(id);
+    else toast.add({ severity: 'warn', summary: 'No encontrado', detail: 'El artículo no existe o fue desactivado.', life: 3000 });
+}
+
+// For a page left open while the phone recorded changes: entering the page
+// reloads, but an open page doesn't update by itself.
+async function refreshInventory() {
+    try {
+        await store.refresh();
+        loadError.value = '';
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// On a PC the scanner opens in a new tab, so the inventory stays open beside
+// it; changes made there show here after "Actualizar". On a phone it opens in
+// the same tab, so tabs don't pile up.
+function openScanner() {
+    if (hasTouchScreen()) router.push({ name: 'inventoryScan' });
+    else window.open(router.resolve({ name: 'inventoryScan' }).href, '_blank', 'noopener');
+}
 
 function onRowClick(event) {
     nav.open(event.data.id);
@@ -184,6 +226,15 @@ async function saveCount() {
 }
 
 // --- Drawer ---
+
+// code is the normalized form from item.codes. Shares the row's busy flag, so
+// the row actions wait too.
+async function removeCode(item, code) {
+    await runRowAction(item, async () => {
+        await store.unlinkCode(item.id, code);
+        toast.add({ severity: 'success', summary: 'Código quitado', detail: `${code} ya no está vinculado a ${item.name}.`, life: 3000 });
+    });
+}
 
 const newItem = ref({ name: '', quantity: 0, lowStockThreshold: null });
 const submitted = ref(false);
@@ -288,7 +339,16 @@ async function doDeactivate() {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
+                    <div class="flex flex-wrap gap-2">
+                        <Button label="Nuevo artículo" icon="pi pi-plus" @click="nav.openNew()" />
+                        <Button label="Escanear código" icon="pi pi-camera" @click="openScanner" />
+                    </div>
+                </template>
+                <template #end>
+                    <div class="flex items-center gap-3">
+                        <small class="text-surface-500">¿Registraste cambios desde el celular? Pulsa Actualizar para verlos aquí.</small>
+                        <Button label="Actualizar" icon="pi pi-refresh" :loading="store.loading" @click="refreshInventory" />
+                    </div>
                 </template>
             </Toolbar>
 
@@ -404,6 +464,11 @@ async function doDeactivate() {
                         ><span class="text-base font-semibold">{{ selectedItem.stock }}</span></Tag
                     >
                     <span v-else class="text-base font-semibold">{{ selectedItem.stock }}</span>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-3">Códigos</label>
+                    <ItemCodeList :codes="selectedItem.codes" :busy="busyItemIds.has(selectedItem.id)" @remove="(code) => removeCode(selectedItem, code)" />
                 </div>
 
                 <div>

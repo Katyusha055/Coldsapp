@@ -116,7 +116,7 @@ async function doDeleteClient() {
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
-                    <Button label="Nuevo Cliente" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
+                    <Button label="Nuevo Cliente" icon="pi pi-plus" @click="nav.openNew()" />
                 </template>
             </Toolbar>
 

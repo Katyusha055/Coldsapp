@@ -31,6 +31,11 @@ const router = createRouter({
                     component: () => import('@/views/Inventory.vue')
                 },
                 {
+                    path: '/inventory/scan',
+                    name: 'inventoryScan',
+                    component: () => import('@/views/InventoryScan.vue')
+                },
+                {
                     path: '/whatsapp',
                     name: 'whatsapp',
                     component: () => import('@/views/Whatsapp.vue')
