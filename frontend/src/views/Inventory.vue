@@ -6,6 +6,7 @@ import { handleAuthError } from '@/services/AuthService.js';
 import { useInventoryStore, isNegativeStock, isLowStock, hasStockAlert } from '@/stores/inventory.js';
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
+import ItemCodeList from '@/components/ItemCodeList.vue';
 import { formatDate, movementTypeLabel } from '@/utils/format.js';
 import { hasTouchScreen } from '@/utils/device.js';
 
@@ -460,13 +461,7 @@ async function doDeactivate() {
 
                 <div>
                     <label class="block font-bold mb-3">Códigos</label>
-                    <span v-if="selectedItem.codes.length === 0" class="italic text-surface-500">Sin códigos.</span>
-                    <ul v-else class="flex flex-col gap-2 m-0 p-0 list-none">
-                        <li v-for="code in selectedItem.codes" :key="code" class="flex items-center justify-between gap-4">
-                            <span class="font-mono">{{ code }}</span>
-                            <Button label="Quitar" icon="pi pi-times" text severity="danger" :disabled="busyItemIds.has(selectedItem.id)" @click="removeCode(selectedItem, code)" />
-                        </li>
-                    </ul>
+                    <ItemCodeList :codes="selectedItem.codes" :busy="busyItemIds.has(selectedItem.id)" @remove="(code) => removeCode(selectedItem, code)" />
                 </div>
 
                 <div>

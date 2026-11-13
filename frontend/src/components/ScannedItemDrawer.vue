@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { handleAuthError } from '@/services/AuthService.js';
 import { useInventoryStore, isNegativeStock, isLowStock } from '@/stores/inventory.js';
+import ItemCodeList from '@/components/ItemCodeList.vue';
 
 // A phone drawer for the item a scan found: only what you do with a part in
 // hand (see and change its stock, fix its codes). Everything else is on the
@@ -145,13 +146,7 @@ function seeInInventory() {
 
             <div>
                 <span class="block font-bold mb-3">Códigos</span>
-                <span v-if="item.codes.length === 0" class="italic text-surface-500">Sin códigos.</span>
-                <ul v-else class="flex flex-col gap-2 m-0 p-0 list-none">
-                    <li v-for="code in item.codes" :key="code" class="flex items-center justify-between gap-4">
-                        <span class="font-mono text-lg">{{ code }}</span>
-                        <Button label="Quitar" icon="pi pi-times" text severity="danger" :disabled="busy" @click="removeCode(code)" />
-                    </li>
-                </ul>
+                <ItemCodeList :codes="item.codes" :busy="busy" large @remove="removeCode" />
             </div>
         </div>
 
