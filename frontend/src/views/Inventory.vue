@@ -7,6 +7,7 @@ import { useInventoryStore, isNegativeStock, isLowStock, hasStockAlert } from '@
 import { useDrawerNavigation } from '@/composables/useDrawerNavigation.js';
 import EntityDrawer from '@/components/EntityDrawer.vue';
 import { formatDate, movementTypeLabel } from '@/utils/format.js';
+import { hasTouchScreen } from '@/utils/device.js';
 
 // Same cap the backend applies to every quantity, count and threshold.
 // The number fields have no :max on purpose: InputNumber silently clamps to it
@@ -140,6 +141,14 @@ async function refreshInventory() {
     } catch (err) {
         handleError(err);
     }
+}
+
+// On a PC the scanner opens in a new tab, so the inventory stays open beside
+// it; changes made there show here after "Actualizar". On a phone it opens in
+// the same tab, so tabs don't pile up.
+function openScanner() {
+    if (hasTouchScreen()) router.push({ name: 'inventoryScan' });
+    else window.open(router.resolve({ name: 'inventoryScan' }).href, '_blank', 'noopener');
 }
 
 function onRowClick(event) {
@@ -324,7 +333,7 @@ async function doDeactivate() {
                 <template #start>
                     <div class="flex flex-wrap gap-2">
                         <Button label="Nuevo artículo" icon="pi pi-plus" severity="secondary" @click="nav.openNew()" />
-                        <Button label="Escanear código" icon="pi pi-camera" severity="secondary" @click="router.push({ name: 'inventoryScan' })" />
+                        <Button label="Escanear código" icon="pi pi-camera" severity="secondary" @click="openScanner" />
                     </div>
                 </template>
                 <template #end>

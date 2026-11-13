@@ -7,6 +7,7 @@ import { getItemByCode } from '@/services/BarcodeService.js';
 import { useInventoryStore } from '@/stores/inventory.js';
 import { useBarcodeScanner } from '@/composables/useBarcodeScanner.js';
 import ScannedItemDrawer from '@/components/ScannedItemDrawer.vue';
+import { hasTouchScreen } from '@/utils/device.js';
 
 // Same limits as the backend: item name, quantities, and raw code input.
 const MAX_NAME_LENGTH = 200;
@@ -22,7 +23,7 @@ const scanner = useBarcodeScanner(video);
 const chosenDeviceId = ref(null);
 
 // A soft hint only: a laptop with a movable autofocus webcam also works.
-const hasTouchScreen = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+const isTouchDevice = hasTouchScreen();
 
 const loadError = ref('');
 const lookupBusy = ref(false);
@@ -215,7 +216,7 @@ async function createWithCode() {
                 <Button v-if="scanner.torchSupported.value" :label="scanner.torchOn.value ? 'Apagar linterna' : 'Linterna'" icon="pi pi-sun" :outlined="!scanner.torchOn.value" severity="secondary" @click="scanner.toggleTorch()" />
             </div>
 
-            <small v-if="!hasTouchScreen && !scanner.error.value" class="text-surface-500">El escaneo funciona mejor desde el celular.</small>
+            <small v-if="!isTouchDevice && !scanner.error.value" class="text-surface-500">El escaneo funciona mejor desde el celular.</small>
 
             <div>
                 <label for="typed-code" class="block font-bold mb-2">O escribe el código</label>
